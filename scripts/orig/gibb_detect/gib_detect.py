@@ -4,6 +4,8 @@ import pickle
 import math
 import pickle
 
+import os.path
+
 accepted_chars = 'abcdefghijklmnopqrstuvwxyz '
 
 model_data = pickle.load(open('gib_model.pki', 'rb'))
@@ -33,7 +35,8 @@ def train():
 
     # Count transitions from big text file, taken 
     # from c
-    for line in open('/home/radmin/temp/py-code/big.txt'):
+    # for line in open('/home/radmin/temp/py-code/big.txt'):
+    for line in open(os.getcwd() + '/gibb_detect/big.txt'):
         for a, b in ngram(2, line):
             counts[pos[a]][pos[b]] += 1
 
@@ -49,8 +52,10 @@ def train():
 
     # Find the probability of generating a few arbitrarily choosen good and
     # bad phrases.
-    good_probs = [avg_transition_prob(l, counts) for l in open('/home/radmin/temp/py-code/good.txt')]
-    bad_probs = [avg_transition_prob(l, counts) for l in open('/home/radmin/temp/py-code/bad.txt')]
+    # good_probs = [avg_transition_prob(l, counts) for l in open('/home/radmin/temp/py-code/good.txt')]
+    # bad_probs = [avg_transition_prob(l, counts) for l in open('/home/radmin/temp/py-code/bad.txt')]
+    good_probs = [avg_transition_prob(l, counts) for l  in open(os.getcwd() + '/gibb_detect/good.txt')]
+    bad_probs = [avg_transition_prob(l, counts) for l in open(os.getcwd() + '/gibb_detect/bad.txt')]
 
     # Assert that we actually are capable of detecting the junk.
     assert min(good_probs) > max(bad_probs)
