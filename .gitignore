@@ -1,3 +1,14 @@
-/data/input/*
-/data/output/*
-/luba_gloukhova_docket/*
+data/
+luba_gloukhova_docket/
+.RData
+.Rhistory
+.RDataTmp
+.RDataTmp
+*/*/.RDataTmp
+*/*/.Rhistory
+*/*/RData
+*/*/.RData
+*.RData
+*.RDataTmp
+*.Rhistory
+scripts/orig/.RDataTmp
