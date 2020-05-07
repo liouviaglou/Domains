@@ -229,9 +229,11 @@ mass_prep_data<-function(domain_data) {
 prep_domain_data<-function(domain_data) {
   domain_data<-basic_prep_domain_data(domain_data)
   # python.load("/home/radmin/npv_project/gibb_detect/gib_detect.py",TRUE)
+  # 
   
-  python.load("./gibb_detect/gib_detect.py",TRUE)
+  python.load("../orig/gibb_detect/gib_detect.py",TRUE)
   
+  # 
   #Get Gibberish Scores for all SLDs
   
   domain_data$gibb_score<-mapply(python.call, "gibberish_test", domain_data$sld)

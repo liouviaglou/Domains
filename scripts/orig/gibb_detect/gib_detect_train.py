@@ -32,7 +32,7 @@ def train():
     # Count transitions from big text file, taken 
     # from c
 #     for line in open('/home/radmin/temp/py-code/big.txt'):
-    for line in open(os.getcwd() + '/gibb_detect/big.txt'):
+    for line in open('/Users/lubagloukhov/Documents/Consulting/Radix/Domains_202003/scripts/orig/gibb_detect/big.txt'):
         for a, b in ngram(2, line):
             counts[pos[a]][pos[b]] += 1
 
@@ -50,8 +50,9 @@ def train():
     # bad phrases.
 #     good_probs = [avg_transition_prob(l, counts) for l  in open('/home/radmin/temp/py-code/good.txt')]
 #     bad_probs = [avg_transition_prob(l, counts) for l in open('/home/radmin/temp/py-code/bad.txt')]
-    good_probs = [avg_transition_prob(l, counts) for l  in open(os.getcwd() + '/gibb_detect/good.txt')]
-    bad_probs = [avg_transition_prob(l, counts) for l in open(os.getcwd() + '/gibb_detect/bad.txt')]
+    good_probs = [avg_transition_prob(l, counts) for l  in open('/Users/lubagloukhov/Documents/Consulting/Radix/Domains_202003/scripts/orig/gibb_detect/good.txt')]
+    bad_probs = [avg_transition_prob(l, counts) for l in open('/Users/lubagloukhov/Documents/Consulting/Radix/Domains_202003/scripts/orig/gibb_detect/bad.txt')]
+
 
     # Assert that we actually are capable of detecting the junk.
     assert min(good_probs) > max(bad_probs)

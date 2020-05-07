@@ -69,7 +69,7 @@ predict_first_renewal<-function(test_data, model){
                                                            sld_type, 
                                                            day_domains,
                                                            reg_period)),type='response');
-  
+  # had to comment out the following to get predition list to work
   test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
   test_data$first_renewal_prediction<-round(test_data$first_renewal_prediction,3)
   return(test_data)
@@ -86,7 +86,7 @@ list_predict_first_renewal<-function(tld_registrar,test_data, data_models) {
   #new.tld.registrar<-paste("site_",registrar.name,sep="")
   #new.tld.registrar<-gsub("\\s+","_",new.tld.registrar)
   #model<-data.models[[new.tld.registrar]]
-  
+  print(tld_registrar)
   ########END:for substitute TLD#######################
   tld_registrar_data<-test_data[[tld_registrar]]
   model<-data_models[[tld_registrar]]
@@ -101,7 +101,7 @@ list_predict_first_renewal<-function(tld_registrar,test_data, data_models) {
 # data_models = first_renewal_model 
 
 mass_predict_first_renewal<-function(test_data, data_models) {
-  # tld_registrar_list<-names(test_data)
+  tld_registrar_list<-names(test_data)
   prediction_list<-pblapply(tld_registrar_list, function(i) list_predict_first_renewal(i, test_data, data_models))
   prediction_list<-prediction_list[!is.na(prediction_list)]
   prediction_op<-rbindlist(prediction_list)

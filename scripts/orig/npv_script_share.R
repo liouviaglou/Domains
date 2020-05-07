@@ -22,11 +22,26 @@ library(cluster)
 library(dbplyr)
 library(magrittr)
 
+# decision tree
+# install.packages("party")
+# install.packages("partykit")
+# install.packages("rpart")
+# install.packages("caret")
+# install.packages("e1071")
+
+library(party)
+library(partykit)
+library(rpart)
+library(caret) 
+library(e1071)
+
+
 #############Needs Python###############
 getwd()
+setwd("/Users/lubagloukhov/Documents/Consulting/Radix/Domains_202003/scripts/orig")
 
 
-python.load("./gibb_detect/gib_detect_train.py",TRUE)
+python.load("../orig/gibb_detect/gib_detect_train.py",TRUE)
 
 
 ###############Source Functions#####################
@@ -43,6 +58,14 @@ standard_renewal_prices<-readRDS("../../data/input/npv/standard_renewal_prices")
 
 
 test_data<-readRDS("../../data/input/npv/test_data")
+test_data_prepped<-readRDS("../../data/input/npv/test_data_prepped")
+test_data_op<-readRDS("../../data/input/npv/test_data_op")
+
+
+
+first_renewal_model <- readRDS("../../data/output/npv/first_renewal_model")
+train_data <- readRDS("../../data/output/npv/first_renewal_preds")
+output.tree <- load("../../data/output/npv/first_renewal_tree")
 
 ###############Summary files#####################
 
@@ -99,38 +122,194 @@ renewal_training_data_first<-renewal_training_data %>%
 renewal_training_data_first<-mass_prep_data(renewal_training_data_first)
 
 first_renewal_model<-mass_build_model_first_renewal(renewal_training_data_first)
+
+# Examine & save first renewal model
+# saveRDS(first_renewal_model, "../../data/output/npv/first_renewal_model")
+
+summary(first_renewal_model)
+first_renewal_model$fungmo
+
+# generate predictions on training data
+tld_registrar_list<-names(renewal_training_data_first)
+prediction_list<-pblapply(tld_registrar_list, function(i) list_predict_first_renewal(i, renewal_training_data_first, first_renewal_model))
+prediction_list<-prediction_list[!is.na(prediction_list)]
+prediction_op<-rbindlist(prediction_list)
+train_data<-rbindlist(renewal_training_data_first)
+train_data$first_renewal_prediction<-prediction_op$probabilities[match(train_data$domain_id,
+                                                                      prediction_op$domain_id)]
+
+getwd()
+setwd("/Users/lubagloukhov/Documents/Consulting/Radix/Domains_202003/scripts/orig")
+# saveRDS(train_data, "../../data/output/npv/first_renewal_preds")
+# train_data <- readRDS("../../data/output/npv/first_renewal_preds")
+
+
+# confusion matrices
+# true values on the left margin and predicted values on the top margin
+prediction <- ifelse(train_data$first_renewal_prediction > 0.5, TRUE, FALSE)
+actuality <- ifelse(train_data$renewal_status == "Renewed", TRUE, FALSE)
+confusion  <- table(actuality, prediction)
+confusion <- cbind(confusion,
+                   c(1 - confusion[1,1] / rowSums(confusion)[1],
+                     1 - confusion[2,2] / rowSums(confusion)[2]))
+confusion <- as.data.frame(confusion)
+names(confusion) <- c('FALSE', 'TRUE', 'class.error')
+
+confusionMatrix(table(prediction, actuality), positive = "TRUE")
+
+# accuracy
+(sum(prediction==actuality)) / length(actuality)
+# [1] 0.8888046
+mean(prediction==actuality) * 100
+## [1] 88.88046
+# Ok, Above misclassification error rate is 88.88046% and other way to say is Model is 11.11% accurate.
+
+# confusion  <- table(prediction, actuality)
+# confusion  <- cbind(confusion, c(1 - confusion[1,1]/(confusion[1,1]+confusion[2,1]), 1 - confusion[2,2]/(confusion[2,2]+confusion[1,2])))
+# confusion  <- as.data.frame(confusion)
+# names(confusion) <- c('FALSE', 'TRUE', 'class.error')
+# confusion
+
+png(file = "../../data/output/npv/first_renewal_dtree_032120_01.png")
+
+# Create the tree.
+predictors <- c("tld", "reseller",
+                "pattern_domain_count", 
+                "log_reg_arpt",
+                "sld_length", 
+                "gibb_score",
+                "sld_type", 
+                "day_domains",
+                "reg_period")
+response <- "renewal_status"
+setdiff(predictors, names(train_data))
+paste(response, paste(predictors, collapse=" + "), sep=" ~ ")
+output.tree <- ctree(renewal_status ~ pattern_domain_count + log_reg_arpt + sld_length + gibb_score + sld_type + day_domains + reg_period, 
+  data = train_data)
+# Plot the tree.
+plot(output.tree)
+# Save the file.
+dev.off()
+
+# save(output.tree, file="../../data/output/npv/first_renewal_tree")
+
+t_predict <- predict(output.tree, train_data)
+t_prediction <- ifelse(t_predict=="Renewed", TRUE, FALSE)
+actuality <- ifelse(train_data$renewal_status == "Renewed", TRUE, FALSE)
+t_confusion  <- table(actuality, t_prediction)
+t_confusion <- cbind(t_confusion,
+                   c(1 - t_confusion[1,1] / rowSums(t_confusion)[1],
+                     1 - t_confusion[2,2] / rowSums(t_confusion)[2]))
+t_confusion <- as.data.frame(t_confusion)
+names(t_confusion) <- c('FALSE', 'TRUE', 'class.error')
+
+# rsq?
+t_rss <- sum((t_prediction - actuality) ^ 2)
+t_tss <- sum((actuality - mean(actuality)) ^ 2)
+t_rsq <- 1 - t_rss/t_tss
+
+# accuracy
+(sum(t_prediction==actuality)) / length(actuality)
+# [1] 0.8905936
+mean(t_prediction==actuality) * 100
+## [1] 89.05936
+# Ok, Above misclassification error rate is 89.05936# and other way to say is Model is 11% accurate.
+
+
+confusionMatrix(table(t_prediction, actuality), positive = "TRUE")
+
+
+
+## maxdepth5
+output.tree_md5 <- ctree(renewal_status ~ pattern_domain_count + log_reg_arpt + sld_length + gibb_score + sld_type + day_domains + reg_period, data = train_data, maxdepth = 5, alpha)
+png(file = "../../data/output/npv/first_renewal_dtree_md5_032220_01.png")
+# Plot the tree.
+plot(output.tree_md5)
+# Save the file.
+dev.off()
+# Save RObj
+# save(output.tree_md5, file="../../data/output/npv/first_renewal_tree_md5")
+
+#simpler viz's
+png(file = "../../data/output/npv/first_renewal_dtree_md5_032220_02.png")
+st <- as.simpleparty(output.tree_md5)
+plot(st)
+dev.off()
+
+png(file = "../../data/output/npv/first_renewal_dtree_md5_032220_03.png",
+    width = 2000, height = 750,)
+myfun <- function(i) c(
+  as.character(i$prediction),
+  paste("n =", i$n),
+  format(round(i$distribution/i$n, digits = 3), nsmall = 3)
+)
+plot(st, tp_args = list(FUN = myfun), ep_args = list(justmin = 20))
+dev.off()
+
+t_predict_md5 <- predict(output.tree_md5, train_data)
+t_prediction_md5 <- ifelse(t_predict_md5=="Renewed", TRUE, FALSE)
+actuality <- ifelse(train_data$renewal_status == "Renewed", TRUE, FALSE)
+t_confusion_md5  <- table(actuality, t_prediction_md5)
+t_confusion_md5 <- cbind(t_confusion_md5,
+                     c(1 - t_confusion_md5[1,1] / rowSums(t_confusion_md5)[1],
+                       1 - t_confusion_md5[2,2] / rowSums(t_confusion_md5)[2]))
+t_confusion_md5 <- as.data.frame(t_confusion_md5)
+names(t_confusion_md5) <- c('FALSE', 'TRUE', 'class.error')
+
+# rsq?
+t_rss <- sum((t_prediction - actuality) ^ 2)
+t_tss <- sum((actuality - mean(actuality)) ^ 2)
+t_rsq <- 1 - t_rss/t_tss
+
+# accuracy
+(sum(t_prediction_md5==actuality)) / length(actuality)
+# [1] 0.8905936
+mean(t_prediction_md5==actuality) * 100
+## [1] 89.05936
+# Ok, Above misclassification error rate is 89.05936# and other way to say is Model is 11.04% accurate.
+
+
+st <- as.simpleparty(ct)
+plot(st)
+
+myfun <- function(i) c(
+  as.character(i$prediction),
+  paste("n =", i$n),
+  format(round(i$distribution/i$n, digits = 3), nsmall = 3)
+)
+plot(st, tp_args = list(FUN = myfun), ep_args = list(justmin = 20))
+
 #############################build second renewal model##############
-
-renewal_training_data_second<-renewal_training_data %>% 
-  dplyr::filter(renewal_type == "Second")
-
-second_renewal_model<-mass_build_model_second_renewal(split(renewal_training_data_second, 
-                                                            renewal_training_data_second$tld_registrar_index))
+# 
+# renewal_training_data_second<-renewal_training_data %>% 
+#   dplyr::filter(renewal_type == "Second")
+# 
+# second_renewal_model<-mass_build_model_second_renewal(split(renewal_training_data_second, 
+#                                                             renewal_training_data_second$tld_registrar_index))
 
 
 #########################Build a simplified third renewal reference table###############
-
-third_renewal_model<-renewal_training_data %>%
-  filter(renewal_type == "Subsequent") %>%
-  group_by(tld, registrar, reseller) %>%
-  summarise(expiring_domains = length(domain),
-            renewed_domains = length(domain[renewal_status %in% c("Renewed", "Transfered")])) %>%
-  mutate(renewal_rate = round(renewed_domains/expiring_domains,3),
-         tld_registrar_index = paste(tld, reseller, sep = ""))
+# 
+# third_renewal_model<-renewal_training_data %>%
+#   filter(renewal_type == "Subsequent") %>%
+#   group_by(tld, registrar, reseller) %>%
+#   summarise(expiring_domains = length(domain),
+#             renewed_domains = length(domain[renewal_status %in% c("Renewed", "Transfered")])) %>%
+#   mutate(renewal_rate = round(renewed_domains/expiring_domains,3),
+#          tld_registrar_index = paste(tld, reseller, sep = ""))
 
 ##############predict first renewal##############
 
-test_data_prepped<-mass_prep_data(test_data)
+# test_data_prepped<-mass_prep_data(test_data)
 
-test_data_op<-mass_predict_first_renewal(test_data_prepped, first_renewal_model)
+# test_data_op<-mass_predict_first_renewal(test_data_prepped, first_renewal_model)
 
 
-test_data_op<-mass_predict_second_renewal(split(test_data_op, 
+sptest_data_op<-mass_predict_second_renewal(split(test_data_op, 
                                              test_data_op$tld_registrar_index), 
                                        second_renewal_model)
 
-test_data_op$third_renewal_prediction<-third_renewal_model$renewal_rate[match(test_data_op$tld_registrar_index,
-                                                                              third_renewal_model$tld_registrar_index)]
+test_data_op$third_renewal_prediction<-third_renewal_model$renewal_rate[match(test_data_op$tld_registrar_index, third_renewal_model$tld_registrar_index)]
 
 test_data_op<-test_data_op %>%
   mutate(renewal_price_index = paste(tld, registrar, reseller, sep = ""))
@@ -147,8 +326,7 @@ test_data_op<-test_data_op %>%
 
 standard_renewal_prices<-readRDS("/home/radmin/npv_project/standard_renewal_prices")
 test_data_op$projected_renew_arpt[is.na(test_data_op$projected_renew_arpt)]<-
-  standard_renewal_prices$price[match(test_data_op$std_renewal_price_index[is.na(test_data_op$projected_renew_arpt)], 
-                                      standard_renewal_prices$index)]
+  standard_renewal_prices$price[match(test_data_op$std_renewal_price_index[is.na(test_data_op$projected_renew_arpt)], standard_renewal_prices$index)]
 
 
 
