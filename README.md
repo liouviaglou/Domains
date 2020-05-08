@@ -6,10 +6,31 @@
 |----------|----------|--------|
 | March    | 3.0h     | preliminary exploration     |
 | 20200507 | 1.5h     | additional data exploration |
-|   |   |   |   |   |
+| 20200507 | 1.5h     | assumption verificication   |   
+| 20200508 | 1.0h     | assumption verificication   |   
 
 
 ## Lab Notebook 
+
+### 20200507_02
+
+NPV model is specified as glm with family set to binomial (& link = 'logit' -- the default for binomial).
+
+Logistic Reg Assumptions
+1. The outcome is a binary or dichotomous variable like yes vs no, positive vs negative, 1 vs 0.
+  a. Yup! 
+  > summary(train_data$renewal_status)
+    Not Renewd    Renewed 
+       1729907     219175 
+2. There is a linear relationship between the logit of the outcome and each predictor variables -- visually inspecting the scatter plot between each predictor and the logit values.
+3. There is no influential values (extreme values or outliers) in the continuous predictors
+4. There is no high intercorrelations (i.e. multicollinearity) among the predictors.
+
+- what about unbalanced classes? First renewal rate only 11.25% for initial dataset
+- regularization?
+- compare varimp in d-tree with those of glm -- maybe varimp across tld_registrar_index are approx the same 
+- could be that dtree does just as well as segmented glm, without the overhead
+- can improve with random forest,
 
 ### 20200507
 
