@@ -185,9 +185,13 @@ var = "websitegmo"
 summary(first_renewal_model[[var]]$residuals)
 sum(is.na(first_renewal_model[[var]]$residuals))
 
+summary_glm = summary(first_renewal_model[[var]])
+round( 1 - ( summary_glm$deviance / summary_glm$null.deviance ), 2 )
+
 
 summary(first_renewal_model[[var]]$df.residuals)
 sum(is.na(first_renewal_model[[var]]$residuals))
+# only 3% of the variance is explained 
 
 plot(first_renewal_model[[var]])#, which = 4, id.n = 3)
 cooks.distance(first_renewal_model[[var]])
@@ -229,17 +233,31 @@ model.data %>%
 
 # Multicollinearity is an important issue in regression analysis and should be fixed by removing the concerned variables. It can be assessed using the R function vif() [car package], which computes the variance inflation factors:
 
-for (var in names(first_renewal_model)){
+names_list <- names(first_renewal_model)
+problems <- c("hostgmo", "storegmo")
+names_list <- names_list[names_list != "hostgmo"]
+names_list <- names_list[names_list != "storegmo"]
+
+for (var in names_list){
   print(var)
-  try(test_df = as.data.frame(car::vif(first_renewal_model[[var]])))
-  try(test_res = filter(test_df, GVIF>=5))
-  try(if( dim(test_res)>0){
-    print(test_res)
-  })
+  test_df = as.data.frame(car::vif(first_renewal_model[[var]], 
+                                   singular.ok=TRUE))
+  print(test_df)
 }
+>10 "pwgo daddy" sld_type
 
   
 ## pregnant  glucose pressure  triceps  insulin     mass pedigree      age 
 ##     1.89     1.38     1.19     1.64     1.38     1.83     1.03     1.97
 
 # As a rule of thumb, a VIF value that exceeds 5 or 10 indicates a problematic amount of collinearity. In our example, there is no collinearity: all variables have a value of VIF well below 5.
+
+
+# Accuracy fallacy
+
+train <- readRDS("../../data/output/dtree/train")
+test <- readRDS("../../data/output/dtree/test")
+
+test_df = rbindlist(test)
+prop.table( table( test_df$renewal_status ) )
+

@@ -8,6 +8,7 @@
 | 20200507 | 1.5h     | additional data exploration |
 | 20200507 | 1.5h     | assumption verificication   |   
 | 20200508 | 1.0h     | assumption verificication   |   
+| 20200509 | 1.0h     | plan (gslides)   |   
 
 
 ## Lab Notebook 
