@@ -8,10 +8,27 @@
 | 20200507 | 1.5h     | additional data exploration |
 | 20200507 | 1.5h     | assumption verificication   |   
 | 20200508 | 1.0h     | assumption verificication   |   
-| 20200509 | 1.0h     | plan (gslides)   |   
+| 20200509 | 1.0h     | plan (gslides)   |    
+| 20200512 | 3.5h     | plan, compare   |   
+
+11.5h
 
 
 ## Lab Notebook 
+
+### 20200512
+
+Final comparison of orig npv model to decision tree w/ and w/o tld & registrar/reseller
+
+|                                 | Sensitivity  |             | Specificity  |             |
+|---------------------------------|--------------|-------------|--------------|-------------|
+|                                 | Full Dataset | Tr/Te split | Full Dataset | Tr/Te split |
+| Orig sgmented glm               | 0.064040     | 0.079730    | 0.993300     | 0.990430    |
+| DTree (no tld_reg)              | 0.038978     | 0.044921    | 0.996416     | 0.995603    |
+| DTree (w tld_reg)               | 0.032527     | 0.029909    | 0.997084     | 0.997385    |
+| DTree (no tld_reg) weighted_8_1 |              | 0.921800    |              | 0.282800    |
+| DTree (no tld_reg) weighted_4_3 |              | 0.085941    |              | 0.988123    |
+| DTree (w tld_reg) weighted_4_3  |              | 0.082676    |              | 0.989436    |
 
 ### 20200507_02
 
