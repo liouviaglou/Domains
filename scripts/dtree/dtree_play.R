@@ -115,7 +115,7 @@ test <- readRDS("../../data/output/dtree/test")
 train_df <- rbindlist(train)
 test_df <- rbindlist(test)
 
-######Predit & Calc Accuracy###########
+######Predict & Calc Accuracy###########
 # first_renewal_model_test_predict <- mass_predict_first_renewal(
 #                             test, first_renewal_model_train)
 # saveRDS(first_renewal_model_test_predict, 
@@ -212,45 +212,110 @@ confusionMatrix(table(first_dtree_md5_W2_test_predict,
 
 ###############First DTree model#####################
 ##############Max Depth 5 - EZ Viz####################
+##########Train & Test on Full Datast##################
 
 
-paste(response, paste(predictors, collapse=" + "), sep=" ~ ")
-
-
-output.tree_md5 <- ctree(renewal_status ~ pattern_domain_count + 
-                           log_reg_arpt + sld_length + gibb_score + 
-                           sld_type + day_domains + reg_period, 
-                         data = train_data, maxdepth = 5)
-
-png(file = "../../data/output/npv/first_renewal_dtree_md5_032420_01.png",
-    width = 2000, height = 750,)
-# Plot the tree.
-plot(output.tree_md5)
-# Save the file.
-dev.off()
+# paste(response, paste(predictors, collapse=" + "), sep=" ~ ")
+# 
+# 
+# output.tree_md5 <- ctree(renewal_status ~ pattern_domain_count + 
+#                            log_reg_arpt + sld_length + gibb_score + 
+#                            sld_type + day_domains + reg_period, 
+#                          data = train_data, maxdepth = 5)
+# 
+# png(file = "../../data/output/npv/first_renewal_dtree_md5_032420_01.png",
+#     width = 2000, height = 750,)
+# # Plot the tree.
+# plot(output.tree_md5)
+# # Save the file.
+# dev.off()
 # Save RObj
 # save(output.tree_md5, file="../../data/output/npv/first_renewal_tree_md5")
 
+load("../../data/output/npv/first_renewal_tree_md5")
+
 #simpler viz's
-png(file = "../../data/output/npv/first_renewal_dtree_md5_032420_02.png",
-    width = 2000, height = 750,)
-st <- as.simpleparty(output.tree_md5)
-plot(st)
-dev.off()
+# png(file = "../../data/output/npv/first_renewal_dtree_md5_032420_02.png",
+#     width = 2000, height = 750,)
+# st <- as.simpleparty(output.tree_md5)
+# plot(st)
+# dev.off()
 
-png(file = "../../data/output/npv/first_renewal_dtree_md5_032420_03.png",
-    width = 2000, height = 750,)
-myfun <- function(i) c(
-  as.character(i$prediction),
-  paste("n =", i$n),
-  format(round(i$distribution/i$n, digits = 3), nsmall = 3)
-)
-plot(st, tp_args = list(FUN = myfun), ep_args = list(justmin = 20))
-dev.off()
+# png(file = "../../data/output/npv/first_renewal_dtree_md5_032420_03.png",
+#     width = 2000, height = 750,)
+# myfun <- function(i) c(
+#   as.character(i$prediction),
+#   paste("n =", i$n),
+#   format(round(i$distribution/i$n, digits = 3), nsmall = 3)
+# )
+# plot(st, tp_args = list(FUN = myfun), ep_args = list(justmin = 20))
+# dev.off()
 
-# prediction & confuson matrix
+# prediction & confuson matrix -- full datatse
 t_predict_md5 <- predict(output.tree_md5, train_data)
 confusionMatrix(table(t_predict_md5, train_data$renewal_status), positive = "Renewed")
+
+# t_predict_md5 Not Renewd Renewed
+# Not Renewd       1723716  210634
+# Renewed             6191    8541
+
+# Sensitivity : 0.038969        
+# Specificity : 0.996421 
+
+###############First DTree model#####################
+##############Max Depth 5 - EZ Viz####################
+##########Train on train, Test on test##################
+
+
+
+# paste(response, paste(predictors, collapse=" + "), sep=" ~ ")
+# 
+# 
+# output.tree_md5_tt <- ctree(renewal_status ~ pattern_domain_count +
+#                            log_reg_arpt + sld_length + gibb_score +
+#                            sld_type + day_domains + reg_period,
+#                          data = train_df, maxdepth = 5)
+# 
+# png(file = "../../data/output/npv/first_renewal_dtree_md5_032420_tt.png",
+#     width = 2000, height = 750,)
+# # Plot the tree.
+# plot(output.tree_md5_tt)
+# # Save the file.
+# dev.off()
+# # Save RObj
+# save(output.tree_md5_tt, file="../../data/output/npv/first_renewal_tree_md5_tt")
+
+load("../../data/output/npv/first_renewal_tree_md5_tt")
+
+#simpler viz's
+# png(file = "../../data/output/npv/first_renewal_dtree_md5_032420_02.png",
+#     width = 2000, height = 750,)
+# st <- as.simpleparty(output.tree_md5)
+# plot(st)
+# dev.off()
+
+# png(file = "../../data/output/npv/first_renewal_dtree_md5_032420_03.png",
+#     width = 2000, height = 750,)
+# myfun <- function(i) c(
+#   as.character(i$prediction),
+#   paste("n =", i$n),
+#   format(round(i$distribution/i$n, digits = 3), nsmall = 3)
+# )
+# plot(st, tp_args = list(FUN = myfun), ep_args = list(justmin = 20))
+# dev.off()
+
+# prediction & confuson matrix -- test dataset
+t_predict_md5_tt <- predict(output.tree_md5_tt, test_df)
+confusionMatrix(table(t_predict_md5_tt, test_df$renewal_status), positive = "Renewed")
+
+# t_predict_md5_tt Not Renewd Renewed
+# Not Renewd           344197   42119
+# Renewed                1520    1981
+
+# Sensitivity : 0.044921       
+# Specificity : 0.995603  
+
+
 
 ###############First DTree model#####################
 ############## including reseller####################
