@@ -155,37 +155,125 @@ confusionMatrix(table(first_renewal_model_test_predBin,
 #############Decision Trees###################
 ##############################################
 
-###########Super Simple & Shallow#################
+###########All variables & Shallow#################
 
-# Same variables as segmented glms 
-# (no tls & reseller/registrar)
 # Limited depth of 5
-# train & test on full dataset (train_data)
+# train on train, test on test
 
-# outputtree_01 <- ctree(renewal_status ~ pattern_domain_count +
-#                            log_reg_arpt + sld_length + gibb_score +
-#                            sld_type + day_domains + reg_period,
-#                          data = train_data, maxdepth = 5)
-# 
-# png(file = "../../data/output/dtree2/output_tree_01.png",
-#     width = 2000, height = 750)
-# plot(outputtree_01)
-# dev.off()
-# save(outputtree_01, file="../../data/output/dtree2/output_tree_01")
+names(train_df)[sapply(train_df, is.character)]
 
-load("../../data/output/dtree2/output_tree_01")
+train_df_f <- train_df %>%
+  mutate_if(sapply(train_df, is.character), as.factor)
+
+names(train_df_f)[sapply(train_df_f, is.character)]
+
+train_df_f$renew_Y <- format(as.Date(train_df_f$renew_date, 
+                                     format="%Y-%m-%d"),"%Y")
+train_df_f$creation_Y <- format(as.Date(train_df_f$creation_date, 
+                                        format="%Y-%m-%d"),"%Y")
+train_df_f$expiry_Y <- format(as.Date(train_df_f$expiry_date, 
+                                      format="%Y-%m-%d"),"%Y")
+train_df_f$renew_M <- format(as.Date(train_df_f$renew_date, 
+                                     format="%Y-%m-%d"),"%m")
+train_df_f$creation_M <- format(as.Date(train_df_f$creation_date, 
+                                        format="%Y-%m-%d"),"%m")
+train_df_f$expiry_M <- format(as.Date(train_df_f$expiry_date, 
+                                      format="%Y-%m-%d"),"%m")
+
+train_df_f <- subset(train_df_f, select = -c(renew_date,
+                                             creation_date,
+                                             expiry_date))
+train_df_f <- subset(train_df_f, select = -c(sld,
+                                             pattern,
+                                             domain))
+train_df_f <- subset(train_df_f, select = -c(sld_type2,
+                                             tld_registrar_index,
+                                             renew_reseller,
+                                             renew_registrar))
+train_df_f <- subset(train_df_f, select = -c(renewal_type,
+                                           renewed_count,
+                                           renew_type,
+                                           autorenew_type,
+                                           renew_period,
+                                           renew_arpt))
+train_df_f <- subset(train_df_f, select = -c(renew_domain_revenue,
+                                           status))
+train_df_f <- subset(train_df_f, select = -c(first_renewal_prediction,
+                                             domain_id))
+test_df_f <- test_df %>%
+  mutate_if(sapply(test_df, is.character), as.factor)
+
+names(test_df_f)[sapply(test_df_f, is.character)]
+
+test_df_f$renew_Y <- format(as.Date(test_df_f$renew_date, 
+                                     format="%Y-%m-%d"),"%Y")
+test_df_f$creation_Y <- format(as.Date(test_df_f$creation_date, 
+                                        format="%Y-%m-%d"),"%Y")
+test_df_f$expiry_Y <- format(as.Date(test_df_f$expiry_date, 
+                                      format="%Y-%m-%d"),"%Y")
+test_df_f$renew_M <- format(as.Date(test_df_f$renew_date, 
+                                     format="%Y-%m-%d"),"%m")
+test_df_f$creation_M <- format(as.Date(test_df_f$creation_date, 
+                                        format="%Y-%m-%d"),"%m")
+test_df_f$expiry_M <- format(as.Date(test_df_f$expiry_date, 
+                                      format="%Y-%m-%d"),"%m")
+
+test_df_f <- subset(test_df_f, select = -c(renew_date,
+                                             creation_date,
+                                             expiry_date))
+test_df_f <- subset(test_df_f, select = -c(sld,
+                                             pattern,
+                                             domain))
+test_df_f <- subset(test_df_f, select = -c(sld_type2,
+                                           tld_registrar_index,
+                                           renew_reseller,
+                                           renew_registrar))
+test_df_f <- subset(test_df_f, select = -c(renewal_type,
+                                           renewed_count,
+                                           renew_type,
+                                           autorenew_type,
+                                           renew_period,
+                                           renew_arpt))
+test_df_f <- subset(test_df_f, select = -c(autorenew_type,
+                                           renew_type,
+                                           renew_domain_revenue,
+                                           status))
+test_df_f <- subset(test_df_f, select = -c(first_renewal_prediction,
+                                           domain_id))
+
+test_data<-readRDS("../../data/input/npv/test_data")
+
+
+a <- c("a", "b", "c")
+b <- c("b", "c", "d")
+setdiff(names(train_df), names(test_data))
+
+setdiff(b, a)
+
+outputtree_01 <- ctree(renewal_status ~ .,
+                         data = train_df_f, maxdepth = 5)
+
+png(file = "../../data/output/dtree3/output_tree_01.png",
+    width = 2000, height = 750)
+plot(outputtree_01)
+dev.off()
+save(outputtree_01, file="../../data/output/dtree3/output_tree_01")
+
+load("../../data/output/dtree3/output_tree_01")
 
 # prediction & confuson matrix -- full datatse
-t_predict_01 <- predict(outputtree_01, train_data)
-confusionMatrix(table(t_predict_01, train_data$renewal_status), 
+t_predict_01 <- predict(outputtree_01, test_df_f)
+confusionMatrix(table(t_predict_01, test_df_f$renewal_status), 
                 positive = "Renewed")
 
 # t_predict_01 Not Renewd Renewed
-# Not Renewd    1723707  210632
-# Renewed          6200    8543
+# Not Renewd     344698   42638
+# Renewed          1019    1462
 
-# Sensitivity : 0.038978        
-# Specificity : 0.996416  
+# Sensitivity : 0.033152      
+# Specificity : 0.997053  
+
+# (compare to dtree2/outputtree_04)
 
 
 ###########Super Simple & Shallow#################
@@ -258,7 +346,7 @@ confusionMatrix(table(t_predict_03, train_data$renewal_status),
 # Same variables as segmented glms 
 # (incl. tld & reseller/registrar)
 # Limited depth of 5
-# train on train, test on test
+# train & test on full dataset (train_data)
 
 # outputtree_04 <- ctree(renewal_status ~ factor(tld) + factor(reseller) +
 #                                  pattern_domain_count + log_reg_arpt +
@@ -364,9 +452,9 @@ confusionMatrix(table(t_predict_05, test_df$renewal_status),
 W = ifelse(train_df$renewal_status=="Renewed", 4, 3) 
 
 outputtree_06 <- ctree(renewal_status ~ pattern_domain_count +
-                           log_reg_arpt + sld_length + gibb_score +
-                           sld_type + day_domains + reg_period,
-                         data = train_df, maxdepth = 5, weights=W)
+                         log_reg_arpt + sld_length + gibb_score +
+                         sld_type + day_domains + reg_period,
+                       data = train_df, maxdepth = 5, weights=W)
 
 png(file = "../../data/output/dtree2/outputtree_06.png",
     width = 2000, height = 750)
@@ -395,7 +483,7 @@ W = ifelse(train_df$renewal_status=="Renewed", 4, 3)
 
 outputtree_07 <- ctree(renewal_status ~ factor(tld) + factor(reseller) +
                          pattern_domain_count +
-                        log_reg_arpt + sld_length + gibb_score +
+                         log_reg_arpt + sld_length + gibb_score +
                          sld_type + day_domains + reg_period,
                        data = train_df, maxdepth = 5, weights=W)
 

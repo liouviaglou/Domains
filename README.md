@@ -9,7 +9,7 @@
 | 20200507 | 1.5h     | assumption verificication   |   
 | 20200508 | 1.0h     | assumption verificication   |   
 | 20200509 | 1.0h     | plan (gslides)   |    
-| 20200512 | 3.5h     | plan, compare   |   
+| 20200512 | 4.0h     | plan, compare   |   
 
 11.5h
 
@@ -29,6 +29,7 @@ Final comparison of orig npv model to decision tree w/ and w/o tld & registrar/r
 | DTree (no tld_reg) weighted_8_1 |              | 0.921800    |              | 0.282800    |
 | DTree (no tld_reg) weighted_4_3 |              | 0.085941    |              | 0.988123    |
 | DTree (w tld_reg) weighted_4_3  |              | 0.082676    |              | 0.989436    |
+| DTree all vars  (dtree)         |              | 0.033152    |              | 0.997053    |
 
 ### 20200507_02
 
