@@ -9,12 +9,31 @@
 | 20200507 | 1.5h     | assumption verificication   |   
 | 20200508 | 1.0h     | assumption verificication   |   
 | 20200509 | 1.0h     | plan (gslides)   |    
-| 20200512 | 4.0h     | plan, compare   |   
+| 20200512 | 4.0h     | plan, compare   |     
+| 20200513 | 11:00    | new data - who dis?  |   
 
-11.5h
 
 
 ## Lab Notebook 
+
+### 20200513
+
+#### 202005 data
+
+##### TODO: 
+* test out decision tree on data used to generate fall back tables (used when not enough training data for seg-glm)
+* follow up with questions in scripts/newdata_202005/exlore.R
+
+|  dataset                           |  description                                                                                                                                       |
+|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+|  npv_actuals_recalc_2017_2020      |  A comparison of our probability predictions for all domains registered between 2017-01-01 and 2020-03-31 with the actual renewal status outcomes  |
+|  npv_data_op_refreshed_model       |  our predictions based on the model built from  new training data                                                                                  |
+|  npv_fallback_tables               |  fallback tables where we dont have enough training data for a particular tld-registrar combination                                                |
+|  my_model_tables                   |  fallback tables for multi year domain registrations for which we generally dont have enough data                                                  |
+|  npv_historic_renewal_data         |  historic data for domains which have gone through renewal cycles to calculate the fallback tables                                                 |
+|  second_renewal_model_simplified   |  a simplified reference table to calculate second renewal probability                                                                              |
+|  renewal_training_data_2020_02_25  |  training data used to predict first_renewal_probability in the npv_data_op_refreshed_model dataset                                                |
+
 
 ### 20200512
 
