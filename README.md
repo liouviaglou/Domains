@@ -10,7 +10,7 @@
 | 20200508 | 1.0h     | assumption verificication   |   
 | 20200509 | 1.0h     | plan (gslides)   |    
 | 20200512 | 4.0h     | plan, compare   |     
-| 20200513 | 11:00    | new data - who dis?  |   
+| 20200513 | 2.0h     | new data - who dis?  |   
 
 
 
