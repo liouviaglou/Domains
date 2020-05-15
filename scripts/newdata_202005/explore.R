@@ -202,3 +202,5 @@ second_renewal_model <- readRDS(file.path(inputdir,
                                       "second_renewal_model_simplified"))
 dim(second_renewal_model)
 # [1] 443   7
+
+
