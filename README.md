@@ -2,6 +2,12 @@
 
 ## Time Log
 
+
+PHASE 2
+Now in google sheets
+
+
+PHASE 1
 | Date     | Time     | Desc   |
 |----------|----------|--------|
 | March    | 3.0h     | preliminary exploration     |
@@ -10,11 +16,33 @@
 | 20200508 | 1.0h     | assumption verificication   |   
 | 20200509 | 1.0h     | plan (gslides)   |    
 | 20200512 | 4.0h     | plan, compare   |     
-| 20200513 | 2.0h     | new data - who dis?  |   
-
+| 20200514 | 2.0h     | new data - who dis?  |    
+| 20200514 | 1.5h     | explore dtree as sub for lookup tables  |   
++ ~5 hours
 
 
 ## Lab Notebook 
+
+### 20200608
+
+In 06/08 phase II kick off meeting, we succesfully zeroed in on lift, gains curve & its AUC as appropriate performance metrics. this script establishes benchmakrs based on original segmented glm model & initial simple decision tree.
+
+started work in /paseII_perfm/
+
+wrote code to compute lift at various percentiles for a given pred_df and to output a cumulative gains curve
+
+need to calculate area under gains curbe and wrote code two plot mult gains curve in one
+
+
+
+
+### 20200513_2
+
+Using renewal_training_data_2020_02_25 to test dtree as an alternative to lookup tables.
+
+mass_prep_data() on full 5.5M obs dataset would crash R, so subsetting to just 5% obs
+
+predict() running into problem with new reseller levels, even when training data has all those factor levels
 
 ### 20200513
 

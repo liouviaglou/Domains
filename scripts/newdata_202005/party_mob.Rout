@@ -1,0 +1,311 @@
+
+R version 3.6.3 (2020-02-29) -- "Holding the Windsock"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> ##### Evaluating Decision Tree performance vs. LookupTables
+> 
+> 
+> ##############################################
+> #############              ###################
+> ############# HOUSEKEEPING ###################
+> #############              ###################
+> ##############################################
+> 
+> 
+> library(stringr)
+> library(stringi)
+> library(dplyr)
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+> library(modeest)
+> library(stringdist)
+> library(pbapply)
+> library(RMySQL)
+Loading required package: DBI
+> library(gnm)
+> library(ggplot2)
+> library(rPython)
+Loading required package: RJSONIO
+> library(tidyverse)
+Registered S3 method overwritten by 'httr':
+  method         from  
+  print.response rmutil
+── Attaching packages ─────────────────────────────────────── tidyverse 1.3.0 ──
+✔ tibble  2.1.3     ✔ purrr   0.3.3
+✔ tidyr   1.0.2     ✔ forcats 0.5.0
+✔ readr   1.3.1     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+> library(R.utils)
+Loading required package: R.oo
+Loading required package: R.methodsS3
+R.methodsS3 v1.8.0 (2020-02-14 07:10:20 UTC) successfully loaded. See ?R.methodsS3 for help.
+R.oo v1.23.0 successfully loaded. See ?R.oo for help.
+
+Attaching package: ‘R.oo’
+
+The following object is masked from ‘package:R.methodsS3’:
+
+    throw
+
+The following objects are masked from ‘package:methods’:
+
+    getClasses, getMethods
+
+The following objects are masked from ‘package:base’:
+
+    attach, detach, load, save
+
+R.utils v2.9.2 successfully loaded. See ?R.utils for help.
+
+Attaching package: ‘R.utils’
+
+The following object is masked from ‘package:tidyr’:
+
+    extract
+
+The following object is masked from ‘package:utils’:
+
+    timestamp
+
+The following objects are masked from ‘package:base’:
+
+    cat, commandArgs, getOption, inherits, isOpen, nullfile, parse,
+    warnings
+
+> library(data.table)
+
+Attaching package: ‘data.table’
+
+The following object is masked from ‘package:purrr’:
+
+    transpose
+
+The following objects are masked from ‘package:dplyr’:
+
+    between, first, last
+
+> library(reshape)
+
+Attaching package: ‘reshape’
+
+The following object is masked from ‘package:data.table’:
+
+    melt
+
+The following objects are masked from ‘package:tidyr’:
+
+    expand, smiths
+
+The following object is masked from ‘package:dplyr’:
+
+    rename
+
+> library(lubridate)
+
+Attaching package: ‘lubridate’
+
+The following object is masked from ‘package:reshape’:
+
+    stamp
+
+The following objects are masked from ‘package:data.table’:
+
+    hour, isoweek, mday, minute, month, quarter, second, wday, week,
+    yday, year
+
+The following object is masked from ‘package:base’:
+
+    date
+
+> library(clipr)
+Welcome to clipr. See ?write_clip for advisories on writing to the clipboard in R.
+> library(reshape2)
+
+Attaching package: ‘reshape2’
+
+The following objects are masked from ‘package:reshape’:
+
+    colsplit, melt, recast
+
+The following objects are masked from ‘package:data.table’:
+
+    dcast, melt
+
+The following object is masked from ‘package:tidyr’:
+
+    smiths
+
+> library(plotly)
+
+Attaching package: ‘plotly’
+
+The following object is masked from ‘package:reshape’:
+
+    rename
+
+The following object is masked from ‘package:ggplot2’:
+
+    last_plot
+
+The following object is masked from ‘package:stats’:
+
+    filter
+
+The following object is masked from ‘package:graphics’:
+
+    layout
+
+> library(tidyr)
+> library(cluster)
+> library(pbapply)
+> 
+> library(partykit)
+Loading required package: grid
+Loading required package: libcoin
+Loading required package: mvtnorm
+> library(mlbench)
+> library(party)
+Loading required package: modeltools
+Loading required package: stats4
+
+Attaching package: ‘modeltools’
+
+The following objects are masked from ‘package:R.oo’:
+
+    clone, dimension
+
+The following object is masked from ‘package:gnm’:
+
+    parameters
+
+Loading required package: strucchange
+Loading required package: zoo
+
+Attaching package: ‘zoo’
+
+The following objects are masked from ‘package:base’:
+
+    as.Date, as.Date.numeric
+
+Loading required package: sandwich
+
+Attaching package: ‘strucchange’
+
+The following object is masked from ‘package:stringr’:
+
+    boundary
+
+
+Attaching package: ‘party’
+
+The following objects are masked from ‘package:partykit’:
+
+    cforest, ctree, ctree_control, edge_simple, mob, mob_control,
+    node_barplot, node_bivplot, node_boxplot, node_inner, node_surv,
+    node_terminal, varimp
+
+> library(caret)
+Loading required package: lattice
+
+Attaching package: ‘lattice’
+
+The following object is masked from ‘package:gnm’:
+
+    barley
+
+
+Attaching package: ‘caret’
+
+The following object is masked from ‘package:purrr’:
+
+    lift
+
+> library(vcd)
+> 
+> 
+> setwd("/Users/lubagloukhov/Documents/Consulting/Radix/Domains_202003/scripts/newdata_202005")
+> inputdir <- "../../data/input/newdata_202005/datashare"
+> outputdir <- "../../data/output/newdata_202005"
+> 
+> 
+> # load functions
+> source('./../orig/functions.R')
+> source('./../orig/functions_models.R')
+> 
+> # load data (lookup table)
+> # renewal_training_data_sub_prepped <- readRDS("../../data/output/newdata_202005/renewal_training_data_sub_prepped")
+> # renewal_training_data_sub_prepped_df <- rbindlist(renewal_training_data_sub_prepped)
+> # dim(renewal_training_data_sub_prepped_df)
+> # [1] 2776   37
+> 
+> # # load data (dtree)
+> # train <- readRDS("../../data/output/dtree/train")
+> # test <- readRDS("../../data/output/dtree/test")
+> # train_df <- rbindlist(train)
+> # test_df <- rbindlist(test)
+> 
+> # #fit mob on PIMA data
+> # data("PimaIndiansDiabetes", package = "mlbench")
+> # pid_formula <- diabetes ~ glucose | pregnant + pressure + triceps + insulin + mass + pedigree + age
+> # logit <- function(y, x, start = NULL, weights = NULL, offset = NULL, ...) {
+> #   glm(y ~ 0 + x, family = binomial, start = start)
+> # }
+> # pid_tree <- mob(pid_formula, data = PimaIndiansDiabetes, fit = logit)
+> # pid_tree2 <- glmtree(diabetes ~ glucose | pregnant + pressure + triceps + insulin + mass + pedigree + age, data = PimaIndiansDiabetes, family = binomial)
+> # plot(pid_tree) 
+> # plot(pid_tree2) 
+> # 
+> # # fit mob on dtree data -- first, just partitioning on tld & reseller
+> # predictors <- c("tld",
+> #                 "reseller", # same as registrar for this dataset
+> #                 "pattern_domain_count",
+> #                 "log_reg_arpt",
+> #                 "sld_length",
+> #                 "gibb_score",
+> #                 "sld_type",
+> #                 "day_domains",
+> #                 "reg_period")
+> # response <- "renewal_status"
+> # paste(response, paste(predictors, collapse=" + "), sep=" ~ ")
+> # formula01 <- renewal_status ~  pattern_domain_count + log_reg_arpt + sld_length + gibb_score + sld_type + day_domains + reg_period |  tld + reseller 
+> # logit <- function(y, x, start = NULL, weights = NULL, offset = NULL, ...) {
+> #   glm(y ~ 0 + x, family = binomial, start = start)
+> #   }
+> # mobtree01 <- mob(formula01, data = train_df, fit = logit)
+> 
+> # save(mobtree01, 
+> #      file=file.path(outputdir, "mobtree01"))
+> # png(file = file=file.path(outputdir, "mobtree01.png")),
+> #     width = 2000, height = 750)
+> # plot(mobtree01)
+> # dev.off()
+> 
+> load(file.path(outputdir, "mobtree01"))
