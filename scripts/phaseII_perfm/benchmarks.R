@@ -39,6 +39,9 @@ library(party)
 library(caret)
 library(vcd)
 
+library(RColorBrewer)
+
+
 
 setwd("/Users/lubagloukhov/Documents/Consulting/Radix/Domains_202003/scripts/paseII_perfm")
 inputdir <- "../../data/input/"
@@ -145,7 +148,20 @@ plot_gains <- function (lift_df=lift_df) {
 
 gains_plot <- plot_gains (lift_df) 
 
-# calculate area under curve
+calc_auc <- function (lift_df=lift_df) {
+  lift_df2 <- as.data.table(lift_df)
+  lift_df2 <- subset(lift_df2, select = c("P","gain"))
+  names(lift_df2) <- c("x0", "y0")
+  lift_df2 <- rbind(list(0, 0), lift_df2)
+  lift_df2[, c("x1","y1") := list(x0, y0)]
+  lift_df2[, c("x1","y1") := shift(.SD, 1, 0, "lead"), .SDcols=c("x0","y0")]
+  lift_df2[, area:=(x1-x0)*y0+.5*(y1-y0)*(x1-x0)]
+  lift_df2 <- lift_df2[-nrow(lift_df2),]
+  auc <- sum(lift_df2$area)
+  return(auc)
+}
+
+auc <- calc_auc(lift_df)
 
 
 ##############################################
@@ -170,5 +186,56 @@ lift_df_2 <- chart_lift(pred_df=test_df,
                       pred_var = "dtree_renewal_prediction")
 gains_plot_2 <- plot_gains (lift_df_2) 
 
+auc_2 <- calc_auc(lift_df_2)
 
 
+
+##############################################
+##                                          ##
+##             multi-GAINS plot             ##
+##                                          ##
+##############################################
+
+plot_multigains <- function (lift_df_list=list(seg_glm = lift_df, 
+                                               ben_dtr = lift_df_2),
+                             auc_list = list(seg_glm = auc, 
+                                             ben_dtr=auc_2)) {
+  
+  lift_df_list <- lapply(lift_df_list, function(df) {
+    df <- df %>%
+      add_row(P = 0, gain =0) %>%
+      arrange(P)
+  })
+  
+  # colors <- brewer.pal(n = length(lift_df_list), name = "Set2")
+  # colors <- colors[1:length(lift_df_list)]
+  # name_map = paste(names(lift_df_list),colors, sep="=")[1:length(lift_df_list)]
+  
+  auc_list = lapply(auc_list, round,4)
+  auc_map = paste(names(lift_df_list),auc_list, sep=" = ")[1:length(lift_df_list)]
+  
+  
+  gains_plot <- ggplot(NULL, aes(P,  gain)) +
+    geom_line(data = lift_df_list[[1]] %>% slice(1, n())) +
+    
+    scale_y_continuous(breaks = seq(0, 1, by = .1), limits = c(0,1)) +
+    scale_x_continuous(breaks = seq(0, 1, by = .1)) +
+    labs(title = "Cumulative Gains Plot",
+         y = "Cumulative Gain",
+         x = "Percentile")
+  
+  for(i in seq(length(lift_df_list))){
+    name = names(lift_df_list)[[i]]
+    df = lift_df_list[[i]]
+    color=colors[[i]]
+    auc = auc_list[[i]]
+    gains_plot <- gains_plot + list(geom_line(data=df), 
+                                    geom_point(data=df))+ 
+      annotate("text", x = .8, y = .6-i*.1, label = auc_map[[i]])
+  }
+  
+  
+  return(gains_plot)
+}
+
+plot_multigains()

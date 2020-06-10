@@ -23,6 +23,11 @@ PHASE 1
 
 ## Lab Notebook 
 
+### 20200609
+
+Added AUC calculation and plotting of mult gains curve on one set of axes (need to define colors & legends still)
+Should work for any number of lift tables 
+
 ### 20200608
 
 In 06/08 phase II kick off meeting, we succesfully zeroed in on lift, gains curve & its AUC as appropriate performance metrics. this script establishes benchmakrs based on original segmented glm model & initial simple decision tree.
