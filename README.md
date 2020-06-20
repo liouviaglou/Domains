@@ -23,6 +23,44 @@ PHASE 1
 
 ## Lab Notebook 
 
+### 20200620
+
+1. Query BigQuery from GCP R session (continued)
+  - tried to explicitly query table in one project from a different project. same permission issues
+  - trying to copy table between projects as in [link](https://cloud.google.com/bigquery/docs/copying-datasets) but don't have sufficient permissions
+  - To configure this for each of the departments’ projects, in each of the projects executing the queries, assign the [IAM permissions](https://cloud.google.com/bigquery/docs/access-control#predefined_roles_details) required to run queries against the BigQuery datasets to the application’s service account. For more information on configuring the permissions for this scenario, see this [resource](https://cloud.google.com/bigquery/docs/access-control?authuser=0#read_access_to_data_in_a_different_project).
+
+### 20200619
+
+0. Query BigQuery from [GCP interface](https://console.cloud.google.com/bigquery?project=radixbi-249015] using personal email
+1. Query BigQuery from local R session
+  - [from rstudio](https://db.rstudio.com/databases/big-query/)
+      - two options for connecting to Google BigQuery: (1) odbc package with a database driver (2) bigrquery package
+  - [link2](https://bigrquery.r-dbi.org/)
+  - ultimately, followed [this rpubs doc](https://rpubs.com/shivanandiyer/BigRQuery) in phaseII_gcloudaccess/bigquery_from_local.R
+1. Query BigQuery from GCP R session
+  - signed up for free $300 credit
+    - Your free trial credit applies to all Google Cloud resources, with the following exceptions:
+      You can't have more than 8 cores (or virtual CPUs) running at the same time.
+      You can't add GPUs to your VM instances.
+      You can't request a quota increase. For an overview of Compute Engine quotas, see Resource quotas.
+      You can't create VM instances that are based on Windows Server images.
+    - in US region (next time -- faster & cheaper in same reagion as client data (where?)?)
+  - created project Radix2020 **will this project be able to access data in project radixbi-249015??**
+  - [Pricing Calc](https://cloud.google.com/products/calculator/?_ga=2.17761273.-1180705002.1592430657)
+  - [link](https://cloud.google.com/ai-platform/notebooks/docs/use-r-bigquery)
+    - enabled Compute Engine for Notebooks
+    - local machine hw.physicalcpu: 2 hw.logicalcpu: 4 system_profiler SPHardwareDataType | grep "  Memory:" Memory: 8 GB (comparable to n1-standard-2)
+    - an instance 2x my local machne would cost ~$100/mo running continuously
+    - created instance w/ R 3.6 of type n1-standard-1 [1 vCPU, 3.75 GB RAM]
+    - running sample query as set up in [link](https://cloud.google.com/ai-platform/notebooks/docs/use-r-bigquery) failed due to permission issues. trying method that worked localy. same problem.
+    - modifying dataset permissions via [link](https://cloud.google.com/bigquery/docs/dataset-access-controls#controlling_access_to_a_dataset). i don't have necessary permissions under personal email.
+    - Enabled BigQuery Connection API, tried to connect to radixbi-249015
+    - Added pin to radixbi-249015 project from within bigquery under the Radix2020 project
+
+
+
+
 ### 20200609
 
 Added AUC calculation and plotting of mult gains curve on one set of axes (need to define colors & legends still)
