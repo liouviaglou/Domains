@@ -27,8 +27,18 @@ PHASE 1
 
 1. Query BigQuery from GCP R session (continued)
   - tried to explicitly query table in one project from a different project. same permission issues
-  - trying to copy table between projects as in [link](https://cloud.google.com/bigquery/docs/copying-datasets) but don't have sufficient permissions
-  - To configure this for each of the departments’ projects, in each of the projects executing the queries, assign the [IAM permissions](https://cloud.google.com/bigquery/docs/access-control#predefined_roles_details) required to run queries against the BigQuery datasets to the application’s service account. For more information on configuring the permissions for this scenario, see this [resource](https://cloud.google.com/bigquery/docs/access-control?authuser=0#read_access_to_data_in_a_different_project).
+  - tried to copy table between projects as in [link](https://cloud.google.com/bigquery/docs/copying-datasets) but don't have sufficient permissions
+  - tried configuring IAM permisions as in CASE 2 of [link](https://wideops.com/understanding-gcp-service-accounts-three-common-use-cases/): "in each of the projects executing the queries, assign the [IAM permissions](https://cloud.google.com/bigquery/docs/access-control#predefined_roles_details) required to run queries against the BigQuery datasets to the application’s service account. For more information on configuring the permissions for this scenario, see this [resource](https://cloud.google.com/bigquery/docs/access-control?authuser=0#read_access_to_data_in_a_different_project)."
+    - "When you assign roles at the organization and project level, you provide permission to run BigQuery jobs or to manage all of a project's BigQuery resources."
+    - See "Read access to data in a different project" in [link](https://cloud.google.com/bigquery/docs/access-control-examples?hl=tr#read_access_to_data_in_a_different_project) GAVE UP
+      - On project radixbi-249015  
+        - Add OperationsServiceAccount to the predefined role bigquery.admin. (SKIP, irrelevant)
+        - Add AnalystGroup to the predefined role bigquery.dataViewer.
+      - On project radix2020 
+        - Add AnalystGroup to the predefined role bigquery.user.
+    - "You should define the role bigquery.admin on your service account and it would do the trick." [link](https://stackoverflow.com/questions/61895265/bigquery-cross-project-access-via-cloud-functions) 
+      - via IAM page, added 446988597652-compute@developer.gserviceaccount.com (the Compute Engine default service account) role of bigquery.admin -- didn't change much
+  - okay, i think i need to get access granted to radixbi-249015 project for 446988597652-compute@developer.gserviceaccount.com (the Compute Engine default service account). before checking with client, i will test on a dataset in a different project within my own account. Tested under a different project within my personal account -- confirming that this should solve the problem. Asked client to provide permissions. 
 
 ### 20200619
 
