@@ -23,9 +23,16 @@ PHASE 1
 
 ## Lab Notebook 
 
+### 20200622
+
+0. COMPLETED Query BigQuery from [GCP interface](https://console.cloud.google.com/bigquery?project=radixbi-249015] using personal email - no glitches
+1. COMPLETED Query BigQuery from local R session - followed [this rpubs doc](https://rpubs.com/shivanandiyer/BigRQuery) in phaseII_gcloudaccess/bigquery_from_local.R
+2. COMPLETED Query BigQuery from GCP R session - seamless after client set up BigQuery permissions for service account 446988597652-compute@developer.gserviceaccount.com under project radixbi-249015
+
+
 ### 20200620
 
-1. Query BigQuery from GCP R session (continued)
+2. Query BigQuery from GCP R session (continued)
   - tried to explicitly query table in one project from a different project. same permission issues
   - tried to copy table between projects as in [link](https://cloud.google.com/bigquery/docs/copying-datasets) but don't have sufficient permissions
   - tried configuring IAM permisions as in CASE 2 of [link](https://wideops.com/understanding-gcp-service-accounts-three-common-use-cases/): "in each of the projects executing the queries, assign the [IAM permissions](https://cloud.google.com/bigquery/docs/access-control#predefined_roles_details) required to run queries against the BigQuery datasets to the application’s service account. For more information on configuring the permissions for this scenario, see this [resource](https://cloud.google.com/bigquery/docs/access-control?authuser=0#read_access_to_data_in_a_different_project)."
@@ -48,7 +55,7 @@ PHASE 1
       - two options for connecting to Google BigQuery: (1) odbc package with a database driver (2) bigrquery package
   - [link2](https://bigrquery.r-dbi.org/)
   - ultimately, followed [this rpubs doc](https://rpubs.com/shivanandiyer/BigRQuery) in phaseII_gcloudaccess/bigquery_from_local.R
-1. Query BigQuery from GCP R session
+2. Query BigQuery from GCP R session
   - signed up for free $300 credit
     - Your free trial credit applies to all Google Cloud resources, with the following exceptions:
       You can't have more than 8 cores (or virtual CPUs) running at the same time.
