@@ -25,7 +25,9 @@ PHASE 1
 
 ### 20200623
 
-Evaluated max depth ctree, currently running pre-pruned max depth ctree with criterion .999
+Evaluated max depth ctree & pre-pruned max depth ctree with criterion .999. both barely outperform shallow tree (maybe overfitting?) except for when it comes to lift of >5 @ 10%.
+
+next up: random forests. need to increase RAM of machine.
 
 ### 20200622_2
 
