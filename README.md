@@ -36,8 +36,17 @@ Evaluated max depth ctree, currently running pre-pruned max depth ctree with cri
     gsutil cp gs://data_input/* data/
 4. COMPLETED try max-depth but self-pruned tree (cart?) on phase 1 data
 
+=======
+
+### 20200622_2
+
+0. COMPLETED set up git on gcp vm
+1. spin up larger instance
+2. upload phase 1 data to bigquery
+3. try max-depth but self-pruned tree (cart?) on phase 1 data
 
 ### 20200622
+
 
 0. COMPLETED Query BigQuery from [GCP interface](https://console.cloud.google.com/bigquery?project=radixbi-249015] using personal email - no glitches
 1. COMPLETED Query BigQuery from local R session - followed [this rpubs doc](https://rpubs.com/shivanandiyer/BigRQuery) in phaseII_gcloudaccess/bigquery_from_local.R
