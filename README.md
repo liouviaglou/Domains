@@ -23,11 +23,24 @@ PHASE 1
 
 ## Lab Notebook 
 
+
+### 20200623_2
+
+WOW! random forests via ranger perform phenomenaly. .89 AUC (vs .73 AUC for their seg_glm model). also super fast -- just 10 trees fitted to max depth in 46 seconds (instead of 46 min for max depth single tree using ctree)
+
+Next: investigate assumptions. what is maxdepth really? why i it so much faster? what other default parameters? also invetigate variable importance. maybe more trees. hyper param tuning. 
+
 ### 20200623
 
 Evaluated max depth ctree & pre-pruned max depth ctree with criterion .999. both barely outperform shallow tree (maybe overfitting?) except for when it comes to lift of >5 @ 10%.
 
-next up: random forests. need to increase RAM of machine.
+next up: random forests.
+
+Parameter Tuning randomForest
+
+Note:  "When RF model explained variance is lower than 40%(seemingly noisy data), one can lower samplesize to ~10-50% and increase trees to e.g. 5000(usually unnecessary many). The ensemble error will converge later as a function of trees. But, due to lower tree correlation, the model becomes more robust and will reach a lower OOB error level converge plateau"
+
+Note: "An article from Oshiro et al. (2012) pointed out that, based on their test with 29 data sets, after 128 of trees there is no significant improvement(which is inline with the graph from Soren)."
 
 ### 20200622_2
 

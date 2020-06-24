@@ -58,7 +58,7 @@ plot_gains <- function (lift_df=lift_df) {
     
     scale_y_continuous(breaks = seq(0, 1, by = .1), limits = c(0,1)) +
     scale_x_continuous(breaks = seq(0, 1, by = .1)) +
-    labs(title = "Cumulative Gains Plot - Seg Glm",
+    labs(title = "Cumulative Gains Plot",
          y = "Cumulative Gain %")
   
   return(gains_plot)
