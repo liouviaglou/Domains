@@ -23,6 +23,182 @@ PHASE 1
 
 ## Lab Notebook 
 
+### 20200625
+
+Executing hyper param tuning in high memory 8-core machine.
+
+***random forest is far less tunable than other algorithms such as support vector machines*** [link](https://arxiv.org/pdf/1804.03515.pdf)
+
+***numtree is not a tuning param: higher values are generally preferable to smaller values with respect to performance*** [link](https://arxiv.org/pdf/1804.03515.pdf)
+
+[tuneRanger](https://arxiv.org/pdf/1804.03515.pdf)
+
+Best params to tune according to Probst et al. (2018):
+1. mtry provides the biggest avg improvement of the AUC (0.006)
+2. sample size provides the 2md biggest avg improvement of the AUC  (0.004)
+3. Changing the replace parameter from drawing with replacement to drawing without replacement  had a small positive effect (0.002)
+4. node size had only a small effect (0.001)
+
+Similar results were observed in the work of van
+Rijn and Hutter (2018). As outlined in Section 2.1.4, the number of trees cannot be seen as tuning parameter: . If the performance of RF with default
+values of the hyp
+
+Notes: 
+increasing mtry beyond 11 or so is v. memory intensive
+we can get gains by staying <11 increasing sample_size
+it looks like, holding mtry constant, incr sample_size decr error
+so, expand the grid to include sample_size beyon .8 (also .9,1)
+what about sampling w/ replacement? 
+
+Notes about splitting:
+- Gini impurity & weighted variance methods both favor continuous and many-level factors (over, say binary vars). Ranger grows probability classification trees as regression trees and splits based on estimated response variance
+- To increase computational efficiency, splitting rules can be randomized (Geurts et al., 2006). To this end, only a randomly selected subset of possible splitting values are considered for a variable. The size of these subsets is specified by the hyperparameter **num.random.splits** in ranger. If this value is set to 1, this variant is called extremely randomized trees (Geurts et al., 2006). In addition to runtime reduction, randomized splitting might also be used to add a further component of randomness to the trees, similar to mtry and the sample size.
+
+Other vars for hyperparam tuning:
+- When tests are performed for split selection, it may only make sense to split if the p-values fall below a certain threshold, which should then be considered as a hyperparameter. In ranger the hyperparameter **alpha** is the p-value threshold.
+
+### 20200624
+
+- brush up on ranger package & hyper parameters
+    - [link](https://arxiv.org/pdf/1508.04409.pdf)
+        - optimized for high dimensional (long & wide) data by extensive runtime and memory profiling.
+        - idetified bottlenecks & optimied algos for diff variable types
+        - biggest bottleneck: node splitting: algos used instead of eval all values of all mtry candidate features
+        - second bb: "drawing the mtry candidate splitting features in each node". 
+            - sampling w/o replacement via Knuth
+        - mem efficiency: avoiding copies of the original data, 
+            - saving node information in simple data structures and freeing memory early, where possible.
+            
+    - parameters [link](https://uc-r.github.io/random_forests#tune) [link](https://arxiv.org/pdf/1804.03515.pdf)
+    
+        num.trees = 500,
+            number of trees. 
+            We want enough trees to stabalize the error but using too many trees 
+            is unncessarily inefficient, especially when using large data sets.
+            
+        mtry = NULL, (sqrt number of cols.. sqrt(23)=4.8)
+            the number of variables to randomly sample as candidates at each split. 
+            When mtry=p the model equates to bagging. 
+            When mtry=1 the split variable is completely random, so all variables 
+            get a chance but can lead to overly biased results. 
+            A common suggestion is to start with 5 values evenly spaced across the range from 2 to p.
+            
+            Trade-off between stability and accuracy of the single trees.
+            Lower values of mtry:
+                more different, less correlated trees -> better stability when aggregating. 
+                better exploit variables with moderate effect on the response variable, 
+                that would be masked by variables with strong effect if those had been candidates 
+                for splitting. 
+                perform on average worse, since they are built based on suboptimal variables 
+                (that were selected out of a small set of randomly drawn candidates): 
+                possibly non-important variables are chosen. 
+            
+            the real number of relevant predictor variables highly influences the optimal mtry:
+                IF many relevant predictor variables THEN mtry should be set small s.t. 
+                not only the strongest influential variables are chosen in the splits.
+            
+                IF only a few relevant variables out of many THEN mtry should be set high s.t. the 
+                algorithm can find the relevant variables. A large mtry ensures that there is (with 
+                high probability) at least one strong variable in the set of mtry candidate variables.
+            
+            Computation time decreases approximately linearly with lower mtry values
+            
+        replace = TRUE, # do we have to set this to false for sample.fraction to come into play? 
+                        # see if hyperparam tunning leads to same vlues across diff values of sample.fraction
+        sample.fraction = ifelse(replace, 1, 0.632),
+            (sampsize): the number of samples to train on. 
+            The default value is 63.25% of the training set since this is the expected value of 
+            unique observations in the bootstrap sample. 
+            Lower sample sizes can reduce the training time but may introduce more bias than necessary. 
+            Increasing the sample size can increase performance but at the risk of overfitting 
+            because it introduces more variance. Typically, when tuning this parameter we stay 
+            near the 60-80% range.
+            
+            a similar effect as the mtry parameter
+            
+            Decreasing the sample -> more diverse trees -> lower correlation b/w trees -> 
+            positive effect on the prediction accuracy when aggregating the trees
+            (However, the accuracy of the single trees decreases, since fewer observations 
+            are used for training.)
+            
+            trade-off between stability and accuracy of the trees
+            
+            optimal value is problem dependent
+            no substantial perf difference b/w sampling w/ or w/o replacement when parameter is set optimally
+            w/ replacement may induce a slight variable selection bias when categorical variables 
+            with varying number of categories are considered.
+            
+            
+
+        min.node.size = NULL, (10. 1: classification, 5: regression, 3: survival, 10: probability.)
+            minimum number of samples within the terminal nodes. 
+            Controls the complexity of the trees. Smaller node size allows for deeper, 
+            more complex trees and smaller node results in shallower trees. 
+            This is another bias-variance tradeoff where deeper trees introduce more variance 
+            (risk of overfitting) and shallower trees introduce more bias 
+            (risk of not fully capturing unique patters and relatonships in the data).
+            
+            defaults usually good.
+            higher number of noise variables -> higher optimal node size.
+            
+            Computation time decreases ~exponentially with increasing node size.
+            suggestion: set this parameter to a value higher than the default
+
+        importance = "none",
+        write.forest = TRUE,
+        probability = FALSE,
+        max.depth = NULL,
+        
+        case.weights = NULL,
+        class.weights = NULL,
+        splitrule = NULL,
+        num.random.splits = 1,
+        alpha = 0.5,
+        minprop = 0.1,
+        split.select.weights = NULL,
+        always.split.variables = NULL,
+        respect.unordered.factors = NULL,
+        scale.permutation.importance = FALSE,
+        local.importance = FALSE,
+        regularization.factor = 1,
+        regularization.usedepth = FALSE,
+        keep.inbag = FALSE,
+        inbag = NULL,
+        holdout = FALSE,
+        quantreg = FALSE,
+        oob.error = TRUE,
+        num.threads = NULL,
+        save.memory = FALSE,
+        verbose = TRUE,
+        seed = NULL,
+        dependent.variable.name = NULL,
+        status.variable.name = NULL,
+        classification = NULL,
+        x = NULL,
+        y = NULL
+        
+
+- plan for execution of hyper param tuning
+    - mtry: Since ranger is optimized for high mtry values , 
+        why not use more than sqrt(ncols) for each tree? or would it be better to keep mtry 
+        low and increase th enumber of trees?
+     
+
+- brush up on hyper param tuning in R
+    - [link](https://uc-r.github.io/random_forests#tune)
+    
+
+- IMPROVE on gibersih score.. disect domain alone
+- how many conconants in a row
+- raio of con to vow
+- "word morphology"
+- does it have rare letters
+- third party tool for pronouncability
+- feed into [decision tree/neuralnetwrok] with churn as the predicted. inut predicted score as another variable into rando forest model
+
+- predicting premium domains pricing
+
+
 
 ### 20200623_2
 
