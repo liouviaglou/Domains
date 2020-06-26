@@ -81,7 +81,13 @@ calc_auc <- function (lift_df=lift_df) {
 plot_multigains <- function (lift_df_list=list(seg_glm = lift_df, 
                                                ben_dtr = lift_df_2),
                              auc_list = list(seg_glm = auc, 
-                                             ben_dtr=auc_2)) {
+                                             ben_dtr=auc_2),
+                             prop_positive = 0.1121167) {
+  
+  optimal_df <- data.frame( "P"=c(0,prop_positive,1.0),
+                            "actu_renwd2"=c(NA,NA,NA),
+                            "gain"=c(0,1.0,1.0),
+                            "lift"=c(NA,NA,NA))
   
   lift_df_list <- lapply(lift_df_list, function(df) {
     df <- df %>%
@@ -93,12 +99,14 @@ plot_multigains <- function (lift_df_list=list(seg_glm = lift_df,
   # colors <- colors[1:length(lift_df_list)]
   # name_map = paste(names(lift_df_list),colors, sep="=")[1:length(lift_df_list)]
   
-  auc_list = lapply(auc_list, round,4)
+  auc_list = lapply(auc_list, round, 4)
   auc_map = paste(names(lift_df_list),auc_list, sep=" = ")[1:length(lift_df_list)]
   
   
   gains_plot <- ggplot(NULL, aes(P,  gain)) +
     geom_line(data = lift_df_list[[1]] %>% slice(1, n())) +
+    
+    list(geom_line(data=optimal_df), geom_point(data=optimal_df)) +
     
     scale_y_continuous(breaks = seq(0, 1, by = .1), limits = c(0,1)) +
     scale_x_continuous(breaks = seq(0, 1, by = .1)) +
@@ -113,7 +121,7 @@ plot_multigains <- function (lift_df_list=list(seg_glm = lift_df,
     auc = auc_list[[i]]
     gains_plot <- gains_plot + list(geom_line(data=df), 
                                     geom_point(data=df))+ 
-      annotate("text", x = .8, y = .6-i*.1, label = auc_map[[i]])
+      annotate("text", x = .8, y = .6-i*.075, hjust = 0, label = auc_map[[i]])
   }
   
   

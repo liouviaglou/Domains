@@ -9,8 +9,9 @@ source('load_prep_data.R')
 
 # hyper param grid construct
 hyper_grid <- expand.grid(
-  mtry       = c(1,2,3,4,5,6,7,8,9,10,11,16,21),
-  sampe_size = c(.55, .632, .70, .80, .90, 1),
+  mtry       = c(4,5),
+  sampe_size = c(.725,.75, .775, .90, 1), 
+                    # should we sample w. rep at 1?
   OOB_RMSE   = 0,
   timestamp = 0
 )

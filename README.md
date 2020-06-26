@@ -25,7 +25,8 @@ PHASE 1
 
 ### 20200625
 
-Executing hyper param tuning in high memory 8-core machine.
+Finished hyper param tuning in high memory 8-core machine.
+Finished optimal random forest.
 
 ***random forest is far less tunable than other algorithms such as support vector machines*** [link](https://arxiv.org/pdf/1804.03515.pdf)
 
