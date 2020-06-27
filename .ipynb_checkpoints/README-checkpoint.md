@@ -23,6 +23,63 @@ PHASE 1
 
 ## Lab Notebook 
 
+### 20200626_2 NOTES
+
+QA decision tree on existing data (test)
+pipe through high renewal node and calc actual renewal
+missing values?
+corr variables
+
+variable importance alone could be very useful -- how is client putng this kind of info to use?
+
+deliver excellent lift + "time off" in one go. 
+
+### 20200626
+
+QAing DTree/RF results by 
+1. setting up framework for pulling new data
+2. picking a DTree node/segment with high renewal
+2. "manually" calc predicted renewal for that segment -- match model?
+
+are there "leaked" variables?
+correlated with renewal?
+
+ISSUES TO BRING UP WITH CLIENT:
+1. no variable 'id' in renews table (n) or newreg table (n). instead, there exist a domain_id and a renewal_id variable. Since in get_expiry_data query, the id variable in renews get joined with with domain_id variable in predictions, I'm assuming that we should be referencing the domain_id varibale in renews. (Other 'id' vars in newreg:'domain_id' 'registrar_userid' 'registrantid' 'r_row_id' 'r_renewal_id')
+
+2. no variable 'type' in predictions table (pr). There are no seemingly comperable variables and it looks to be pretty crucial in the query. I've removed the corresponding WHERE clauses for now for now. Maybe the tables in bigquery have already been subset appropriately?
+
+3. variable 'deleted_date' in renews table (n) and newreg table (n) is a string and doesn't comprare well with transaction_expiry/expiry_date in the appropriate tables  which are both datetime. Converted deleted_date to DATETIME in comparison via PARSE_DATETIME('%Y-%m-%d', n.deleted_date).
+
+4. no variable 'r_transfer' in newreg table (n) (but there is such a column in renews table). There are no seemingly comperable variables and it looks to be pretty crucial in the query. I've removed the corresponding clauses for now. Please let me know if "Transferred" domains are of interest in this project and, if so, how to obtain this info. 
+
+5. no variable 'r_renewed_on' in renews table (n) OR newreg_table (n). But r_renew_date variable does exist in both tables-- is this what you meant? There's also a renew_date variable in the renew table. For now, I am using r_renew_date instead of r_renwed_on when it comes to both tables in the query. Please let me know if I should proceed otherwise. 
+
+6. no variable 'sld_length', 'sld_type', 'sld_type2', 'day_domains' in predictions table (pr). I've removed these from the query. Please let me know how I can go about obtaining them.
+
+7. no variable 'icann_fixed' in newreg table (n) or renews table (n). I've removed these from the query. Please let me know how I can go about obtaining them.
+
+8. no variable 'registered_on' in renews table (n). I've removed this from the query. Please let me know how I can go about obtaining it.
+
+9. no variable 'r_transfer' in renews table (n) or in newreg table (n). There is however a 'transfer' variable in renews table ONLY. I've removed the newreg table's references to 'r_transfer' and replaced the renews table's references with 'transfer'. Please let me know if I should proceed otherwise. 
+
+
+10. no variable 'expiry_date' in renews table (n) (but it does exist in newreg table (n)).  I've removed the renews table's references to 'expiry_date'. Please let me know if I should proceed otherwise. 
+
+11. variable 'r_period' is a string in renews table. Converted to int64 using cast(n.r_period as int64) for arithmetic operations. 
+
+12. variables 'r_net_revenue', 'r_period','r_centralnic_comm', 'r_icann_comm' are string in renews table.  Converted to float using cast(n.r_net_revenue as float64) for arithmetic operations. 
+
+13. no variable 'r_centralnic_commas' in renews table (n) or in newreg table (n).  There are no seemingly comperable variables. It looks crucial for calculating gross profit but I've gone ahead and removed all references to 'r_centralnic_commas', eliminating the calculation of variables 'renew_gp_less_icann_fixed' and 'renew_gross_profit'. Please let me know how these can be obtained.
+
+14. no variable 'creation_date' in one of the tables (renews), I removed references to it in with respect to both of the 'n' tables in order to make the union work. Please let me know how I can obtain this info. 
+
+15. converted 'renewed_count' value of 1 to int in first SELECT clause so the uNION ALL would work with type int in second SELECT clause. 
+
+16. converted 'r_mbg' to int in renews SELECT clause so the uNION ALL would work with type int in newreg SELECT clause. 
+
+17. converted 'r_renew_date' to DATETIME via PARSE_DATETIME('%Y-%m-%d', n.r_renew_date) in renews SELECT clause so the uNION ALL would work with type DATETIME in newreg SELECT clause. 
+
 ### 20200625
 
 Finished hyper param tuning in high memory 8-core machine.
