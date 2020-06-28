@@ -23,6 +23,44 @@ PHASE 1
 
 ## Lab Notebook 
 
+
+### 202006268
+
+Reran hypertuned RF on subset not containing potential data leaks, achieved .905 AUC, 6.33 lift at 10% (compared to seg_glm 0.734, 3.30 lift at 10%).
+Still need to QA for leaked vars, model issues, etc.
+
+### 202006267
+
+New data queries need a lot of work, backburning/offloading.
+
+For now:
+- QA xl_tree with test data. 
+    - Pick node with highest conversion and manually calc renewal rate for that node.
+        * identified node, getting splitting rules
+- correlation analysis for 20-some variables in DTree/RF
+- run RF with just the vars in seg_glm -- compare performance. 
+- other ways to identify "leaky" variables [link](https://www.researchgate.net/publication/221653692_Leakage_in_Data_Mining_Formulation_Detection_and_Avoidance)
+
+Questions for client:
+
+1. reg_arpt_org: what does it mean for it to be negative? 
+    - calculated as: CASE WHEN n.newreg_period is not null THEN round((n.newreg_net_revenue / n.newreg_period), 2) ELSE 0 END
+    - defined ad "original price of registration of the domain"
+    - however, negative values exist. haow can original price be negative? (net revenue can surely be negative)
+            Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+            -35.0000   0.4400   0.5000   0.9828   0.5900  59.0000 
+    - should it be the otherway around from what the datadisctionary says? ie.
+        * reg_arpt_org: revenue per year of registraton. = reg_revenue/reg_period
+        * reg_arpt: original price of registration of the domain
+        * this is confirmed by the definition of log_reg_arpt as the log of the original registration price i.e. log(reg_arpt)
+        * BUT! reg_arpt = arpt = Round(( n.net_revenue / n.period ), 2) according to *get_expiry_data.R* how can this be the orig price? 
+2. what is the definition/calculation of 'pattern_score' variable?
+3. what is the definition/calculation of 'cluster' variable?
+
+RERUN hyperparam-tuned RF w/o  reg_revenue, reg_arpt_org, reg_arpt, log_reg_arpt, pattern_score, cluster, expiry_M , creation_M, expiry_Y , creation_Y, (though these temporal vars may be interesting), 
+
+
+
 ### 20200626_2 NOTES
 
 QA decision tree on existing data (test)
