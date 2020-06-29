@@ -29,7 +29,9 @@ PHASE 1
 Reran hypertuned RF on subset not containing potential data leaks, achieved .905 AUC, 6.33 lift at 10% (compared to seg_glm 0.734, 3.30 lift at 10%).
 Still need to QA for leaked vars, model issues, etc.
 
-Analyzed maxdepth=15 tree. Performs better on test because it doesn't overfit. Is 1/3 the size od xl_dtree based on numberof terminal nodes. Getting list of splitting rules via partykit:::.list.rules.party(). saved to gs://data_outputt/output/xltree_01_d15_rules
+Analyzed maxdepth=15 tree. Performs better on test because it doesn't overfit. Is 1/3 the size od xl_dtree based on numberof terminal nodes. Getting list of splitting rules via partykit:::.list.rules.party(). saved to gs://data_outputt/output/xltree_01_d15_rules.
+
+Fed train & test data through a node on the tree and didn't get the right number of observations.
 
 ### 202006267
 
