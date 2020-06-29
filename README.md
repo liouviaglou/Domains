@@ -26,6 +26,10 @@ PHASE 1
 
 ### 202006268
 
+completed QA of decision tree.
+
+### 202006268
+
 Reran hypertuned RF on subset not containing potential data leaks, achieved .905 AUC, 6.33 lift at 10% (compared to seg_glm 0.734, 3.30 lift at 10%).
 Still need to QA for leaked vars, model issues, etc.
 
