@@ -23,12 +23,18 @@ PHASE 1
 
 ## Lab Notebook 
 
+### 20200705
 
-### 202006268
+get_expiry query is working. 1,130,038 rows for expiry_dates in Jan-May 2020 (BQ interface) 1,743,356 rows (R)
+QAing get_expiry_data.R
+
+
+
+### 20200628
 
 completed QA of decision tree.
 
-### 202006268
+### 20200628
 
 Reran hypertuned RF on subset not containing potential data leaks, achieved .905 AUC, 6.33 lift at 10% (compared to seg_glm 0.734, 3.30 lift at 10%).
 Still need to QA for leaked vars, model issues, etc.
@@ -37,7 +43,7 @@ Analyzed maxdepth=15 tree. Performs better on test because it doesn't overfit. I
 
 Fed train & test data through a node on the tree and didn't get the right number of observations.
 
-### 202006267
+### 20200627
 
 New data queries need a lot of work, backburning/offloading.
 

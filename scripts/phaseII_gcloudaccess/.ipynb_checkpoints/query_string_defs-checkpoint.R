@@ -1,19 +1,21 @@
-# based on get_expiry_data.R
-# changed pwlocal to radixbi-249015.prediction_vendors (db ref)
-# changed n.id (renews table) to n.domain_id (need to check with client)
-expiry_date_start='2020-01-01'
-expiry_date_end='2020-05-31'
+library(bigrquery)
+library(plotly)
+library(data.table)
+library(stringr)
+library(readr)
 
-get_expiry_data_str1 <- sprintf("SELECT 'FirstTime'  AS renewal_type, 
-               '1' AS renewed_count, 
+# based on updated get_expiry_data.R
+
+get_expiry_data_str1 <- paste("SELECT 'FirstTime'  AS renewal_type, 
+               1 AS renewed_count, 
                n.expiry_date AS Expiry_date, 
                n.domain_id AS domain_id, 
                n.domain, 
-               n.creation_date AS creation_date1,
+               n.creation_date AS creation_date1, 
                
                CASE 
                  WHEN n.deleted_date IS NOT NULL 
-                      AND n.expiry_date > n.deleted_date THEN 'Deleted' 
+                      AND DATE(n.expiry_date) > SAFE.PARSE_DATE('%Y-%m-%d',n.deleted_date) THEN 'Deleted' 
                  ELSE 'Active' 
                END AS status, 
                
@@ -31,34 +33,22 @@ get_expiry_data_str1 <- sprintf("SELECT 'FirstTime'  AS renewal_type,
                n.period AS noofyears,
 
                CASE 
-                 WHEN n.r_transfer = 1 THEN 'Transfered' 
                  WHEN ( n.r_renew_type IN ( 'renewal', 'transfer' ) 
                          OR n.r_autorenew_type = 'realized' ) THEN 'Renewed' 
                  ELSE 'Not Renewd' 
                END AS renewal_status, 
                
                n.r_mbg AS renew_mbg,
+               n.r_renewal_id as renewal_item_id,
                n.r_renew_type AS renew_type, 
                n.r_autorenew_type AS autorenew_type, 
-               n.r_renewed_on AS renew_date, 
+               DATE(n.r_renew_date) AS renew_date, 
                n.r_registrar_shortname AS Renew_Registrar_Shortname, 
                n.r_client_shortname AS Renew_Client_Shortname, 
                Round(n.net_revenue, 2) AS domain_revenue, 
-               Round(( n.net_revenue / n.period ), 2) AS arpt, 
+               Round(( SAFE_DIVIDE(n.net_revenue, n.period )), 2) AS arpt, 
                
-               CASE 
-                 WHEN n.deleted_date IS NOT NULL 
-                      AND n.expiry_date > n.deleted_date THEN 0 
-                 ELSE pr.revised_prediction 
-               END AS prediction,
-
-               pr.sld_length AS sld_length, 
-               pr.sld_type AS sld_type, 
-               pr.sld_type2 AS sld_type2, 
-               pr.day_domains AS day_domains, 
-               pr.logarpt AS logarpt, 
-               pr.gibb_score AS gibb_score, 
-               pr.coeff_variation AS coeff_variation, 
+              
                Round(( n.net_revenue - ( ( CASE 
                                              WHEN n.centralnic_comm IS NULL THEN 
                                              0.00 
@@ -68,7 +58,7 @@ get_expiry_data_str1 <- sprintf("SELECT 'FirstTime'  AS renewal_type,
                                                      THEN 
                                                        0.00 
                                                        ELSE 
-                                         n.icann_comm + n.icann_fixed 
+                                         n.icann_comm 
                                                      END ) ) ), 2)   AS gross_profit, 
                Round(( n.net_revenue - ( ( CASE 
                                              WHEN n.centralnic_comm IS NULL THEN 
@@ -82,96 +72,65 @@ get_expiry_data_str1 <- sprintf("SELECT 'FirstTime'  AS renewal_type,
                                                      END ) ) ), 2)   AS gp_less_icann_fixed, 
                n.r_period AS renew_domain_years, 
                Round(n.r_net_revenue, 2) AS renew_domain_revenue, 
-               Round(( n.r_net_revenue / n.r_period ), 2) AS renew_arpt, 
-               Round(( n.r_net_revenue - ( ( CASE 
-                                               WHEN n.r_centralnic_comm IS NULL 
-                                             THEN 
-                                               0.00 
-                                               ELSE n.r_centralnic_comm 
-                                             END ) + ( CASE 
-                                                         WHEN 
-                                           n.r_icann_comm IS NULL 
-                                                       THEN 0.00 
-                                                         ELSE 
-                                           n.r_icann_comm + n.icann_fixed 
-                                                       END ) ) ), 2) AS renew_gross_profit, 
-               Round(( n.r_net_revenue - ( ( CASE 
-                                               WHEN n.r_centralnic_comm IS NULL 
-                                             THEN 
-                                               0.00 
-                                               ELSE n.r_centralnic_comm 
-                                             END ) + ( CASE 
-                                                         WHEN 
-                                           n.r_icann_comm IS NULL 
-                                                       THEN 0.00 
-                                                         ELSE n.r_icann_comm 
-                                                       END ) ) ), 2) AS renew_gp_less_icann_fixed, 
-               Round(( n.net_revenue / n.period ), 2) AS registration_arpt,
+               Round( SAFE_DIVIDE(n.r_net_revenue, CAST(n.r_period as INT64)), 2) AS renew_arpt, 
 
-               PARSE_DATETIME('%Y-%m-%d', n.deleted_date) AS n.deleted_date
+              
+               Round(( SAFE_DIVIDE(n.net_revenue, n.period )), 2) AS registration_arpt 
 
 
                
         FROM   radixbi-249015.prediction_vendors.newreg n 
-               LEFT OUTER JOIN radixbi-249015.prediction_vendors.predictions pr 
-                            ON n.domain_id = pr.domain_id 
                               
         WHERE  n.mbg = 0 
-               AND n.expiry_date >= DATETIME('%s')
-               AND n.expiry_date <= DATETIME('%s')
-               AND n.period > 0 ", 
-                                expiry_date_start, expiry_date_end)
+               AND n.expiry_date >= '",expiry_date_start,"'
+               AND n.expiry_date <= '",expiry_date_end,"'
+               AND n.period > 0 ", sep="")
 
-get_expiry_data_str2 <- sprintf("SELECT CASE 
+get_expiry_data_str2 <- paste("SELECT CASE 
                  WHEN renewed_count > 1 THEN 'Subsequent' 
                  ELSE 'Second' 
                END AS renewal_type, 
-               ( renewed_count + 1 ) AS renewed_count, 
+               
+               (renewed_count + 1 ) AS renewed_count, 
                n.transaction_expiry AS Expiry_date, 
                n.domain_id AS domain_id, 
                n.domain AS domain, 
-               n.registered_on AS creation_date1, 
+               pr.creation_date AS creation_date1, 
                CASE 
                  WHEN n.deleted_date IS NOT NULL 
-                      AND n.transaction_expiry > n.deleted_date THEN 'Deleted' 
+                      AND DATE(n.transaction_expiry) > SAFE.PARSE_DATE('%Y-%m-%d',n.deleted_date) THEN 'Deleted' 
                  ELSE 'Active' 
                END AS status, 
+               
                n.tld AS tld, 
                n.registrar_shortname AS registrar_shortname, 
                n.client_shortname AS client_shortname, 
                n.client_country AS client_country, 
                n.registrant_country AS registrant_country,
+               
                CASE 
                  WHEN n.client_am IN ( 'Kenneth', 'Kenneth HK' ) THEN 'China' 
                  ELSE 'Non China' 
                END AS region, 
                n.period AS noofyears, 
+               
                CASE 
-                 WHEN n.r_transfer = 1 THEN 'Transfered' 
                  WHEN ( n.r_renew_type IN ( 'renewal', 'transfer' ) 
                          OR n.r_autorenew_type = 'realized' ) THEN 'Renewed' 
                  ELSE 'Not Renewd' 
-               END AS renewal_status, 
-               n.r_mbg AS renew_mbg,
+               END AS renewal_status,
+               
+               
+               CAST(n.r_mbg as INT64) AS renew_mbg,
+                n.r_renewal_id as renewal_item_id,
                n.r_renew_type AS renew_type, 
                n.r_autorenew_type AS autorenew_type, 
-               n.r_renewed_on AS renew_date, 
+               PARSE_DATE('%Y-%m-%d',n.r_renew_date) AS renew_date, 
                n.r_registrar_shortname AS Renew_Registrar_Shortname, 
                n.r_client_shortname AS Renew_Client_Shortname, 
                Round(n.net_revenue, 2) AS domain_revenue, 
-               Round(( n.net_revenue / n.period ), 2) AS arpt, 
-               CASE 
-                 WHEN n.deleted_date IS NOT NULL 
-                      AND n.expiry_date > n.deleted_date THEN 0 
-                 ELSE pr.revised_prediction 
-               END AS prediction, 
-               pr.sld_length AS sld_length, 
-               pr.sld_type AS sld_type, 
-               pr.sld_type2 AS sld_type2, 
-               pr.day_domains AS day_domains, 
-               pr.logarpt AS logarpt, 
-               pr.gibb_score AS gibb_score, 
-               pr.coeff_variation AS coeff_variation, 
+               Round(( SAFE_DIVIDE(n.net_revenue ,n.period )), 2) AS arpt, 
+               
                Round(( n.net_revenue - ( ( CASE 
                                              WHEN n.centralnic_comm IS NULL THEN 
                                              0.00 
@@ -181,9 +140,8 @@ get_expiry_data_str2 <- sprintf("SELECT CASE
                                                      THEN 
                                                        0.00 
                                                        ELSE 
-                                         n.icann_comm + n.icann_fixed 
-                                                     END ) ) ), 2)   AS 
-               gross_profit, 
+                                         n.icann_comm 
+                                                     END ) ) ), 2)   AS gross_profit, 
                Round(( n.net_revenue - ( ( CASE 
                                              WHEN n.centralnic_comm IS NULL THEN 
                                              0.00 
@@ -194,51 +152,27 @@ get_expiry_data_str2 <- sprintf("SELECT CASE
                                                        0.00 
                                                        ELSE n.icann_comm 
                                                      END ) ) ), 2)   AS gp_less_icann_fixed, 
-               n.r_period AS renew_domain_years, 
+               CAST(n.r_period as INT64) AS renew_domain_years, 
                Round(n.r_net_revenue, 2) AS renew_domain_revenue, 
-               Round(( n.r_net_revenue / n.r_period ), 2) AS renew_arpt, 
-               Round(( n.r_net_revenue - ( ( CASE 
-                                               WHEN n.r_centralnic_comm IS NULL 
-                                             THEN 
-                                               0.00 
-                                               ELSE n.r_centralnic_comm 
-                                             END ) + ( CASE 
-                                                         WHEN 
-                                           n.r_icann_comm IS NULL 
-                                                       THEN 0.00 
-                                                         ELSE 
-                                           n.r_icann_comm + n.icann_fixed 
-                                                       END ) ) ), 2) AS renew_gross_profit, 
-               Round(( n.r_net_revenue - ( ( CASE 
-                                               WHEN n.r_centralnic_comm IS NULL 
-                                             THEN 
-                                               0.00 
-                                               ELSE n.r_centralnic_comm 
-                                             END ) + ( CASE 
-                                                         WHEN 
-                                           n.r_icann_comm IS NULL 
-                                                       THEN 0.00 
-                                                         ELSE n.r_icann_comm 
-                                                       END ) ) ), 2) AS renew_gp_less_icann_fixed, 
+               Round( SAFE_DIVIDE(n.r_net_revenue , CAST(n.r_period as INT64)), 2) AS renew_arpt, 
+               
+               
                CASE 
                  WHEN n.newreg_period IS NOT NULL THEN Round(( 
-                 n.newreg_net_revenue / n.newreg_period ), 2) 
+                 SAFE_DIVIDE(n.newreg_net_revenue, n.newreg_period )), 2) 
                  ELSE 0 
                END AS 
-               registration_arpt,
-               PARSE_DATETIME('%Y-%m-%d', n.deleted_date) AS n.deleted_date
-
+               registration_arpt 
         FROM   radixbi-249015.prediction_vendors.renews n 
-               LEFT OUTER JOIN radixbi-249015.prediction_vendors.predictions pr 
+               LEFT OUTER JOIN radixbi-249015.prediction_vendors.newreg pr 
                             ON n.domain_id = pr.domain_id 
                                
         WHERE  n.mbg = 0 
-               AND n.transaction_expiry >= DATETIME('%s')
-               AND n.transaction_expiry <= DATETIME('%s')
+               AND n.transaction_expiry >= '",expiry_date_start,"'
+               AND n.transaction_expiry <= '",expiry_date_end,"'
                AND n.period > 0 
                AND ( n.renew_type IN ( 'renewal', 'transfer' ) 
-                      OR n.autorenew_type = 'realized' )", 
-                                expiry_date_start, expiry_date_end)
+                      OR n.autorenew_type = 'realized' )", sep="")
 
 get_expiry_data_str <-  paste("SELECT * FROM (",
                                get_expiry_data_str1, 
@@ -251,6 +185,6 @@ count_expiry_data_str <- paste("SELECT count(*) FROM (",
                                get_expiry_data_str1, 
                                "UNION ALL", 
                                get_expiry_data_str2, 
-                               ") AS sub ORDER  BY expiry_date", sep=" \n ")
+                               ") AS sub", sep=" \n ")
 
         
