@@ -23,7 +23,33 @@ PHASE 1
 
 ## Lab Notebook 
 
-### 20200714
+
+
+### 20200715_2
+
+Re-Training RF on new data
+
+### 20200715
+
+when running mass_predict_first_renewal() on list of df's w/ new expiry data, got error 
+
+Column 37 ['cluster'] of item 3 appears in position 36 in item 2. Set use.names=TRUE to match by column name, or use.names=FALSE to ignore column names. use.names='check' (default from v1.12.2) emits this message and proceeds as if use.names=FALSE for  backwards compatibility. See news item 5 in v1.12.2 for options to control this message.
+
+Looks like columns pattern and cluster as swapped for ["websitezhengzhou century connect"]
+added use.names=TRUE argument to rbind list call of mass_predict_first_renewal()
+
+This did the trick....
+
+Predict results in 63% missing predicted values (these would need to be looked up using lookup tables)
+
+Lift @ 10% is **2.2** and then quickly nosedives due to inability to predict for untrained tldXregistrar combos.
+
+Ultimately, client uses lookup tables to fill in the predictions for these missing values. Asked for script.
+
+
+
+
+### 20200714 (2core 16GB machine)
 
 prepping 20% subset of new expiry data for run through model
 finished. 81 less observations 12 more columns
@@ -36,6 +62,23 @@ dim(expiry_test_prepped)
 real    28m12.419s
 user    31m21.036s
 sys     0m13.256s
+
+model predict: 14.285 sec elapsed
+eval saving: 0.009 sec elapsed
+
+No magic here, lift of **1.8*** on 20% subset of new data vs. **6.3*** on test data
+Seg_glm achieved lift on 3.3 on test data. how well does it do on new data?
+
+but really, didn't implement fll scope of data prep (where a list of dataframes is created)
+not sure if it's equivalent so regenerating prepped test data as list of dfs
+
+also, tetsing performance of seg_glm on this new data
+
+real    58m23.127s
+user    72m5.680s
+sys     0m13.688s
+
+
 
 
 ### 20200705

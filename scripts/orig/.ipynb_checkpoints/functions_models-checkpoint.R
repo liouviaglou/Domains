@@ -104,8 +104,8 @@ mass_predict_first_renewal<-function(test_data, data_models) {
   tld_registrar_list<-names(test_data)
   prediction_list<-pblapply(tld_registrar_list, function(i) list_predict_first_renewal(i, test_data, data_models))
   prediction_list<-prediction_list[!is.na(prediction_list)]
-  prediction_op<-rbindlist(prediction_list)
-  test_data<-rbindlist(test_data)
+  prediction_op<-rbindlist(prediction_list,use.names=TRUE, fill=TRUE) 
+  test_data<-rbindlist(test_data,  use.names=TRUE, fill=TRUE) # modified as per error on 20200715 (see README)
   test_data$first_renewal_prediction<-prediction_op$probabilities[match(test_data$domain_id,
                                                                         prediction_op$domain_id)]
   return(test_data)
