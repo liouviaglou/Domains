@@ -1,9 +1,3 @@
-library(bigrquery)
-library(plotly)
-library(data.table)
-library(stringr)
-library(readr)
-
 # based on updated get_expiry_data.R
 
 get_expiry_data_str1 <- paste("SELECT 'FirstTime'  AS renewal_type, 
@@ -72,7 +66,7 @@ get_expiry_data_str1 <- paste("SELECT 'FirstTime'  AS renewal_type,
                                                      END ) ) ), 2)   AS gp_less_icann_fixed, 
                n.r_period AS renew_domain_years, 
                Round(n.r_net_revenue, 2) AS renew_domain_revenue, 
-               Round( SAFE_DIVIDE(n.r_net_revenue, CAST(n.r_period as INT64)), 2) AS renew_arpt, 
+               Round( SAFE_DIVIDE(n.r_net_revenue, SAFE_CAST(n.r_period as INT64)), 2) AS renew_arpt, 
 
               
                Round(( SAFE_DIVIDE(n.net_revenue, n.period )), 2) AS registration_arpt 
@@ -121,11 +115,11 @@ get_expiry_data_str2 <- paste("SELECT CASE
                END AS renewal_status,
                
                
-               CAST(n.r_mbg as INT64) AS renew_mbg,
+               SAFE_CAST(n.r_mbg as INT64) AS renew_mbg,
                 n.r_renewal_id as renewal_item_id,
                n.r_renew_type AS renew_type, 
                n.r_autorenew_type AS autorenew_type, 
-               PARSE_DATE('%Y-%m-%d',n.r_renew_date) AS renew_date, 
+               SAFE.PARSE_DATE('%Y-%m-%d',n.r_renew_date) AS renew_date, 
                n.r_registrar_shortname AS Renew_Registrar_Shortname, 
                n.r_client_shortname AS Renew_Client_Shortname, 
                Round(n.net_revenue, 2) AS domain_revenue, 
@@ -152,9 +146,9 @@ get_expiry_data_str2 <- paste("SELECT CASE
                                                        0.00 
                                                        ELSE n.icann_comm 
                                                      END ) ) ), 2)   AS gp_less_icann_fixed, 
-               CAST(n.r_period as INT64) AS renew_domain_years, 
+               SAFE_CAST(n.r_period as INT64) AS renew_domain_years, 
                Round(n.r_net_revenue, 2) AS renew_domain_revenue, 
-               Round( SAFE_DIVIDE(n.r_net_revenue , CAST(n.r_period as INT64)), 2) AS renew_arpt, 
+               Round( SAFE_DIVIDE(n.r_net_revenue , SAFE_CAST(n.r_period as INT64)), 2) AS renew_arpt, 
                
                
                CASE 

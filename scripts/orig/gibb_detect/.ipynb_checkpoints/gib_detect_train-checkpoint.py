@@ -1,20 +1,10 @@
 #!/usr/bin/python
 
-import pickle
 import math
 import pickle
-import sys
 import os
 
-import os.path
-
 accepted_chars = 'abcdefghijklmnopqrstuvwxyz '
-
-model_data = pickle.load(open('/home/jupyter/local/Domains_202003/scripts/orig/gibb_detect/gib_model.pki', 'rb'))
-
-# __location__ = os.path.realpath(
-#     os.path.join(os.getcwd(), os.path.dirname(__file__)))
-# model_data = pickle.load(open(os.path.join(os.getcwd(), 'gib_model.pki'), 'rb'))
 
 pos = dict([(char, idx) for idx, char in enumerate(accepted_chars)])
 
@@ -41,7 +31,7 @@ def train():
 
     # Count transitions from big text file, taken 
     # from c
-    # for line in open('/home/radmin/temp/py-code/big.txt'):
+#     for line in open('/home/radmin/temp/py-code/big.txt'):
     for line in open('/Users/lubagloukhov/Documents/Consulting/Radix/Domains_202003/scripts/orig/gibb_detect/big.txt'):
         for a, b in ngram(2, line):
             counts[pos[a]][pos[b]] += 1
@@ -58,10 +48,11 @@ def train():
 
     # Find the probability of generating a few arbitrarily choosen good and
     # bad phrases.
-    # good_probs = [avg_transition_prob(l, counts) for l in open('/home/radmin/temp/py-code/good.txt')]
-    # bad_probs = [avg_transition_prob(l, counts) for l in open('/home/radmin/temp/py-code/bad.txt')]
+#     good_probs = [avg_transition_prob(l, counts) for l  in open('/home/radmin/temp/py-code/good.txt')]
+#     bad_probs = [avg_transition_prob(l, counts) for l in open('/home/radmin/temp/py-code/bad.txt')]
     good_probs = [avg_transition_prob(l, counts) for l  in open('/Users/lubagloukhov/Documents/Consulting/Radix/Domains_202003/scripts/orig/gibb_detect/good.txt')]
     bad_probs = [avg_transition_prob(l, counts) for l in open('/Users/lubagloukhov/Documents/Consulting/Radix/Domains_202003/scripts/orig/gibb_detect/bad.txt')]
+
 
     # Assert that we actually are capable of detecting the junk.
     assert min(good_probs) > max(bad_probs)
@@ -80,10 +71,10 @@ def avg_transition_prob(l, log_prob_mat):
     # The exponentiation translates from log probs to probs.
     return math.exp(log_prob / (transition_ct or 1))
 
+if __name__ == '__main__':
+    train()
 
-def gibberish_test(l):
-    model_mat = model_data['mat']
-    threshold = model_data['thresh']
-    return avg_transition_prob(l, model_mat)
 
+
+    
     

@@ -1,5 +1,36 @@
-SELECT *
-FROM  (SELECT 'FirstTime'  AS renewal_type, 
+
+library(dplyr)
+library(modeest)
+library(RMySQL)
+library(tidyverse)
+library(R.utils)
+library(data.table)
+library(lubridate)
+library(reshape2)
+library(dbplyr)
+library(bigrquery)
+
+
+
+
+
+bq_get_expiry_data<-function(expiry_date_start, expiry_date_end) {
+  
+  bq_auth(token = readRDS("/home/radmin/npv_project/.secrets/fc7a2051d6f88188d75fad3f7c357acb_bi-team@radix.email"))
+
+  con <- DBI::dbConnect(
+    bigquery(),
+    project = "radixbi-249015",
+    dataset = "radix",
+    billing = "radixbi-249015",
+    use_legacy_sql = TRUE
+  )
+  
+
+  
+  rs = dbSendQuery(con, 
+                   paste("SELECT * 
+FROM   (SELECT 'FirstTime'  AS renewal_type, 
                1 AS renewed_count, 
                n.expiry_date AS Expiry_date, 
                n.domain_id AS domain_id, 
@@ -72,11 +103,11 @@ FROM  (SELECT 'FirstTime'  AS renewal_type,
 
 
                
-        FROM   radixbi-249015.prediction_vendors.newreg n 
+        FROM   prediction_vendors.newreg n 
               
         WHERE  n.mbg = 0 
-               AND n.expiry_date >= '2020-01-01' 
-               AND n.expiry_date <= '2020-05-31'
+               AND n.expiry_date >= '", expiry_date_start,"' 
+               AND n.expiry_date <= '", expiry_date_end,"' 
                AND n.period > 0 
         UNION ALL
         
@@ -157,15 +188,40 @@ FROM  (SELECT 'FirstTime'  AS renewal_type,
                  ELSE 0 
                END AS 
                registration_arpt 
-        FROM   radixbi-249015.prediction_vendors.renews n 
-               LEFT OUTER JOIN radixbi-249015.prediction_vendors.newreg pr 
+        FROM   prediction_vendors.renews n 
+               LEFT OUTER JOIN prediction_vendors.newreg pr 
                             ON n.domain_id = pr.domain_id 
                              
         WHERE  n.mbg = 0 
-               AND n.transaction_expiry >= '2020-01-01'
-               AND n.transaction_expiry <= '2020-05-31'
+               AND n.transaction_expiry >= '",expiry_date_start,"'
+               AND n.transaction_expiry <= '",expiry_date_start,"'  
                AND n.period > 0 
                AND ( n.renew_type IN ( 'renewal', 'transfer' ) 
                       OR n.autorenew_type = 'realized' )) AS sub 
-ORDER  BY expiry_date 
-LIMIT 10;
+ORDER  BY expiry_date ", sep = ""))
+
+  expiry_data<-dbFetch(rs, n=-1)
+  dbDisconnect(con)
+  
+  
+  expiry_data<-expiry_data %>%
+    select(renewal_type, renewed_count, expiry_date = Expiry_date, domain_id, domain,
+           creation_date = creation_date1, status, tld, registrar = registrar_shortname,
+           reseller = client_shortname, reseller_country = client_country, region, reg_period = noofyears,
+           registrant_country, renewal_status, renew_mbg, renewal_item_id, 
+           renew_type, autorenew_type, renew_date, renew_registrar = Renew_Registrar_Shortname, 
+           renew_reseller = Renew_Client_Shortname, reg_revenue = domain_revenue, reg_arpt = arpt,
+           renew_period = renew_domain_years, renew_domain_revenue, renew_arpt,reg_arpt_org = registration_arpt)
+  expiry_data$expiry_date<-as.Date(expiry_data$expiry_date, "%Y-%m-%d")
+  expiry_data$creation_date<-as.Date(expiry_data$creation_date, "%Y-%m-%d")
+  expiry_data$renew_date<-as.Date(expiry_data$renew_date, "%Y-%m-%d")
+  expiry_data$registrar<-tolower(expiry_data$registrar)
+  expiry_data$reseller<-tolower(expiry_data$reseller)
+  
+  expiry_data$renewal_status[!(expiry_data$renew_mbg == 0)]<-"Not Renewd"
+  expiry_data$autorenew_type[!(expiry_data$renew_mbg == 0)]<-"unrealized"
+  return(expiry_data)
+}
+
+
+bq_expiry_data<-bq_get_expiry_data("2020-02-01", "2020-02-03")

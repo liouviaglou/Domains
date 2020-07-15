@@ -23,9 +23,24 @@ PHASE 1
 
 ## Lab Notebook 
 
+### 20200714
+
+prepping 20% subset of new expiry data for run through model
+finished. 81 less observations 12 more columns
+
+dim(expiry_test)
+dim(expiry_test_prepped)
+[1] 348672     27
+[1] 348591     39
+
+real    28m12.419s
+user    31m21.036s
+sys     0m13.256s
+
+
 ### 20200705
 
-get_expiry query is working. 1,130,038 rows for expiry_dates in Jan-May 2020 (BQ interface) 1,743,356 rows (R)
+get_expiry query is working.  1,743,356 rowsrows for expiry_dates in Jan01-May31 2020
 QAing get_expiry_data.R
 
 

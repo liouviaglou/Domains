@@ -23,9 +23,41 @@ PHASE 1
 
 ## Lab Notebook 
 
+### 20200714 (2core 16GB machine)
+
+prepping 20% subset of new expiry data for run through model
+finished. 81 less observations 12 more columns
+
+dim(expiry_test)
+dim(expiry_test_prepped)
+[1] 348672     27
+[1] 348591     39
+
+real    28m12.419s
+user    31m21.036s
+sys     0m13.256s
+
+model predict: 14.285 sec elapsed
+eval saving: 0.009 sec elapsed
+
+No magic here, lift of 1.8 on 20% subset of new data vs. 6.3 on test data
+Seg_glm achieved lift on 3.3 on test data. how well does it do on new data?
+
+but really, didn't implement fll scope of data prep (where a list of dataframes is created)
+not sure if it's equivalent so regenerating prepped test data as list of dfs
+
+also, tetsing performance of seg_glm on this new data
+
+real    58m23.127s
+user    72m5.680s
+sys     0m13.688s
+
+
+
+
 ### 20200705
 
-get_expiry query is working. 1,130,038 rows for expiry_dates in Jan-May 2020 (BQ interface) 1,743,356 rows (R)
+get_expiry query is working.  1,743,356 rowsrows for expiry_dates in Jan01-May31 2020
 QAing get_expiry_data.R
 
 
