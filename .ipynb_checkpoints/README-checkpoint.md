@@ -25,6 +25,32 @@ PHASE 1
 
 
 
+### 20200716 (2core 16 GB machine)
+
+why were so many missing values generated in the mass_data_prep() of expiry data?
+
+Need to geerate performance metrics for the following models
+
+| **MODELS**| tr_phase1, pf_phase1      | tr_phase1, pf_expiry      | tr_expiry, pf_expiry                 | 
+|-----------|---------------------------|---------------------------|--------------------------------------|
+| seg_glm   | first_renewal_model_train | first_renewal_model_train | first_renewal_model_expiry_train     |   
+| rf_500    | ranger_03_                | ranger_03_                | ranger_03_expiry                     |  
+
+
+| **PREDS** | tr_phase1, pf_phase1             | tr_phase1, pf_expiry      | tr_expiry, pf_expiry                 | 
+|-----------|----------------------------------|---------------------------|--------------------------------------|
+| seg_glm   | first_renewal_model_test_predict | seg_glm_exptest           | seg_glm_expiry_exptest               |   
+| rf_500    | predict_ranger_03_               | ranger_predict_03_exptest | ranger_predict_03_expiry             |   
+
+
+|**LIFT_DF**| tr_phase1, pf_phase1             | tr_phase1, pf_expiry      | tr_expiry, pf_expiry                 | 
+|-----------|----------------------------------|---------------------------|--------------------------------------|
+| seg_glm   | lift_df_segglm                   | lift_df_seg_glm_exptest   | lift_df_seg_glm_expiry_exptest       |   
+| rf_500    | lift_df_ranger_03_               | lift_df_ranger_03         | lift_df_ranger_03_expiry             |   
+
+Metrics include: Gains Curves; Lift values; for each tld-registrar-reg_arpt: sum(prob) vs count (renewed)
+
+
 ### 20200715_2 (4core 32GB machine)
 
 Re-Training RF on new data
