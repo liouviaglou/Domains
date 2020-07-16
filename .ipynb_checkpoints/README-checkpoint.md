@@ -25,9 +25,36 @@ PHASE 1
 
 
 
-### 20200715_2
+### 20200715_2 (4core 32GB machine)
 
 Re-Training RF on new data
+
+Prep training data (data: expiry_train_prepped_2, expiry_test_prepped_2)
+real    159m36.456s
+user    177m20.376s
+sys     0m58.628s
+
+Retrain Ranger_03 (model: ranger_03_expiry; lift: lift_df_ranger_03_expiry)
+model fitting: 952.151 sec elapsed
+model saving: 163.762 sec elapsed
+model predict: 65.851 sec elapsed
+eval saving: 0.132 sec elapsed
+
+Retrain seg_glm (model: first_renewal_model_expiry_train)
+model fitting: 38.794 sec elapsed
+model saving: 48.062 sec elapsed
+
+now only 0.3% missing predicted values
+
+Lifts at 10% very close for seg_glm and ranger_03 trained on this new data: **3.9** vs **3.8** 
+
+why is the lift so awesome when only looking at the big registrars?
+longer time range? so more data per registrar?
+
+also incorporated reg_arpt into the list of predictors
+
+
+
 
 ### 20200715
 
