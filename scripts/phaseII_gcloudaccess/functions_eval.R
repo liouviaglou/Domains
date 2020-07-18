@@ -59,7 +59,8 @@ plot_gains <- function (lift_df=lift_df) {
     scale_y_continuous(breaks = seq(0, 1, by = .1), limits = c(0,1)) +
     scale_x_continuous(breaks = seq(0, 1, by = .1)) +
     labs(title = "Cumulative Gains Plot",
-         y = "Cumulative Gain %")
+         y = "Cumulative Gain %")+
+    theme(text = element_text(size=20))
   
   return(gains_plot)
 }
@@ -99,7 +100,7 @@ plot_multigains <- function (lift_df_list=list(seg_glm = lift_df,
   # colors <- colors[1:length(lift_df_list)]
   # name_map = paste(names(lift_df_list),colors, sep="=")[1:length(lift_df_list)]
   
-  auc_list = lapply(auc_list, round, 4)
+  auc_list = lapply(auc_list, round, 2)
   auc_map = paste(names(lift_df_list),auc_list, sep=" = ")[1:length(lift_df_list)]
   
   
@@ -112,7 +113,8 @@ plot_multigains <- function (lift_df_list=list(seg_glm = lift_df,
     scale_x_continuous(breaks = seq(0, 1, by = .1)) +
     labs(title = "Cumulative Gains Plot",
          y = "Cumulative Gain",
-         x = "Percentile")
+         x = "Percentile")+
+    theme(text = element_text(size=20))
   
   for(i in seq(length(lift_df_list))){
     name = names(lift_df_list)[[i]]
@@ -121,7 +123,7 @@ plot_multigains <- function (lift_df_list=list(seg_glm = lift_df,
     auc = auc_list[[i]]
     gains_plot <- gains_plot + list(geom_line(data=df), 
                                     geom_point(data=df))+ 
-      annotate("text", x = .8, y = .6-i*.075, hjust = 0, label = auc_map[[i]])
+      annotate("text", x = .6, y = .6-i*.075, hjust = 0, label = auc_map[[i]], size = 6)
   }
   
   

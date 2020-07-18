@@ -29,28 +29,36 @@ train_df <- rbindlist(train)
 test_df <- rbindlist(test)
 
 df_prep <- function (df){
-    df_f <- subset(df, select = -c(sld,pattern,domain,sld_type2,tld_registrar_index,
-                                           renew_reseller,renew_registrar,renewal_type,renewed_count,
-                                           renew_type,autorenew_type,renew_period,renew_arpt,
-                                           renew_domain_revenue,status,first_renewal_prediction,
-                                           domain_id))
+    df_f <- subset(df, select = c(renewal_status, tld, registrar, reseller, 
+                                              reseller_country, region, reg_period, 
+                                              sld_type, sld_length, day_domains, gibb_score, 
+                                              pattern_domain_count,reg_arpt))
     
-    df_f$renew_Y <- format(as.Date(df_f$renew_date, 
-                                     format="%Y-%m-%d"),"%Y")
-    df_f$creation_Y <- format(as.Date(df_f$creation_date, 
-                                            format="%Y-%m-%d"),"%Y")
-    df_f$expiry_Y <- format(as.Date(df_f$expiry_date, 
-                                          format="%Y-%m-%d"),"%Y")
-    df_f$renew_M <- format(as.Date(df_f$renew_date, 
-                                         format="%Y-%m-%d"),"%m")
-    df_f$creation_M <- format(as.Date(df_f$creation_date, 
-                                            format="%Y-%m-%d"),"%m")
-    df_f$expiry_M <- format(as.Date(df_f$expiry_date, 
-                                          format="%Y-%m-%d"),"%m")
+     
+    
+    
+#     df_f <- subset(df, select = -c(sld,pattern,domain,sld_type2,tld_registrar_index,
+#                                            renew_reseller,renew_registrar,renewal_type,renewed_count,
+#                                            renew_type,autorenew_type,renew_period,renew_arpt,
+#                                            renew_domain_revenue,status,first_renewal_prediction,
+#                                            domain_id))
+    
+#     df_f$renew_Y <- format(as.Date(df_f$renew_date, 
+#                                      format="%Y-%m-%d"),"%Y")
+#     df_f$creation_Y <- format(as.Date(df_f$creation_date, 
+#                                             format="%Y-%m-%d"),"%Y")
+#     df_f$expiry_Y <- format(as.Date(df_f$expiry_date, 
+#                                           format="%Y-%m-%d"),"%Y")
+#     df_f$renew_M <- format(as.Date(df_f$renew_date, 
+#                                          format="%Y-%m-%d"),"%m")
+#     df_f$creation_M <- format(as.Date(df_f$creation_date, 
+#                                             format="%Y-%m-%d"),"%m")
+#     df_f$expiry_M <- format(as.Date(df_f$expiry_date, 
+#                                           format="%Y-%m-%d"),"%m")
 
-    df_f <- subset(df_f, select = -c(renew_date,
-                                                 creation_date,
-                                                 expiry_date))
+#     df_f <- subset(df_f, select = -c(renew_date,
+#                                                  creation_date,
+#                                                  expiry_date))
     
     df_f <- df_f %>% mutate_if(sapply(df_f, is.character), as.factor)
     
@@ -59,9 +67,9 @@ df_prep <- function (df){
 
 # tic("total")
 # tic("train prep")
-train_df_f <- df_prep(train_df)
+train_df_f_sub <- df_prep(train_df)
 # toc()
 # tic("text prep")
-test_df_f <- df_prep(test_df)
+test_df_f_sub <- df_prep(test_df)
 # toc()
 # toc()

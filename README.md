@@ -25,30 +25,42 @@ PHASE 1
 
 
 
-### 20200716 (2core 16 GB machine)
+### 20200717
+
+Ranger_03 tested in training data
+but dtree_xl 1 &2 had good perf on test data 
+but w/ leaked variables. now testing w/o leaked varibales
+good performance was only because working on limited test data (after having removed all rows where any variable is na)
+shitty performance xltree_03, in dtree_xl_2.ipynb
+
+now trying to salvage ranger by doing one last hyper param tuning of class.weights
+
+
 
 why were so many missing values generated in the mass_data_prep() of expiry data?
 
+0. Choose optimal cutoff point [link](http://ethen8181.github.io/machine-learning/unbalanced/unbalanced.html)
+
+
+
+### 20200716 (2core 16 GB machine)
+
+
+
 Need to geerate performance metrics for the following models
 
-| **MODELS**| tr_phase1, pf_phase1             | tr_phase1, pf_expiry      | tr_expiry, pf_expiry                 | 
-|-----------|----------------------------------|---------------------------|--------------------------------------|
-| seg_glm   | first_renewal_model_train        | first_renewal_model_train | first_renewal_model_expiry_train     |   
-| rf_500    | ranger_03_                       | ranger_03_                | ranger_03_expiry                     |  
+|               |           | tr_phase1, pf_phase1             | tr_phase1, pf_expiry      | tr_expiry, pf_expiry                 | 
+|---------------|-----------|----------------------------------|---------------------------|--------------------------------------|
+|**MODELS**     | seg_glm   | first_renewal_model_train        | first_renewal_model_train | first_renewal_model_expiry_train     |   
+|               | rf_500    | ranger_03_                       | ranger_03_                | ranger_03_expiry                     |  
+|---------------|-----------|----------------------------------|---------------------------|--------------------------------------|
+| **PREDS**     | seg_glm   | first_renewal_model_test_predict | seg_glm_exptest           | seg_glm_expiry_exptest               |   
+|               | rf_500    | predict_ranger_03_               | ranger_predict_03_exptest | ranger_predict_03_expiry             |   
+|---------------|-----------|----------------------------------|---------------------------|--------------------------------------|
+| **LIFT_DF**   | seg_glm   | lift_df_segglm                   | lift_df_seg_glm_exptest   | lift_df_seg_glm_expiry_exptest       |   
+|               | rf_500    | lift_df_ranger_03_               | lift_df_ranger_03         | lift_df_ranger_03_expiry             |   
 
-
-| **PREDS** | tr_phase1, pf_phase1             | tr_phase1, pf_expiry      | tr_expiry, pf_expiry                 | 
-|-----------|----------------------------------|---------------------------|--------------------------------------|
-| seg_glm   | first_renewal_model_test_predict | seg_glm_exptest           | seg_glm_expiry_exptest               |   
-| rf_500    | predict_ranger_03_               | ranger_predict_03_exptest | ranger_predict_03_expiry             |   
-
-
-|**LIFT_DF**| tr_phase1, pf_phase1             | tr_phase1, pf_expiry      | tr_expiry, pf_expiry                 | 
-|-----------|----------------------------------|---------------------------|--------------------------------------|
-| seg_glm   | lift_df_segglm                   | lift_df_seg_glm_exptest   | lift_df_seg_glm_expiry_exptest       |   
-| rf_500    | lift_df_ranger_03_               | lift_df_ranger_03         | lift_df_ranger_03_expiry             |   
-
-Metrics include: Gains Curves; Lift values; for each tld-registrar-reg_arpt: sum(prob) vs count (renewed)
+Metrics include: Gains Curves; Lift values; ~~for each tld-registrar-reg_arpt: sum(prob) vs count (renewed)~~ Confusion Matrix
 
 
 ### 20200715_2 (4core 32GB machine)
