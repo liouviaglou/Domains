@@ -25,6 +25,11 @@ PHASE 1
 
 
 
+### 20200718-9
+
+Examining performance on a regstrar level, as per client's recommendation
+
+
 ### 20200717
 
 Ranger_03 tested in training data
@@ -34,6 +39,10 @@ good performance was only because working on limited test data (after having rem
 shitty performance xltree_03, in dtree_xl_2.ipynb
 
 now trying to salvage ranger by doing one last hyper param tuning of class.weights
+
+for some reason, class.weights have NO IMPACT on Sensitivity/Specificity/etc. even at extreme settings like c(1,1000)
+
+Ultimately, training ranger_03 with default hyper parameters resulted in higher lift (from 4.0 to 4.3) on new data
 
 
 

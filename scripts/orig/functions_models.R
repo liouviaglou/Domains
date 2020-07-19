@@ -10,18 +10,18 @@ mass_build_model_first_renewal<-function(prepared_data){
 
 
 build_model_first_renewal<-function(train_data){
-  print(paste("TLD-Registrar",
-              train_data$tld_registrar_index[1]))
-  print(paste("Renewal Levels",
-              nlevels(train_data$renewal_status)))
+#   print(paste("TLD-Registrar",
+#               train_data$tld_registrar_index[1]))
+#   print(paste("Renewal Levels",
+#               nlevels(train_data$renewal_status)))
   train_data$renewal_status<-factor(train_data$renewal_status)
   train_data$sld_type<-factor(train_data$sld_type)
   if(nlevels(train_data$renewal_status) < 2 ) {
-    print(paste("Less Renewal Status Levels",train_data$tld_registrar_index[1]))
-    print(paste("Total Levels Returning NA",nlevels(train_data$renewal_status)))
+#     print(paste("Less Renewal Status Levels",train_data$tld_registrar_index[1]))
+#     print(paste("Total Levels Returning NA",nlevels(train_data$renewal_status)))
     return(NA)
   }
-  print(paste("SLD Type Levels",nlevels(train_data$sld_type)))
+#   print(paste("SLD Type Levels",nlevels(train_data$sld_type)))
   ifelse(nlevels(train_data$sld_type) < 2, 
          build_data<-subset(train_data,
                             select=c(renewal_status,
@@ -86,7 +86,7 @@ list_predict_first_renewal<-function(tld_registrar,test_data, data_models) {
   #new.tld.registrar<-paste("site_",registrar.name,sep="")
   #new.tld.registrar<-gsub("\\s+","_",new.tld.registrar)
   #model<-data.models[[new.tld.registrar]]
-  print(tld_registrar)
+#   print(tld_registrar)
   ########END:for substitute TLD#######################
   tld_registrar_data<-test_data[[tld_registrar]]
   model<-data_models[[tld_registrar]]
