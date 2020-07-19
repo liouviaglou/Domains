@@ -7,10 +7,10 @@ library(data.table)
 ##################################
 
 # LOAD list of dfs
-# system("gsutil cp gs://data_outputt/output/expiry_train_prepped_1list /home/jupyter/local/Domains_202003/data/expiry_train_prepped_1list")
+system("gsutil cp gs://data_outputt/output/expiry_train_prepped_1list /home/jupyter/local/Domains_202003/data/expiry_train_prepped_1list")
 expiry_train_prepped_2 <- readRDS("/home/jupyter/local/Domains_202003/data/expiry_train_prepped_1list")
 
-# system("gsutil cp gs://data_outputt/output/expiry_test_prepped_1list /home/jupyter/local/Domains_202003/data/expiry_test_prepped_1list")
+system("gsutil cp gs://data_outputt/output/expiry_test_prepped_1list /home/jupyter/local/Domains_202003/data/expiry_test_prepped_1list")
 expiry_test_prepped_2 <- readRDS("/home/jupyter/local/Domains_202003/data/expiry_test_prepped_1list")
 
 # REMOVE empty list items from each list (does not change the dim of rbound list)

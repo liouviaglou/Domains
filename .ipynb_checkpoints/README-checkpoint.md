@@ -23,12 +23,38 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20200720
+
+
+Investigate 44 registrars which have missisng perf comparisons
+
 
 
 ### 20200718-9
 
 Examining performance on a regstrar level, as per client's recommendation
 
+seg_glm fails to generate a prediction for  .5% of observationsl, resulting in a slightly lower AUC (.817 vs .823) and lift at 10% (4.71 vs. 4.74)
+
+random forest generates a prediction for all observations but does this overall with lower accuracy (much lower true positive rate but slightly higher true negative rate)
+
+seg_glm does better on larger registrars whereas ranger_03 does better on smaller registrars. 
+
+seg_glm outperforms ranger_03 on 58 registrars:  0.5225225 
+ranger_03 outperforms seg_glm on 47 registrars:  0.4234234 
+
+seg_glm outperforms ranger_03 on 218975 domains:  0.7385628 
+ranger_03 outperforms seg_glm on 77438 registrars:  0.2611843 
+
+On the  70  registrars w/ less than  600  domains renewing....
+
+seg_glm outperforms ranger_03 on 29 registrars:  0.4142857 
+ranger_03 outperforms seg_glm on 35 registrars:  0.5 
+
+seg_glm outperforms ranger_03 on 3791 domains:  0.446315 
+ranger_03 outperforms seg_glm on 4628 domains:  0.5448552 
+
+Investigate 44 registrars which have missisng perf comparisons
 
 ### 20200717
 
