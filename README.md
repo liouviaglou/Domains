@@ -23,11 +23,29 @@ PHASE 1
 
 ## Lab Notebook 
 
-## 20200720
+## 20200720_2
 
 trying segmented RF 
 
-Investigate 44 registrars which have missisng perf comparisons
+
+## 20200720
+
+because auc is not calculated for very small registrars, ranger actually outperforms seg_glm on most registrars (based on accuracy) (86 versus 51) but still lags behind in terms of domain count (since these are small registrars) 
+
+seg_glm outperforms ranger_03 on 51 registrars:  0.3290323 
+ranger_03 outperforms seg_glm on 86 registrars:  0.5548387 
+
+seg_glm outperforms ranger_03 on 152087 domains:  0.5124277 
+ranger_03 outperforms seg_glm on 133261 domains:  0.4489971 
+
+
+On the  114  registrars w/ less than  600  domains renewing.... (note higher count due to new performance metirc)
+
+seg_glm outperforms ranger_03 on 28 registrars:  0.245614 
+ranger_03 outperforms seg_glm on 69 registrars:  0.6052632 
+
+seg_glm outperforms ranger_03 on 3009 domains:  0.3418153 
+ranger_03 outperforms seg_glm on 5485 domains:  0.623083 
 
 
 
@@ -56,7 +74,7 @@ ranger_03 outperforms seg_glm on 35 registrars:  0.5
 seg_glm outperforms ranger_03 on 3791 domains:  0.446315 
 ranger_03 outperforms seg_glm on 4628 domains:  0.5448552 
 
-Investigate 44 registrars which have missisng perf comparisons
+Investigate 44 registrars which have missisng perf comparisons -- these are the ones where seg_glm produced NA's/ obs count was too small to calc AUC
 
 ### 20200717
 
