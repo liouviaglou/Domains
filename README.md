@@ -25,8 +25,10 @@ PHASE 1
 
 ## 20200720
 
+trying segmented RF 
 
 Investigate 44 registrars which have missisng perf comparisons
+
 
 
 
