@@ -52,7 +52,47 @@ build_model_first_renewal<-function(train_data){
 }
 
 
-
+build_model_first_renewal_reg <-function(train_data){
+#   print(paste("TLD-Registrar",
+#               train_data$tld_registrar_index[1]))
+#   print(paste("Renewal Levels",
+#               nlevels(train_data$renewal_status)))
+  train_data$renewal_status<-factor(train_data$renewal_status)
+  train_data$sld_type<-factor(train_data$sld_type)
+  if(nlevels(train_data$renewal_status) < 2 ) {
+#     print(paste("Less Renewal Status Levels",train_data$tld_registrar_index[1]))
+#     print(paste("Total Levels Returning NA",nlevels(train_data$renewal_status)))
+    return(NA)
+  }
+#   print(paste("SLD Type Levels",nlevels(train_data$sld_type)))
+  ifelse(nlevels(train_data$sld_type) < 2, 
+         build_data<-subset(train_data,
+                            select=c(renewal_status,
+                                     pattern_domain_count, 
+                                     log_reg_arpt, 
+                                     sld_length, 
+                                     day_domains,
+                                     gibb_score,
+                                     reg_period, tld)),  
+         build_data<-subset(train_data,
+                            select=c(renewal_status,
+                                     pattern_domain_count, 
+                                     log_reg_arpt, 
+                                     sld_length, 
+                                     sld_type, 
+                                     day_domains, 
+                                     gibb_score,
+                                     reg_period, tld))) 
+  ########################reduced model##########################################
+  #ifelse(nlevels(train.data$SLD.Type) < 2, build.data<-subset(train.data,select=c(Renewal.Status,Coeff.Variation, SLD.Length, Day.Domains)),  build.data<-subset(train.data,select=c(Renewal.Status,Coeff.Variation, SLD.Length, SLD.Type, Day.Domains))) 
+  ###############################reduced model#####################################
+  #build.data<-subset(train.data,select=c(Renewal.Status,logarpt))
+  model<-glm(renewal_status ~.,
+             family=binomial(link='logit'),
+             data=build_data, 
+             y = FALSE, model = FALSE)
+  return(model)
+}
 
 
 
@@ -72,6 +112,28 @@ predict_first_renewal<-function(test_data, model){
   # had to comment out the following to get predition list to work
   test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
   test_data$first_renewal_prediction<-round(test_data$first_renewal_prediction,3)
+  return(test_data)
+}
+                      
+predict_first_renewal_reg<-function(test_data, model){
+  test_data$sld_type[!(test_data$sld_type %in% model$xlevels$sld_type)]<-NA
+  
+  #test.data$probabilities <- predict(model,newdata=subset(test.data,select=c(Coeff.Variation, LogArpt, SLD.Length, SLD.Type, Day.Domains, Gibb.Score)),type='response');
+  test_data$probabilities<-predict(model,
+                                   newdata=subset(test_data,
+                                                  select=c(pattern_domain_count, 
+                                                           log_reg_arpt,
+                                                           sld_length, 
+                                                           gibb_score,
+                                                           sld_type, 
+                                                           day_domains,
+                                                           reg_period, tld)),type='response');
+  # had to comment out the following to get predition list to work
+#   test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
+#   test_data$first_renewal_prediction<-round(test_data$first_renewal_prediction,3)
+  # made the following mods
+  test_data$first_renewal_prediction<-round(test_data$probabilities,3)
+  test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
   return(test_data)
 }
 

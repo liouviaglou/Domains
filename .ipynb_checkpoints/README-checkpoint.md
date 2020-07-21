@@ -27,9 +27,14 @@ PHASE 1
 
 trying segmented RF 
 
-Investigate 44 registrars which have missisng perf comparisons
+top 15 tld_registrars by domain count contain 48% of all domains... identical performance across models
+seg_glm: auc=0.83, lift_10=4.7
+rf: auc=0.68, lift_10=2.3
 
 
+combining seg_glm for top 15 rld_registrars & rf for the  other 51.6% of domains leads to an auc lower (.8) than dor seg_glm alone (.83)
+
+top 50?
 
 ## 20200720
 
@@ -77,7 +82,7 @@ ranger_03 outperforms seg_glm on 35 registrars:  0.5
 seg_glm outperforms ranger_03 on 3791 domains:  0.446315 
 ranger_03 outperforms seg_glm on 4628 domains:  0.5448552 
 
-Investigate 44 registrars which have missisng perf comparisons
+Investigate 44 registrars which have missisng perf comparisons -- these are the ones where seg_glm produced NA's/ obs count was too small to calc AUC
 
 ### 20200717
 

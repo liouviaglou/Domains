@@ -27,6 +27,31 @@ PHASE 1
 
 trying segmented RF 
 
+top 15 tld_registrars by domain count contain 48% of all domains... identical performance across models
+seg_glm: auc=0.83, lift_10=4.7
+rf: auc=0.68, lift_10=2.3
+
+
+combining seg_glm for top 15 rld_registrars & rf for the  other 51.6% of domains leads to an auc lower (.8) than dor seg_glm alone (.83)
+
+top 100 ultimate does better in AUC (but slightly worse on lift) (account for 84% obs)
+.8198 vs .8165 AUC & 4.386 vs. 4.709 lift_10
+
+upsample
+.8183 vs .8165 AUC & 4.356644 vs. 4.709 lift_10
+
+smote, upsampling degrades performance
+
+top 150 (account for 89% obs)
+0.823117608168662 AUC, 4.5 lift_10
+
+top 200 (account for 92%)
+0.823790438018895, 4.5 lift_10
+
+top 300 (account for 96%)
+0.826105524921613, 4.6 lift_10
+
+
 
 ## 20200720
 
