@@ -23,6 +23,30 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20200722
+
+moving forward with fusion approach that combines segmented glm and aggregate random forest
+
+1. Does aggregate glm outperform aggregate random forest? at slit of top 15 tld_registrars - ***YES***
+    a) agg_glm note: set registrars as N/A for ones in test data not present in training data
+    b) seg_glm + agg_rf generated 1647 fewer rows than expected. seg_glm + agg_glm met expectations -- missing from traning data
+    c) seg_glm + agg_rg: AUC 0.795160213618157; lift_10 4.240840 (w/ reg not res)
+    c) seg_glm + agg_glm: AUC 0.811307309887682; lift_10 4.299024
+    d) seg_glm: AUC 0.816507088933898; lift_10 4.708893
+    e) **tld_registrar_index is actually a concatenation of tld and reseller** Need to rerun above
+    
+1. b) incorporate reseller (not registrar) as a predictor in RF
+
+2. Validate seg_glm performance from scratch
+
+2. Aside from small data segments, on what kind of segments does random forest outperform glm?
+
+3. Statistically, where is random forest more approriate than glm?
+
+4. Is segmentation on tld-registrar level necessary? Can we get by with registrar level segmentation, incorporating tld as a predictor?
+
+
+
 ## 20200720_2
 
 trying segmented RF 

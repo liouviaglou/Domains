@@ -23,6 +23,30 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20200722
+
+moving forward with fusion approach that combines segmented glm and aggregate random forest
+
+1. Does aggregate glm outperform aggregate random forest? at slit of top 15 tld_registrars - ***YES***
+    a) agg_glm note: set registrars as N/A for ones in test data not present in training data
+    b) seg_glm + agg_rf generated 1647 fewer rows than expected. seg_glm + agg_glm met expectations -- missing from traning data
+    c) seg_glm + agg_rg: AUC 0.795160213618157; lift_10 4.240840 (w/ reg not res)
+    c) seg_glm + agg_glm: AUC 0.811307309887682; lift_10 4.299024
+    d) seg_glm: AUC 0.816507088933898; lift_10 4.708893
+    e) **tld_registrar_index is actually a concatenation of tld and reseller** Need to rerun above
+    
+1. b) incorporate reseller (not registrar) as a predictor in RF
+
+2. Validate seg_glm performance from scratch
+
+2. Aside from small data segments, on what kind of segments does random forest outperform glm?
+
+3. Statistically, where is random forest more approriate than glm?
+
+4. Is segmentation on tld-registrar level necessary? Can we get by with registrar level segmentation, incorporating tld as a predictor?
+
+
+
 ## 20200720_2
 
 trying segmented RF 
@@ -34,7 +58,24 @@ rf: auc=0.68, lift_10=2.3
 
 combining seg_glm for top 15 rld_registrars & rf for the  other 51.6% of domains leads to an auc lower (.8) than dor seg_glm alone (.83)
 
-top 50?
+top 100 ultimate does better in AUC (but slightly worse on lift) (account for 84% obs)
+.8198 vs .8165 AUC & 4.386 vs. 4.709 lift_10
+
+upsample
+.8183 vs .8165 AUC & 4.356644 vs. 4.709 lift_10
+
+smote, upsampling degrades performance
+
+top 150 (account for 89% obs)
+0.823117608168662 AUC, 4.5 lift_10
+
+top 200 (account for 92%)
+0.823790438018895, 4.5 lift_10
+
+top 300 (account for 96%)
+0.826105524921613, 4.6 lift_10
+
+
 
 ## 20200720
 
