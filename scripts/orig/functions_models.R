@@ -116,7 +116,7 @@ build_model_first_renewal_agg <-function(train_data){
                                      sld_length, 
                                      day_domains,
                                      gibb_score,
-                                     reg_period, tld, registrar)),  
+                                     reg_period, tld, reseller)),  
          build_data<-subset(train_data,
                             select=c(renewal_status,
                                      pattern_domain_count, 
@@ -125,7 +125,7 @@ build_model_first_renewal_agg <-function(train_data){
                                      sld_type, 
                                      day_domains, 
                                      gibb_score,
-                                     reg_period, tld, registrar))) 
+                                     reg_period, tld, reseller))) 
   ########################reduced model##########################################
   #ifelse(nlevels(train.data$SLD.Type) < 2, build.data<-subset(train.data,select=c(Renewal.Status,Coeff.Variation, SLD.Length, Day.Domains)),  build.data<-subset(train.data,select=c(Renewal.Status,Coeff.Variation, SLD.Length, SLD.Type, Day.Domains))) 
   ###############################reduced model#####################################
@@ -185,7 +185,7 @@ predict_first_renewal_reg<-function(test_data, model){
 # LVG added for agg predictions (with tld & registrar as a predictors)
 predict_first_renewal_agg<-function(test_data, model){
   test_data$sld_type[!(test_data$sld_type %in% model$xlevels$sld_type)]<-NA
-  test_data$registrar[!(test_data$registrar %in% model$xlevels$registrar)]<-NA # LVG added
+  test_data$reseller[!(test_data$reseller %in% model$xlevels$reseller)]<-NA # LVG added
   
   #test.data$probabilities <- predict(model,newdata=subset(test.data,select=c(Coeff.Variation, LogArpt, SLD.Length, SLD.Type, Day.Domains, Gibb.Score)),type='response');
   test_data$probabilities<-predict(model,
@@ -196,7 +196,7 @@ predict_first_renewal_agg<-function(test_data, model){
                                                            gibb_score,
                                                            sld_type, 
                                                            day_domains,
-                                                           reg_period, tld, registrar)),type='response');
+                                                           reg_period, tld, reseller)),type='response');
   # had to comment out the following to get predition list to work
 #   test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
 #   test_data$first_renewal_prediction<-round(test_data$first_renewal_prediction,3)

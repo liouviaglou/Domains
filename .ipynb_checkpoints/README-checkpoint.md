@@ -23,6 +23,33 @@ PHASE 1
 
 ## Lab Notebook 
 
+
+1. try seg_glm with just reseller level partitions
+2. Aside from small data segments, on what kind of segments does random forest outperform glm?
+3. Statistically, where is random forest more approriate than glm?
+4. Is segmentation on tld-registrar level necessary? Can we get by with registrar level segmentation, incorporating tld as a predictor?
+
+
+
+## 20200723
+
+1. Verified both prepped expiry & expiry glm test output is segmented on tld-reseller
+2. Incorporated reseller (not registrar) as a predictor in RF
+3. Reran through 07/22 analysis with reseller subbed for registrar
+4. Validated seg_glm performance from scratch on tld_registrar sitegmo
+5. Can we structure segmented glm based on random forest determined segments?
+
+|   model               |   AUC             | lift_10  | filename_model                   | filename_testpredict       |
+|-----------------------|-------------------|----------|----------------------------------|----------------------------|
+|   seg_glm             | 0.816507088933898 | 4.708893 | first_renewal_model_expiry_train | seg_glm_expiry_exptest     |
+|   agg_rf              | 0.759681458294973 | 3.973486 | ranger_03_expiry2                | predict_ranger_03_expiry2  |
+|   seg_glm+agg_rf_15   | 0.796116737249125 | 4.198490 |                                  |                            |
+|   seg_glm+agg_glm_15  | 0.82069048057448  | 4.645185 |                                  |                            |
+
+**Note: `test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0` there is no column Status so this doesn't do anything**
+
+
+
 ## 20200722
 
 moving forward with fusion approach that combines segmented glm and aggregate random forest
@@ -34,16 +61,7 @@ moving forward with fusion approach that combines segmented glm and aggregate ra
     c) seg_glm + agg_glm: AUC 0.811307309887682; lift_10 4.299024
     d) seg_glm: AUC 0.816507088933898; lift_10 4.708893
     e) **tld_registrar_index is actually a concatenation of tld and reseller** Need to rerun above
-    
-1. b) incorporate reseller (not registrar) as a predictor in RF
 
-2. Validate seg_glm performance from scratch
-
-2. Aside from small data segments, on what kind of segments does random forest outperform glm?
-
-3. Statistically, where is random forest more approriate than glm?
-
-4. Is segmentation on tld-registrar level necessary? Can we get by with registrar level segmentation, incorporating tld as a predictor?
 
 
 
