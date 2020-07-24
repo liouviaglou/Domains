@@ -23,6 +23,26 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20200724
+
+1. Explored additional vars: can pull creation time, convert to local time or use as proxy for country
+2. Feature engineered new vars based on expiry_date and creation_date
+3. reran agg glm pre & post addition of new variables
+    - w/ NA as estimated coeff for reg_durY : “prediction from a rank-deficient fit may be misleading”
+    - lower preformance may be due to reg_durY, removing this var
+
+|   model               |   AUC             | lift_10  | filename_model                   | filename_testpredict       |
+|-----------------------|-------------------|----------|----------------------------------|----------------------------|
+|   seg_glm             | 0.816507088933898 | 4.708893 | first_renewal_model_expiry_train | seg_glm_expiry_exptest     |
+|   agg_rf              | 0.759681458294973 | 3.973486 | ranger_03_expiry2                | predict_ranger_03_expiry2  |
+|   seg_glm+agg_rf_15   | 0.796116737249125 | 4.198490 |                                  |                            |
+|   seg_glm+agg_glm_15  | 0.82069048057448  | 4.645185 |                                  |                            |
+|   agg_glm_basic       | 0.812320014730252 | 4.673173 | agg_glm_basic_model              |  agg_glm_basic_pred        |
+|   agg_glm_plus        | 0.812076965568035 | 4.661020 | agg_glm_plus_model               |  agg_glm_plus_pred         |
+
+4. rerun agg_glm_plus w/o reg_durY?
+
+
 
 1. try seg_glm with just reseller level partitions
 2. Aside from small data segments, on what kind of segments does random forest outperform glm?
