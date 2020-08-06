@@ -8,6 +8,13 @@ mass_build_model_first_renewal<-function(prepared_data){
   return(data_models)
 }
 
+# LVG added the following for predicting at the registrar level (including tld as a predictor)
+# mass_build_model_first_renewal_reg<-function(prepared_data){
+#   data_models<-lapply(prepared_data, 
+#                       function(i) build_model_first_renewal_reg(as.data.frame(i)))
+#   return(data_models)
+# }
+
 
 build_model_first_renewal<-function(train_data){
 #   print(paste("TLD-Registrar",

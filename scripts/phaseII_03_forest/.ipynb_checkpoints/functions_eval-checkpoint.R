@@ -100,8 +100,9 @@ plot_multigains <- function (lift_df_list=list(seg_glm = lift_df,
   # colors <- colors[1:length(lift_df_list)]
   # name_map = paste(names(lift_df_list),colors, sep="=")[1:length(lift_df_list)]
   
-  auc_list = lapply(auc_list, round, 2)
-  auc_map = paste(names(lift_df_list),auc_list, sep=" = ")[1:length(lift_df_list)]
+  auc_lift_list = paste(lapply(auc_list, round, 3),sapply(lift_df_list, function(x) round(x[2,"lift"],2)), sep=", ")
+  
+  auc_map = paste(names(lift_df_list),auc_lift_list, sep=" = ")[1:length(lift_df_list)]
   
   
   gains_plot <- ggplot(NULL, aes(P,  gain)) +
@@ -128,4 +129,114 @@ plot_multigains <- function (lift_df_list=list(seg_glm = lift_df,
   
   
   return(gains_plot)
+}
+
+                                                          
+plot_multigains_res <- function (lift_df_list=list(seg_glm = lift_df, 
+                                               ben_dtr = lift_df_2),
+                             auc_list = list(seg_glm = auc, 
+                                             ben_dtr=auc_2),
+                             prop_positive = 0.1121167,
+                                 reseller_str = 'reseller') {
+  
+  optimal_df <- data.frame( "P"=c(0,prop_positive,1.0),
+                            "actu_renwd2"=c(NA,NA,NA),
+                            "gain"=c(0,1.0,1.0),
+                            "lift"=c(NA,NA,NA))
+  
+  lift_df_list <- lapply(lift_df_list, function(df) {
+    df <- df %>%
+      add_row(P = 0, gain =0) %>%
+      arrange(P)
+  })
+  
+  # colors <- brewer.pal(n = length(lift_df_list), name = "Set2")
+  # colors <- colors[1:length(lift_df_list)]
+  # name_map = paste(names(lift_df_list),colors, sep="=")[1:length(lift_df_list)]
+  
+  auc_lift_list = paste(lapply(auc_list, round, 3),sapply(lift_df_list, function(x) round(x[2,"lift"],2)), sep=", ")
+  
+  auc_map = paste(names(lift_df_list),auc_lift_list, sep=" = ")[1:length(lift_df_list)]
+  
+  
+  gains_plot <- ggplot(NULL, aes(P,  gain)) +
+    geom_line(data = lift_df_list[[1]] %>% slice(1, n())) +
+    
+    list(geom_line(data=optimal_df), geom_point(data=optimal_df)) +
+    
+    scale_y_continuous(breaks = seq(0, 1, by = .1), limits = c(0,1)) +
+    scale_x_continuous(breaks = seq(0, 1, by = .1)) +
+    labs(title = "Cumulative Gains Plot",
+         y = "Cumulative Gain",
+         x = "Percentile")+
+    theme(text = element_text(size=20)) + annotate("text", x = .2, y = .1, hjust = 0, 
+                                                   label=reseller_str, size = 24)
+  
+  for(i in seq(length(lift_df_list))){
+    name = names(lift_df_list)[[i]]
+    df = lift_df_list[[i]]
+#     color=colors[[i]]
+    auc = auc_list[[i]]
+    gains_plot <- gains_plot + list(geom_line(data=df), 
+                                    geom_point(data=df))+ 
+      annotate("text", x = .6, y = .6-i*.075, hjust = 0, label = auc_map[[i]], size = 6)
+  }
+  
+  
+  return(gains_plot)
+}
+                                                          
+plot_multigains_file <- function (lift_df_list=list(seg_glm = lift_df, 
+                                               ben_dtr = lift_df_2),
+                             auc_list = list(seg_glm = auc, 
+                                             ben_dtr=auc_2),
+                             prop_positive = 0.1121167,
+                                 filename = 'temp.png',
+                                 reseller_str = 'reseller') {
+  
+  optimal_df <- data.frame( "P"=c(0,prop_positive,1.0),
+                            "actu_renwd2"=c(NA,NA,NA),
+                            "gain"=c(0,1.0,1.0),
+                            "lift"=c(NA,NA,NA))
+  
+  lift_df_list <- lapply(lift_df_list, function(df) {
+    df <- df %>%
+      add_row(P = 0, gain =0) %>%
+      arrange(P)
+  })
+  
+  # colors <- brewer.pal(n = length(lift_df_list), name = "Set2")
+  # colors <- colors[1:length(lift_df_list)]
+  # name_map = paste(names(lift_df_list),colors, sep="=")[1:length(lift_df_list)]
+  
+  auc_lift_list = paste(lapply(auc_list, round, 3),sapply(lift_df_list, function(x) round(x[2,"lift"],2)), sep=", ")
+  
+  auc_map = paste(names(lift_df_list),auc_lift_list, sep=" = ")[1:length(lift_df_list)]
+  
+  
+  gains_plot <- ggplot(NULL, aes(P,  gain)) +
+    geom_line(data = lift_df_list[[1]] %>% slice(1, n())) +
+    
+    list(geom_line(data=optimal_df), geom_point(data=optimal_df)) +
+    
+    scale_y_continuous(breaks = seq(0, 1, by = .1), limits = c(0,1)) +
+    scale_x_continuous(breaks = seq(0, 1, by = .1)) +
+    labs(title = "Cumulative Gains Plot",
+         y = "Cumulative Gain",
+         x = "Percentile")+
+    theme(text = element_text(size=20))+ annotate("text", x = .2, y = .1, hjust = 0, label=reseller_str, size = 24)
+  
+  for(i in seq(length(lift_df_list))){
+    name = names(lift_df_list)[[i]]
+    df = lift_df_list[[i]]
+#     color=colors[[i]]
+    auc = auc_list[[i]]
+    gains_plot <- gains_plot + list(geom_line(data=df), 
+                                    geom_point(data=df))+ 
+      annotate("text", x = .6, y = .6-i*.075, hjust = 0, label = auc_map[[i]], size = 6)
+  }
+                                                          
+   ggsave(filename=filename,
+          plot=gains_plot)#, width = 14, height = 10, units = "cm")
+  
 }
