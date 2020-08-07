@@ -24,6 +24,14 @@ PHASE 1
 ## Lab Notebook 
 
 
+## 20200807
+
+Compiled results for all 309 resellers
+Brainstormed some more reseller level metrics for metalearning (need to implement)
+Added agg_glm and agg_rf (i.e. single model across all resellers and tlds) reseller-level results to compiled results
+
+Next: do more feature enginering as per plan & train a model? compare seg2 glm & rf
+
 ## 20200806_2
 
 running reseller-compare script for the rest of the resellers (51:n() in order of domain count)
