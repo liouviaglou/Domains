@@ -195,10 +195,13 @@ build_model_first_renewal_agg_plus <-function(train_data){
 
 
 predict_first_renewal<-function(test_data, model){
-  test_data$sld_type[!(test_data$sld_type %in% model$xlevels$sld_type)]<-NA
   
-  #test.data$probabilities <- predict(model,newdata=subset(test.data,select=c(Coeff.Variation, LogArpt, SLD.Length, SLD.Type, Day.Domains, Gibb.Score)),type='response');
-  test_data$probabilities<-predict(model,
+    
+  if (is.na(model) | is.null(test_data)){
+      test_data$probabilities<- rep(NA, dim(test_data)[1])
+  }else{
+      test_data$sld_type[!(test_data$sld_type %in% model$xlevels$sld_type)]<-NA
+      test_data$probabilities<-predict(model,
                                    newdata=subset(test_data,
                                                   select=c(pattern_domain_count, 
                                                            log_reg_arpt,
@@ -207,14 +210,23 @@ predict_first_renewal<-function(test_data, model){
                                                            sld_type, 
                                                            day_domains,
                                                            reg_period)),type='response');
+  }
+  
+  #test.data$probabilities <- predict(model,newdata=subset(test.data,select=c(Coeff.Variation, LogArpt, SLD.Length, SLD.Type, Day.Domains, Gibb.Score)),type='response');
+  
   # had to comment out the following to get predition list to work
   test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
-  test_data$first_renewal_prediction<-round(test_data$first_renewal_prediction,3)
+#   test_data$first_renewal_prediction<-round(test_data$first_renewal_prediction,3)
+  test_data$first_renewal_prediction<-round(test_data$probabilities,3)
   return(test_data)
 }
 
 # LVG added for registrar level predictions (with tld as a predictor)
 predict_first_renewal_reg<-function(test_data, model){
+  
+  if (is.na(model) | is.null(test_data)){
+      test_data$probabilities<- rep(NA, dim(test_data)[1])
+  }else{
   test_data$sld_type[!(test_data$sld_type %in% model$xlevels$sld_type)]<-NA
   
   #test.data$probabilities <- predict(model,newdata=subset(test.data,select=c(Coeff.Variation, LogArpt, SLD.Length, SLD.Type, Day.Domains, Gibb.Score)),type='response');
@@ -227,6 +239,7 @@ predict_first_renewal_reg<-function(test_data, model){
                                                            sld_type, 
                                                            day_domains,
                                                            reg_period, tld)),type='response');
+      }
   # had to comment out the following to get predition list to work
 #   test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
 #   test_data$first_renewal_prediction<-round(test_data$first_renewal_prediction,3)
@@ -291,6 +304,7 @@ predict_first_renewal_agg_plus<-function(test_data, model){
 
 
 list_predict_first_renewal<-function(tld_registrar,test_data, data_models) {
+#   cat(tld_registrar)
   ########BEGIN:for substitute TLD#######################
   #registrar.name<-test.data[[tld.registrar]]$`Client Shortname`[1]
   #new.tld.registrar<-paste("site_",registrar.name,sep="")
@@ -300,7 +314,11 @@ list_predict_first_renewal<-function(tld_registrar,test_data, data_models) {
   ########END:for substitute TLD#######################
   tld_registrar_data<-test_data[[tld_registrar]]
   model<-data_models[[tld_registrar]]
-  if(is.null(tld_registrar_data) | is.null(model) | is.logical(tld_registrar_data) | is.logical(model)) { return(NA)}
+    
+    # LVG removed the following and replaced with NA-fill in predict_first_renewal()
+#   if(is.null(tld_registrar_data) | is.null(model) | is.logical(tld_registrar_data) | is.logical(model)) { return(NA)}
+    
+    
   # tld.registrar.data$SLD.Type[tld.registrar.data$SLD.Type == "IDN"]<-NA
   
   tld_registrar_data<-predict_first_renewal(tld_registrar_data,model)
@@ -312,6 +330,7 @@ list_predict_first_renewal<-function(tld_registrar,test_data, data_models) {
 
 mass_predict_first_renewal<-function(test_data, data_models) {
   tld_registrar_list<-names(test_data)
+  tld_registrar_list <- tld_registrar_list[!is.na(tld_registrar_list)]
   prediction_list<-pblapply(tld_registrar_list, function(i) list_predict_first_renewal(i, test_data, data_models))
   prediction_list<-prediction_list[!is.na(prediction_list)]
   prediction_op<-rbindlist(prediction_list,use.names=TRUE, fill=TRUE) 

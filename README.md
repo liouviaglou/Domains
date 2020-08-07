@@ -24,6 +24,12 @@ PHASE 1
 ## Lab Notebook 
 
 
+## 20200806_2
+
+running reseller-compare script for the rest of the resellers (51:n() in order of domain count)
+added agg_glm and agg_rf to metrics via reseller_compare.ipynb
+
+
 ## 20200806
 
 Investigating cases where RF bets GLM 
