@@ -24,6 +24,13 @@ PHASE 1
 ## Lab Notebook 
 
 
+## 20200808
+
+Finished feature engineering for reseller level comparison
+Kicked off modeling effort for meta learning -- need to interpret but pretty much, trying to learn lift@10 is impossible but reseller country majority and count are major predictors of auc when examining agg_rf vs. seg2_glm. Interestingly, seg2_glm does better when count is <15!
+
+still need to figure out why reweighting doesn't help. maybe try again now with the factor issue resolved?
+
 ## 20200807
 
 Compiled results for all 309 resellers
