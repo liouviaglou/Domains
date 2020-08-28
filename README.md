@@ -23,7 +23,28 @@ PHASE 1
 
 ## Lab Notebook 
 
-##
+## 20200828
+
+Completed tld_reseller combonations 0001-0817
+However, bug in underlying data of seg_rf (used tld-granular data). So reruning just seg_rf and saving list in separate file 
+
+Ran all results, munged them to create single list of dataframes containing predicted values at the tld_reseller level for the following 6 models:
+- seg2_glm
+- seg_glm
+- agg_glm
+- seg2_rf
+- seg_rf
+- agg_rf
+
+
+## 20200827
+
+Previous metalearning experiement at reseller level only had some ~200 observations to work with (~200 unique resellers)
+Reruning metalearning at finer granularity -- tld-reseller level -- lending itself to 1723 observations (1723 unique tld-reseller combinations)
+Instead of returning the resulting lift_df... return the predicted value df (pred_df)
+Also running for agg models
+
+## 20200809-10
 
 CONCLUSIONS SO FAR:
 - seg2_glm does better than agg_rf (for ~ 50% of resellers (AUC)) where ONE of the following conditions hold

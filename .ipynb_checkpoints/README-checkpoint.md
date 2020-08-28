@@ -23,6 +23,60 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20200828
+
+Completed tld_reseller combonations 0001-0817
+However, bug in underlying data of seg_rf (used tld-granular data). So reruning just seg_rf and saving list in separate file 
+
+Ran all results, munged them to create single list of dataframes containing predicted values at the tld_reseller level for the following 6 models:
+- seg2_glm
+- seg_glm
+- agg_glm
+- seg2_rf
+- seg_rf
+- agg_rf
+
+
+## 20200827
+
+Previous metalearning experiement at reseller level only had some ~200 observations to work with (~200 unique resellers)
+Reruning metalearning at finer granularity -- tld-reseller level -- lending itself to 1723 observations (1723 unique tld-reseller combinations)
+Instead of returning the resulting lift_df... return the predicted value df (pred_df)
+Also running for agg models
+
+## 20200809-10
+
+CONCLUSIONS SO FAR:
+- seg2_glm does better than agg_rf (for ~ 50% of resellers (AUC)) where ONE of the following conditions hold
+    - the primary reseller country  is one of 
+      - Belgium, India, Ireland, Israel, Lithuania, Luxembourg, Portugal, Russia, Singapore, Sweden, Turkey, USA
+    - if not those countries, then if count of domains <15
+- agg_glm does better than seg2_glm which does better than agg_rf (for ~ 8% of resellers (AUC)) where BOTH conditions hold 
+    - the primary reseller country  is one of 
+      - Argentina,	Bangladesh,	Belarus,	Brazil,	Finland,	Gibraltor,	Greece,	Hong Kong,	Hungary,	Indonesia,	Italy,	Malaysia,	New Zealand,	Norway,	Others,	Portugal,	Russia,	Singapore,	Southafrica,	Thailand,	Turkey,
+    - AND average day_domains is <5.87
+    
+- MULTICLASS MODEL
+
+
+TODO:
+- When does agg_glm > seg2_glm > agg_rf?
+- Segregate modeling based on metalearning reasults (so agg_rf>seg2_glm when country not in list and count>15)
+- Should we do this on a tld-reseller level? MORE DATA!!! but first, confirm that the above seg actually improves results
+
+From Parag:
+- Fall Back tables (incorporate into the analysis -- when is fallback table > models?)
+    - dropbox folder 
+    - fallback table creation use a data frame called npv_historic_renewal_data (basically a data frame we get from the get_expiry_data function with the reseller_geo field added and the reg_arpt field cut into slabs to create look keys). uploaded that data frame as an rds as well for your reference
+- Gibb-Score 
+    - bigquery dataset new table: prediction_vendors.npv_prepped_data
+- anomaly registrar notes
+    - https://docs.google.com/spreadsheets/d/1ybBC_KLGKYG3D54px3e2k0LP0LF5FjJ2uMAXTAUnzuU/edit#gid=427645846
+- Data provider data
+    - bigquery table prediction_vendors.dp_unique
+    - query file to access the data provider data under the Data Provider folder in the dropbox folder shared with you
+
+
 
 ## 20200808
 
@@ -30,6 +84,8 @@ Finished feature engineering for reseller level comparison
 Kicked off modeling effort for meta learning -- need to interpret but pretty much, trying to learn lift@10 is impossible but reseller country majority and count are major predictors of auc when examining agg_rf vs. seg2_glm. Interestingly, seg2_glm does better when count is <15!
 
 still need to figure out why reweighting doesn't help. maybe try again now with the factor issue resolved?
+
+interestingly, agg rf does better than seg2 rf... but this is in line wirh 
 
 ## 20200807
 
