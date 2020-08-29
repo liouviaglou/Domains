@@ -23,6 +23,10 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20200829
+
+Finished munging output metrics, ready for metalearning
+
 ## 20200828
 
 Completed tld_reseller combonations 0001-0817
