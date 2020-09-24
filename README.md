@@ -25,8 +25,8 @@ PHASE 1
 
 ## 20200924
 
-- Match reseller_country to fallback table country
-    - after merging before feture eng, some tld_reseller_indeces missing
+- Matched reseller_country to fallback table country DONE
+- Multiclass DTree, XGBoost, SVM [link](https://www.analyticsvidhya.com/blog/2016/08/practicing-machine-learning-techniques-in-r-with-mlr-package/)
 - Ranger missing values?
 - Rerun ranger, compile metrics
 - Update client with metrics
