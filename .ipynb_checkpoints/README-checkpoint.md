@@ -23,9 +23,22 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20200924
+
+- Match reseller_country to fallback table country
+    - after merging before feture eng, some tld_reseller_indeces missing
+- Ranger missing values?
+- Rerun ranger, compile metrics
+- Update client with metrics
+- Leverage metalearning insights for prediciting renewals - which model to use when
+
+Ultimately:
+- Data Provider data
+- clustering of reseller_country based on data (feature eng. at the reseller country level?)
+
 ## 20200829
 
-Finished munging output metrics, ready for metalearning
+Finished munging output metrics, ready for feature engineering & metalearning
 
 ## 20200828
 
