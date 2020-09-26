@@ -23,18 +23,20 @@ PHASE 1
 
 ## Lab Notebook 
 
-## 20200924
+## 20200926
 
-- Matched reseller_country to fallback table country DONE
+- Ranger NA predictions -- why?? *missing values?* ***NO***, simply no renewals
+
 - Multiclass DTree, XGBoost, SVM [link](https://www.analyticsvidhya.com/blog/2016/08/practicing-machine-learning-techniques-in-r-with-mlr-package/)
-- Ranger missing values?
 - Rerun ranger, compile metrics
 - Update client with metrics
 - Leverage metalearning insights for prediciting renewals - which model to use when
 
-Ultimately:
-- Data Provider data
-- clustering of reseller_country based on data (feature eng. at the reseller country level?)
+
+
+## 20200924
+
+- Matched reseller_country to fallback table country DONE
 
 ## 20200829
 
