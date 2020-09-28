@@ -23,18 +23,27 @@ PHASE 1
 
 ## Lab Notebook 
 
-## 20200924
+## 20200926
 
-- Matched reseller_country to fallback table country DONE
-- Multiclass DTree, XGBoost, SVM [link](https://www.analyticsvidhya.com/blog/2016/08/practicing-machine-learning-techniques-in-r-with-mlr-package/)
-- Ranger NA predictions -- why?? *missing values?*
-- Rerun ranger, compile metrics
+- Multiclass w/ reseller_geo 
+    - DTree, 
+    - XGBoost, 
+    - SVM [link](https://www.analyticsvidhya.com/blog/2016/08/practicing-machine-learning-techniques-in-r-with-mlr-package/)
+
 - Update client with metrics
 - Leverage metalearning insights for prediciting renewals - which model to use when
 
-Ultimately:
-- Data Provider data
-- clustering of reseller_country based on data (feature eng. at the reseller country level?)
+- ALSO: 
+    - predict all non-renewals by tld & registrar-- eliminate 665 NA-metric causing combinations by first pass
+    - geo cluseting by performance metrics
+
+## 20200926
+
+Ranger NA predictions DONE why?? no renewals, all non-renewals
+
+## 20200924
+
+Matched reseller_country to fallback table country DONE
 
 ## 20200829
 

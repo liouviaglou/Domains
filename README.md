@@ -23,20 +23,31 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20200927
+
+First pass at using Logistic regression to predict renewals by tld-registrar/reseller
+
 ## 20200926
 
-- Ranger NA predictions -- why?? *missing values?* ***NO***, simply no renewals
+- Multiclass w/ reseller_geo 
+    - DTree, 
+    - XGBoost, 
+    - SVM [link](https://www.analyticsvidhya.com/blog/2016/08/practicing-machine-learning-techniques-in-r-with-mlr-package/)
 
-- Multiclass DTree, XGBoost, SVM [link](https://www.analyticsvidhya.com/blog/2016/08/practicing-machine-learning-techniques-in-r-with-mlr-package/)
-- Rerun ranger, compile metrics
 - Update client with metrics
 - Leverage metalearning insights for prediciting renewals - which model to use when
 
+- ALSO: 
+    - predict all non-renewals by tld & registrar-- eliminate 665 NA-metric causing combinations by first pass
+    - geo cluseting by performance metrics
 
+## 20200926
+
+Ranger NA predictions DONE why?? no renewals, all non-renewals
 
 ## 20200924
 
-- Matched reseller_country to fallback table country DONE
+Matched reseller_country to fallback table country DONE
 
 ## 20200829
 
