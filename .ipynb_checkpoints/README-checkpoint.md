@@ -23,6 +23,25 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20200929
+
+- Random forest for metalearning multicalss
+    - AUC_WIN Accuracy : 0.3821  (0.3164, 0.4511)
+    - L10_WIN Accuracy : 0.5943  (0.5249, 0.6611)
+    - *NOTE: geo variables rank very low on variable importance... trry country variables instead?*
+        - AUC_WIN Accuracy : 0.3915  (0.3254, 0.4607)
+        - L10_WIN Accuracy : 0.5943  (0.5249, 0.6611)
+        - *country_maj now /#3 most important variable! though accuracy hasn't improved much*
+    - BINARY: AGG_RF > SEG2_GLM : 
+- Run through agg_rf vs. seg2_glm for 
+    - DTree, 
+    - XGBoost, 
+    - SVM [link](https://www.ana
+
+## 20200927
+
+First pass at using Logistic regression to predict renewals by tld-registrar/reseller
+
 ## 20200926
 
 - Multiclass w/ reseller_geo 
