@@ -23,6 +23,14 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201001
+
+1. domain level predictions
+2. groundwork for glm v. rf v. fall back prediction
+
+3. RF binary, assign model
+
+
 ## 20200929
 
 - Random forest for metalearning multicalss
