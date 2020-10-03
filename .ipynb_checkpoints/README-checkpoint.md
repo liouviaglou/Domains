@@ -26,6 +26,7 @@ PHASE 1
 ## 20201001
 
 1. domain level predictions
+    - https://machinelearningmastery.com/threshold-moving-for-imbalanced-classification/
 2. groundwork for glm v. rf v. fall back prediction
 
 3. RF binary, assign model
