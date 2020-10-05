@@ -23,13 +23,13 @@ PHASE 1
 
 ## Lab Notebook 
 
-## 20201001
 
-1. domain level predictions
+## 20201001-05
+
+1. domain level predictions DONE
     - https://machinelearningmastery.com/threshold-moving-for-imbalanced-classification/
-2. groundwork for glm v. rf v. fall back prediction
+2. groundwork for glm v. rf v. fall back prediction DONE
 
-3. RF binary, assign model
 
 
 ## 20200929
