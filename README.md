@@ -24,6 +24,13 @@ PHASE 1
 ## Lab Notebook 
 
 
+## 20201006
+
+Client claims to have used fallback for tld-res <50 or <100 domains
+We see a decrease in performance (over not supplementing with fallback) for tld-res <50
+Metalearning seg2_glm vs fallback -- need to wrap up feature eng
+
+
 ## 20201001-05
 
 1. domain level predictions DONE
