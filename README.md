@@ -24,6 +24,11 @@ PHASE 1
 ## Lab Notebook 
 
 
+## 20201008
+
+New Data Query - works fine for 2020/10/06-2020/10/10
+Fallback generation
+
 ## 20201006
 
 Client claims to have used fallback for tld-res <50 or <100 domains
