@@ -26,8 +26,12 @@ PHASE 1
 
 ## 20201008
 
+***what are the domain_id==NA in predicitons_df?***
+***what are the 88 domains in expiry_test not in predictions_df?***
+
 New Data Query - works fine for 2020/10/06-2020/10/10
-Fallback generation
+Fallback generation - works fine, 
+Fallback application - works  & understand up until MY Caluclation
 
 ## 20201006
 
