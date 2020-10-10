@@ -20,15 +20,13 @@ fallback_gen <- function ( npv_historic_renewal_data = expiry_train_df_1, # trai
     npv_historic_renewal_data$renewed_count[npv_historic_renewal_data$renewed_count >= 3]<-"3+"
     
     npv_fallback_first_geo_arpt_tld<-npv_historic_renewal_data %>%
-  filter(renewed_count == 1) %>%
-  group_by(tld, reseller_geo, reg_arpt_slab) %>%
-  summarise(expiring_domains = length(domain),
+    filter(renewed_count == 1) %>%
+    group_by(tld, reseller_geo, reg_arpt_slab) %>%
+    summarise(expiring_domains = length(domain),
             renewed_domains = length(domain[renewal_status %in% c("Renewed", "Transfered")])) %>%
-  mutate(renewal_rate = round(renewed_domains/expiring_domains,3),
+    mutate(renewal_rate = round(renewed_domains/expiring_domains,3),
          index = paste(tld, reseller_geo, reg_arpt_slab, sep = "")) %>%
-  filter(expiring_domains >= 500)
-
-
+    filter(expiring_domains >= 500)
 
     npv_fallback_first_geo_arpt<-npv_historic_renewal_data %>%
       filter(renewed_count == 1) %>%

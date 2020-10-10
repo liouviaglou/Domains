@@ -24,6 +24,36 @@ PHASE 1
 ## Lab Notebook 
 
 
+## 20201011
+
+STILL NEED TO GO BACK AND SUPPLEMENT RESELLER_GEO MATCH NA'S
+
+## 20201010
+
+Compared performance w/ and w/o FB across models. Most noticeable improvement (across both metrics) comes from using fallback tables for seg2_glm, as this approach generates the most NA predictions (1356 vs. 184 for seg_glm and 88 for all other models). ***STILL UNANSWERED: what are the 88 domains in expiry_test not in predictions_df?***
+
+| l10_orig |   l10_fb |          model |       imprv |
+|---------:|---------:|---------------:|------------:|
+| 4.715899 | 4.765959 | lift_ seg2_glm | 0.010615218 |
+| 3.925896 | 3.945993 |  lift_ seg_glm | 0.005119136 |
+| 4.666204 | 4.671685 |  lift_ agg_glm | 0.001174628 |
+| 4.619798 | 4.624548 |  lift_ seg2_rf | 0.001028237 |
+| 4.857675 | 4.865714 |   lift_ seg_rf | 0.001654882 |
+| 4.829539 | 4.835751 |   lift_ agg_rf | 0.001286222 |
+
+|  auc_orig |    auc_fb |        model |       imprv |
+|----------:|----------:|-------------:|------------:|
+| 0.8167190 | 0.8238152 | auc_seg2_glm | 0.008688591 |
+| 0.8027497 | 0.8061041 |  auc_seg_glm | 0.004178644 |
+| 0.8113440 | 0.8126338 |  auc_agg_glm | 0.001589800 |
+| 0.8190357 | 0.8203329 |  auc_seg2_rf | 0.001583793 |
+| 0.8315727 | 0.8328480 |   auc_seg_rf | 0.001533550 |
+| 0.8314704 | 0.8327530 |   auc_agg_rf | 0.001542528 |
+
+Ultimately, seg_rf does better than agg_rf, should we use it instead?
+When do we use 
+
+
 ## 20201009
 
 Scripted up Fallback table generation
