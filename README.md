@@ -28,6 +28,9 @@ PHASE 1
 
 STILL NEED TO GO BACK AND SUPPLEMENT RESELLER_GEO MATCH NA'S
 
+ALSO why OVERALL \_FB outperforms original SEG2_GLM only 13(4) times at the TLD-REG level but OVERALL, does better
+SInce fallbacks primarily affecting NAs, may be how NAs are factoring into TLD-REG level metric
+
 ## 20201010
 
 Compared performance w/ and w/o FB across models. Most noticeable improvement (across both metrics) comes from using fallback tables for seg2_glm, as this approach generates the most NA predictions (1356 vs. 184 for seg_glm and 88 for all other models). ***STILL UNANSWERED: what are the 88 domains in expiry_test not in predictions_df?***
