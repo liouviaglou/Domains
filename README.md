@@ -26,7 +26,9 @@ PHASE 1
 
 ## 20201012
 
+Generating Google Doc summary for meeting
 
+Incorporate renew_type into metalearning (auto_renew proportion)
 
 
 ## 20201011
@@ -117,7 +119,7 @@ Ultimately, doesn't do muchbetter than picking one model for all tld_regs. Sligh
 |-----|---------------:|------------------:|----------------:|
 | AUC |      0.7993082 |         0.7993774 |       0.8031682 |
 
-Need new data
+***Need new data***
 
 models trained on 80% subset of expiry
 tested on remaining 20%
