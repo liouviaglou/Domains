@@ -24,6 +24,15 @@ PHASE 1
 ## Lab Notebook 
 
 
+
+## 20201014
+
+Rescripting tld_reg segmented model training & testing
+join predictions with test data for output
+left off at predictions
+need to script up pulling of model based on directory
+make pred script more efficient -- no looping load & remove for agg model
+
 ## 20201012
 
 Generating Google Doc summary for meeting
