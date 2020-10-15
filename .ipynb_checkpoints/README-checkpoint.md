@@ -23,7 +23,14 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201016
 
+- why seg2_glm predictions the same as seg2_rf predictions in head(5) testcase?
+
+- test pred_all function
+
+BEFORE RUNNING SCRIPT, DONT FORGET TO LOAD AGG MODELS, RENAME R OBJECTS & SAVE IN NEW FOLDER
+REPLACE AGG MODEL NULL IN SCRIPT UNLESS YOU WANT TO RERUN THE WHOLE THING(S)
 
 ## 20201014
 
