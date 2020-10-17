@@ -188,6 +188,8 @@ pred_agg_glm <- function(model, test_list, tld_reseller_str) {
 }
 
 pred_agg_rf <- function(model, test_list, tld_reseller_str) {
+    
+    print(tld_reseller_str)
     # agg rf (aggregarted rf (including tld and reseller as predictors))
     
     test_list_tld_reseller = test_list[tld_reseller_str]
@@ -197,7 +199,6 @@ pred_agg_rf <- function(model, test_list, tld_reseller_str) {
      if (dim(test_df_tld_reseller)[1]==0){
         pred_df_agg_rf = NA
     }  else {
-        model = model_agg_rf 
         pred <- predict(model, 
                         data = test_df_tld_reseller,
                         type="response")$predictions
@@ -219,9 +220,10 @@ pred_agg_rf <- function(model, test_list, tld_reseller_str) {
 # I. B) RESELLER MODELS #################################################################
 
 pred_seg_glm <- function(test_list, tld_reseller_str) {
-    # seg glm (reseller-segmented glm (including tld as predictor))
     
     print(tld_reseller_str)
+    # seg glm (reseller-segmented glm (including tld as predictor))
+    
     test_list_tld_reseller = test_list[tld_reseller_str]
     test_df_tld_reseller =  rbindlist(test_list_tld_reseller,use.names=TRUE)    
 
@@ -246,6 +248,8 @@ pred_seg_glm <- function(test_list, tld_reseller_str) {
 }
 
 pred_seg_rf <- function(test_list, tld_reseller_str) {
+    
+    print(tld_reseller_str)
     # seg rf (reseller-segmented rf)
     
     test_list_tld_reseller = test_list[tld_reseller_str]
@@ -283,6 +287,8 @@ pred_seg_rf <- function(test_list, tld_reseller_str) {
 # I. C) TLD-RESELLER MODELS #############################################################
 
 pred_seg2_glm <- function(test_list, tld_reseller_str) {
+    
+    print(tld_reseller_str)
     # seg2 glm (tld-reseller-segmented glm)
 
     test_list_tld_reseller = test_list[tld_reseller_str]
@@ -307,6 +313,8 @@ pred_seg2_glm <- function(test_list, tld_reseller_str) {
 }
 
 pred_seg2_rf <- function(test_list, tld_reseller_str) {
+    
+    print(tld_reseller_str)
     # seg2 rf (tld-reseller-segmented rf)
     
     test_list_tld_reseller = test_list[tld_reseller_str]
@@ -334,7 +342,7 @@ pred_seg2_rf <- function(test_list, tld_reseller_str) {
     }
     
     # need to combine all predictions into one dataframe, rbind with test data
-    return()
+    return(pred_df_seg2_rf)
 
     
 }
@@ -353,12 +361,15 @@ pred_seg2_rf <- function(test_list, tld_reseller_str) {
 #########################################################################################   
 
 train_all <- function (tld_reseller_list,
-                       reseller_list,
                        train_list = expiry_train_prepped_2_1,
                        test_list = expiry_test_prepped_2_1,
                        model_agg_glm = NULL,
                        model_agg_rf = NULL,
                       fullDir='../../data/output/models_20201015'){
+    
+    reseller_list = rbindlist(test_list, ,use.names=TRUE) %>% 
+      filter(tld_registrar_index %in% tld_reseller_list) %>% 
+      distinct(reseller)  %>%  pull(reseller)
 
     dir.create(fullDir, showWarnings = FALSE)
     
@@ -422,31 +433,28 @@ train_all <- function (tld_reseller_list,
 }
     
 
-pred_all <- function (fullDir='../../data/output/models_20201015', # dir of models
-                      tld_reseller_list,
-                      test_list = expiry_test_prepped_2_1){
+pred_all <- function (tld_reseller_list,
+                      test_list = expiry_test_prepped_2_1,
+                      fullDir='../../data/output/models_20201015' # dir of models
+                      ){   
     
+    print(cat("\n\nPredicting model_agg_glm\n"))
+    load(file.path(fullDir, 'model_agg_glm.Rdata'))    
+    preds_agg_glm = lapply(tld_reseller_list, 
+           function(tld_reseller_str) pred_agg_glm(model_agg_glm, test_list, tld_reseller_str)
+           )
+    rm(model_agg_glm)
+    gc()
     
-    
-#     print(cat("Predicting model_agg_glm"))
-#     load(file.path(fullDir, 'model_agg_glm.Rdata'))    
-#     preds_agg_glm = lapply(tld_reseller_list, 
-#            function(tld_reseller_str) pred_agg_glm(model_agg_glm, test_list, tld_reseller_str)
-#            )
-#     rm(model_agg_glm)
-#     gc()
-#     print(cat("\n"))
-    
-#     print(cat("Predicting model_agg_rf"))
-#     load(file.path(fullDir, 'model_agg_rf.Rdata'))
-#     preds_agg_rf = lapply(tld_reseller_list, 
-#            function(tld_reseller_str) pred_agg_rf(model_agg_rf, test_list, tld_reseller_str)
-#            )
-#     rm(model_agg_rf)
-#     gc()    
-#     print(cat("\n")   )
+    print(cat("\n\nPredicting model_agg_rf\n"))
+    load(file.path(fullDir, 'model_agg_rf.Rdata'))
+    preds_agg_rf = lapply(tld_reseller_list, 
+           function(tld_reseller_str) pred_agg_rf(model_agg_rf, test_list, tld_reseller_str)
+           )
+    rm(model_agg_rf)
+    gc()
 
-    print(cat("Predicting model_agg_rf")  )  
+    print(cat("\n\nPredicting model_seg_glm\n")  )  
     lapply(Sys.glob(file.path(fullDir,'model_seg_glm_*')),load,.GlobalEnv)
     preds_seg_glm = lapply(tld_reseller_list, 
            function(tld_reseller_str) pred_seg_glm(
@@ -454,10 +462,8 @@ pred_all <- function (fullDir='../../data/output/models_20201015', # dir of mode
                tld_reseller_str)
            )
     rm(list=ls(pattern='^model_seg_glm_'))
-    gc() 
-    print(cat("\n")  )
     
-    print(cat("Predicting model_sef_rf")  )  
+    print(cat("\n\nPredicting model_seg_rf\n")  )  
     lapply(Sys.glob(file.path(fullDir,'model_seg_rf_*')),load,.GlobalEnv)
     preds_seg_rf = lapply(tld_reseller_list, 
            function(tld_reseller_str) pred_seg_rf(
@@ -465,10 +471,8 @@ pred_all <- function (fullDir='../../data/output/models_20201015', # dir of mode
                tld_reseller_str)
            )
     rm(list=ls(pattern='^model_seg_rf_'))
-    gc()  
-    print(cat("\n") )
 
-    print(cat("Predicting model_seg2_glm"))
+    print(cat("\n\nPredicting model_seg2_glm\n"))
     lapply(Sys.glob(file.path(fullDir,'model_seg2_glm_*')),load,.GlobalEnv)
     preds_seg2_glm = lapply(tld_reseller_list, 
            function(tld_reseller_str) pred_seg2_glm(
@@ -476,10 +480,8 @@ pred_all <- function (fullDir='../../data/output/models_20201015', # dir of mode
                tld_reseller_str)
            )
     rm(list=ls(pattern='^model_seg2_glm_'))
-    gc()  
-    print(cat("\n") )
 
-    print(cat("Predicting model_seg2_rf")    )    
+    print(cat("\n\nPredicting model_seg2_rf\n")    )    
     lapply(Sys.glob(file.path(fullDir,'model_seg2_rf_*')),load,.GlobalEnv)
     preds_seg2_rf = lapply(tld_reseller_list, 
            function(tld_reseller_str) pred_seg2_rf(
@@ -487,34 +489,33 @@ pred_all <- function (fullDir='../../data/output/models_20201015', # dir of mode
                tld_reseller_str)
            )
     rm(list=ls(pattern='^model_rf2_rf_'))
-    gc()  
-    print(cat("\n") )
 
     
     # combine all preds into one list
-    x = list()
+    preds_list = list()
     i=1
     for (tld_reseller_str in tld_reseller_list) {
-        print(i)
         if (is.na(preds_seg_glm[[i]])) {
-            x[[tld_reseller_str]]= NA
+            preds_list[[tld_reseller_str]]= NA
         } else{
-            x[[tld_reseller_str]] = cbind(
-          test_list[[tld_reseller_str]],
-          preds_seg_glm[[i]]$predicted,
-          preds_seg_rf[[i]]$predicted,
-          preds_seg2_glm[[i]]$predicted,
-          preds_seg2_rf[[i]]$predicted)
+            preds_list[[tld_reseller_str]] = cbind(
+                  test_list[[tld_reseller_str]],
+                  'pred_agg_glm'=preds_agg_glm[[i]]$predicted,
+                  'pred_agg_rf'=preds_agg_rf[[i]]$predicted,
+                  'pred_seg_glm'=preds_seg_glm[[i]]$predicted,
+                  'pred_seg_rf' = preds_seg_rf[[i]]$predicted,
+                  'pred_seg2_glm'=preds_seg2_glm[[i]]$predicted,
+                  'pred_seg2_rf'=preds_seg2_rf[[i]]$predicted)
         }
 
         i=i+1
     }
 
     na.omit.list <- function(y) { return(y[!sapply(y, function(x) all(is.na(x)))]) }
-    x <- na.omit.list(x)
-    df <- rbindlist(x,use.names=TRUE)
+    preds_list <- na.omit.list(preds_list)
+    preds_df <- rbindlist(preds_list,use.names=TRUE)
                                                    
-    return(df)
+    return(list(preds_seg_glm, preds_seg_rf, preds_seg2_glm, preds_seg2_rf, preds_list, preds_df))
 
 }
     

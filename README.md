@@ -23,13 +23,16 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201018
+
+INVESTIGATE  why diff number of rows in new query b/w notebook and UI
+incorporate fallback into predict script
+
 ## 20201017
 
 New query working but Jupyter returning far fewers rows than WebUI (6,524 vs 9,606,009)
 
-QAing predict functionality
 
-Need to retrain agg_glm (and potentially also agg_rf)
 ## 20201016
 
 Tested New query -- need permission modifications. Shadir working on it.
