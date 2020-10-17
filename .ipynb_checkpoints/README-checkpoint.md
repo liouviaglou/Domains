@@ -23,7 +23,16 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201017
+
+New query working but Jupyter returning far fewers rows than WebUI (6,524 vs 9,606,009)
+
+QAing predict functionality
+
+Need to retrain agg_glm (and potentially also agg_rf)
 ## 20201016
+
+Tested New query -- need permission modifications. Shadir working on it.
 
 - why seg2_glm predictions the same as seg2_rf predictions in head(5) testcase?
 
@@ -31,6 +40,10 @@ PHASE 1
 
 BEFORE RUNNING SCRIPT, DONT FORGET TO LOAD AGG MODELS, RENAME R OBJECTS & SAVE IN NEW FOLDER
 REPLACE AGG MODEL NULL IN SCRIPT UNLESS YOU WANT TO RERUN THE WHOLE THING(S)
+
+## 20201015 
+
+rescripting metalearning training & prediction. see above for todo
 
 ## 20201014
 
