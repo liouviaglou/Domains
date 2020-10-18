@@ -23,7 +23,15 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201019
+
+DONE with fallback 
+make script more robust -- save list of failed trains & preds
+
 ## 20201018
+
+Incorporating fallback into training script
+- exclude low-volume tld-re (w/ <N\*100 obs.) 
 
 INVESTIGATE  why diff number of rows in new query b/w notebook and UI
 incorporate fallback into predict script

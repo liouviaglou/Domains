@@ -7,6 +7,7 @@ suppressMessages(library(pbapply))
 
 # load & prep input data
 source('../orig/functions_models.R')
+source('functions_fallback.R')
 # source('../phaseII_03_forest/functions_eval.R')
 # source('../phaseII_03_forest/load_prep_data_expiry.R')
 
@@ -350,9 +351,82 @@ pred_seg2_rf <- function(test_list, tld_reseller_str) {
 
 #########################################################################################  
 #
-# III. WEED OUT & SUPPLEMENT w/ FALLBACK 
+# III. EXCLUDE & SUPPLEMENT w/ FALLBACK 
 #
 #########################################################################################   
+
+tld_registrar_exl <- function(train_list = expiry_train_prepped_2_1,
+                              N=NULL) {
+    
+    train_df = rbindlist(expiry_train_prepped_2_1, use.names=TRUE)
+    
+    if(is.null(N)){ # threshold for low-volume tld-re
+        # by default, N=100*(num_quarters)
+        
+        num_q = (as.yearqtr(max(train_df$expiry_date))-as.yearqtr(min(train_df$expiry_date)))*4
+        N = as.integer(100 * num_q)
+    }
+    
+    tld_registrar_excl_list = train_df %>% group_by(tld_registrar_index) %>% tally() %>% 
+    filter(n<N) %>% pull(tld_registrar_index)
+    
+    N_perc = as.double(round(100*length(tld_registrar_exl_list)/(train_df %>% 
+                        summarise(n_distinct(tld_registrar_index)) %>% pull(1) ),2))
+    
+    (cat(paste0("Exluding ",length(tld_registrar_exl_list)," tld-re's (",
+                
+                N_perc,"%), due to volume < ",N," \n")))
+    
+    return(tld_registrar_excl_list)
+    
+}
+
+geo_lookup <- function(geoLookupDF,
+                         preds_df) {
+        
+    # 1. use geo lookup with duplicate rows removed
+    #    remove duplicate rows in geo_lookup due to registrar level segmentation
+    #    results in dims matching for expiry_test
+
+    geoLookupDF <- geoLookupDF %>% distinct(reseller,reseller_country, reseller_geo)
+
+    preds_df$reseller <- factor(preds_df$reseller)
+    preds_df$reseller_country <- factor(preds_df$reseller_country)
+    preds_df <- as.data.frame(preds_df)
+
+    preds_df <- merge(preds_df,
+                      geoLookupDF,
+                      on=c('reseller','reseller_country'), 
+                      all.x = TRUE)
+    
+    
+    
+    # 2. create a new lookup where we drop everything except for 
+    #    reseller_country and _geo and have NA map to Others
+    
+    geoLookupDF <- geoLookupDF %>% distinct(reseller_country, reseller_geo) %>% 
+                    mutate(reseller_geo = as.character(reseller_geo)) %>%
+                    mutate(eseller_geo = if_else(is.na(reseller_country), 'Others', reseller_geo) ) %>% 
+                    distinct(reseller_country, reseller_geo) %>% 
+                    mutate(reseller_geo = as.factor(reseller_geo))
+
+    # use new lookup to fill reseller_geo based just on reseller_country
+    preds_df[['reseller_geo']][is.na(preds_df[['reseller_geo']])]<-
+                    geoLookupDF$reseller_geo[match(
+                        preds_df$reseller_country[is.na(preds_df[['reseller_geo']])],
+                        geoLookupDF$reseller_country)]
+
+    # manual fix for reseller geo 
+    preds_df[['reseller_geo']][preds_df[['reseller_country']]=='Southafrica']<-'South Africa'
+
+    # Print remaining NA reseller_geos
+    rem_res <- preds_df %>% filter(is.na(reseller_geo)) %>% 
+          distinct(reseller,reseller_country, reseller_geo) %>% pull(reseller)
+    cat("Resellers with unmatched reseller_geo's: ",paste0(rem_res, sep=", "))
+    
+    return(preds_df)
+}
+
 
 #########################################################################################  
 #
@@ -361,12 +435,20 @@ pred_seg2_rf <- function(test_list, tld_reseller_str) {
 #########################################################################################   
 
 train_all <- function (tld_reseller_list,
+                       tld_registrar_excl_list,
                        train_list = expiry_train_prepped_2_1,
                        test_list = expiry_test_prepped_2_1,
                        model_agg_glm = NULL,
                        model_agg_rf = NULL,
                       fullDir='../../data/output/models_20201015'){
     
+    # exclude low-volume tld-re's      
+    tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_exl_list)]
+    
+    # random sample of 5 remaining tld-re's
+    tld_reseller_list = sample(tld_reseller_list, 5)
+    
+    # define resellers based on tld-re's
     reseller_list = rbindlist(test_list, ,use.names=TRUE) %>% 
       filter(tld_registrar_index %in% tld_reseller_list) %>% 
       distinct(reseller)  %>%  pull(reseller)
@@ -428,17 +510,21 @@ train_all <- function (tld_reseller_list,
             )
     }
     
-
+    return(tld_reseller_list)
 
 }
     
 
-pred_all <- function (tld_reseller_list,
+pred_all <- function (tld_reseller_list, 
+                      tld_registrar_excl_list,
                       test_list = expiry_test_prepped_2_1,
                       fullDir='../../data/output/models_20201015' # dir of models
                       ){   
     
-    print(cat("\n\nPredicting model_agg_glm\n"))
+    # exclude low-volume tld-re's      
+    tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_exl_list)]
+   
+    cat("\n\nPredicting model_agg_glm\n")
     load(file.path(fullDir, 'model_agg_glm.Rdata'))    
     preds_agg_glm = lapply(tld_reseller_list, 
            function(tld_reseller_str) pred_agg_glm(model_agg_glm, test_list, tld_reseller_str)
@@ -446,7 +532,7 @@ pred_all <- function (tld_reseller_list,
     rm(model_agg_glm)
     gc()
     
-    print(cat("\n\nPredicting model_agg_rf\n"))
+    cat("\n\nPredicting model_agg_rf\n")
     load(file.path(fullDir, 'model_agg_rf.Rdata'))
     preds_agg_rf = lapply(tld_reseller_list, 
            function(tld_reseller_str) pred_agg_rf(model_agg_rf, test_list, tld_reseller_str)
@@ -454,7 +540,7 @@ pred_all <- function (tld_reseller_list,
     rm(model_agg_rf)
     gc()
 
-    print(cat("\n\nPredicting model_seg_glm\n")  )  
+    cat("\n\nPredicting model_seg_glm\n")   
     lapply(Sys.glob(file.path(fullDir,'model_seg_glm_*')),load,.GlobalEnv)
     preds_seg_glm = lapply(tld_reseller_list, 
            function(tld_reseller_str) pred_seg_glm(
@@ -463,7 +549,7 @@ pred_all <- function (tld_reseller_list,
            )
     rm(list=ls(pattern='^model_seg_glm_'))
     
-    print(cat("\n\nPredicting model_seg_rf\n")  )  
+    cat("\n\nPredicting model_seg_rf\n")  
     lapply(Sys.glob(file.path(fullDir,'model_seg_rf_*')),load,.GlobalEnv)
     preds_seg_rf = lapply(tld_reseller_list, 
            function(tld_reseller_str) pred_seg_rf(
@@ -472,7 +558,7 @@ pred_all <- function (tld_reseller_list,
            )
     rm(list=ls(pattern='^model_seg_rf_'))
 
-    print(cat("\n\nPredicting model_seg2_glm\n"))
+    cat("\n\nPredicting model_seg2_glm\n")
     lapply(Sys.glob(file.path(fullDir,'model_seg2_glm_*')),load,.GlobalEnv)
     preds_seg2_glm = lapply(tld_reseller_list, 
            function(tld_reseller_str) pred_seg2_glm(
@@ -481,7 +567,7 @@ pred_all <- function (tld_reseller_list,
            )
     rm(list=ls(pattern='^model_seg2_glm_'))
 
-    print(cat("\n\nPredicting model_seg2_rf\n")    )    
+    cat("\n\nPredicting model_seg2_rf\n")     
     lapply(Sys.glob(file.path(fullDir,'model_seg2_rf_*')),load,.GlobalEnv)
     preds_seg2_rf = lapply(tld_reseller_list, 
            function(tld_reseller_str) pred_seg2_rf(
@@ -514,8 +600,12 @@ pred_all <- function (tld_reseller_list,
     na.omit.list <- function(y) { return(y[!sapply(y, function(x) all(is.na(x)))]) }
     preds_list <- na.omit.list(preds_list)
     preds_df <- rbindlist(preds_list,use.names=TRUE)
+    
+    # add in excluded tld-res
+    excl_df = rbindlist(test_list[tld_registrar_exl_list], use.names=TRUE)
+    preds_df = rbind(preds_df, excl_df, use.names=TRUE, fill=TRUE)                               
                                                    
-    return(list(preds_seg_glm, preds_seg_rf, preds_seg2_glm, preds_seg2_rf, preds_list, preds_df))
+    return(preds_df)
 
 }
     
