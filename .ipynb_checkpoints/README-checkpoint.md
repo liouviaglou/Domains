@@ -23,10 +23,17 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201020
+
+Error handling -- abandoned
+Added columns for training  & testing w/o excluding low volume tld-re's
+Now training two types of aggregate models - w/ and w/o excluded tld-res
+Training segmented models & Generating predictions for all tld-re's... then will filter out
+
 ## 20201019
 
 DONE with fallback 
-make script more robust -- save list of failed trains & preds
+make script more robust -- save list of failed trains & preds -- abandoned
 
 ## 20201018
 

@@ -4,6 +4,7 @@ suppressMessages(library(dplyr))
 suppressMessages(library(data.table))
 suppressMessages(library(ranger))
 suppressMessages(library(pbapply))
+suppressMessages(library(zoo))
 
 # load & prep input data
 source('../orig/functions_models.R')
@@ -19,20 +20,32 @@ source('functions_fallback.R')
 
 # I. A) AGGREGATE MODELS ################################################################   
 
-train_agg_glm <- function(train_list) {
+train_agg_glm <- function(train_list,tld_reseller_list) {
     # agg glm (aggregarted glm (including tld and reseller as predictors))
-
-    train_df =  rbindlist(train_list)
     
+    train_list = train_list[tld_reseller_list]
+    train_df =  rbindlist(train_list,use.names=TRUE)
     model = build_model_first_renewal_agg(train_df)
-    
+
     return(model)
 }
 
-train_agg_rf <- function(train_list) {
+
+train_agg_glm_ALL <- function(train_list,tld_reseller_list) {
+    # agg glm (aggregarted glm (including tld and reseller as predictors))
+    
+    train_list = train_list[tld_reseller_list]
+    train_df =  rbindlist(train_list,use.names=TRUE)
+    model = build_model_first_renewal_agg(train_df)
+
+    return(model)
+}
+
+train_agg_rf <- function(train_list,tld_reseller_list) {
     # agg rf (aggregarted rf (including tld and reseller as predictors))
     
-    train_df =  rbindlist(train_list)
+    train_list = train_list[tld_reseller_list]
+    train_df =  rbindlist(train_list, use.names=TRUE)
     
     if(dim(train_df)[1]==1){
     # if train data only has one observation, 
@@ -42,7 +55,7 @@ train_agg_rf <- function(train_list) {
         sample_fraction=.8
     }
     
-    model <- ranger(
+    suppressMessages(model <- ranger(
         formula         = renewal_status ~
                             pattern_domain_count+log_reg_arpt+sld_length+gibb_score+
                             sld_type+day_domains+reg_period+tld+reseller, 
@@ -53,7 +66,7 @@ train_agg_rf <- function(train_list) {
         replace         = FALSE,
         sample.fraction = sample_fraction,
         seed            = 123,
-        respect.unordered.factors=TRUE)  
+        respect.unordered.factors=TRUE)  )
     
     return(model)
 }
@@ -97,7 +110,7 @@ train_seg_rf <- function(train_list, reseller_str) {
         sample_fraction=.8
     }
     
-    model <- ranger(
+    suppressMessages(model <- ranger(
         formula         = renewal_status ~
                             pattern_domain_count+log_reg_arpt+sld_length+gibb_score+
                             sld_type+day_domains+reg_period+tld, 
@@ -108,7 +121,7 @@ train_seg_rf <- function(train_list, reseller_str) {
         replace         = FALSE,
         sample.fraction = sample_fraction,
         seed            = 123,
-        respect.unordered.factors=TRUE)  
+        respect.unordered.factors=TRUE)  )
     
     return(model)
 }
@@ -143,7 +156,7 @@ train_seg2_rf <- function(train_list, tld_reseller_str) {
         sample_fraction=.8
     }    
     
-    model <- ranger(
+    suppressMessages(model <- ranger(
         formula         = renewal_status ~
                             pattern_domain_count+log_reg_arpt+sld_length+gibb_score+
                             sld_type+day_domains+reg_period, 
@@ -154,7 +167,7 @@ train_seg2_rf <- function(train_list, tld_reseller_str) {
                         replace = FALSE,
                         sample.fraction = sample_fraction,
                         seed            = 123,
-                        respect.unordered.factors=TRUE)
+                        respect.unordered.factors=TRUE))
     return(model)
     
 }
@@ -355,7 +368,7 @@ pred_seg2_rf <- function(test_list, tld_reseller_str) {
 #
 #########################################################################################   
 
-tld_registrar_exl <- function(train_list = expiry_train_prepped_2_1,
+tld_registrar_excl <- function(train_list = expiry_train_prepped_2_1,
                               N=NULL) {
     
     train_df = rbindlist(expiry_train_prepped_2_1, use.names=TRUE)
@@ -370,10 +383,10 @@ tld_registrar_exl <- function(train_list = expiry_train_prepped_2_1,
     tld_registrar_excl_list = train_df %>% group_by(tld_registrar_index) %>% tally() %>% 
     filter(n<N) %>% pull(tld_registrar_index)
     
-    N_perc = as.double(round(100*length(tld_registrar_exl_list)/(train_df %>% 
+    N_perc = as.double(round(100*length(tld_registrar_excl_list)/(train_df %>% 
                         summarise(n_distinct(tld_registrar_index)) %>% pull(1) ),2))
     
-    (cat(paste0("Exluding ",length(tld_registrar_exl_list)," tld-re's (",
+    (cat(paste0("\n\nExcluding ",length(tld_registrar_excl_list)," tld-re's (",
                 
                 N_perc,"%), due to volume < ",N," \n")))
     
@@ -442,13 +455,14 @@ train_all <- function (tld_reseller_list,
                        model_agg_rf = NULL,
                       fullDir='../../data/output/models_20201015'){
     
-    # exclude low-volume tld-re's      
-    tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_exl_list)]
+    # keep list of all tld-re's
+    tld_reseller_list_ALL = tld_reseller_list
+    reseller_list_ALL = rbindlist(test_list, ,use.names=TRUE) %>% 
+      filter(tld_registrar_index %in% tld_reseller_list_ALL) %>% 
+      distinct(reseller)  %>%  pull(reseller)
     
-    # random sample of 5 remaining tld-re's
-    tld_reseller_list = sample(tld_reseller_list, 5)
-    
-    # define resellers based on tld-re's
+    # exclude low-volume tld-re's 
+    tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_excl_list)]
     reseller_list = rbindlist(test_list, ,use.names=TRUE) %>% 
       filter(tld_registrar_index %in% tld_reseller_list) %>% 
       distinct(reseller)  %>%  pull(reseller)
@@ -456,21 +470,44 @@ train_all <- function (tld_reseller_list,
     dir.create(fullDir, showWarnings = FALSE)
     
     if(is.null(model_agg_glm)) {
-        model_agg_glm = train_agg_glm(train_list)
+        
+        cat("\n\nTraining model_agg_glm_ALL\n")
+        model_agg_glm_ALL = train_agg_glm(train_list,tld_reseller_list_ALL)
+        save(model_agg_glm_ALL, 
+             file=file.path(fullDir, 'model_agg_glm_ALL.Rdata'))
+        
+        }    
+    
+    if(is.null(model_agg_glm)) {
+        
+        cat("\n\nTraining model_agg_glm\n")
+        model_agg_glm = train_agg_glm(train_list,tld_reseller_list)
         save(model_agg_glm, 
-             file=file.path(fullDir, 'model_agg_glm.Rdata')
-            )
-    }    
+             file=file.path(fullDir, 'model_agg_glm.Rdata'))
+        
+        }    
     
     if(is.null(model_agg_rf)) {
-        model_agg_rf = train_agg_rf(train_list)   
+        cat("\n\nTraining model_agg_rf_ALL\n")
+        model_agg_rf_ALL = train_agg_rf(train_list,tld_reseller_list_ALL)   
+        save(model_agg_rf_ALL, 
+             file=file.path(fullDir, 'model_agg_rf_ALL.Rdata')
+            )
+        
+    } 
+    
+    if(is.null(model_agg_rf)) {
+        cat("\n\nTraining model_agg_rf\n")
+        model_agg_rf = train_agg_rf(train_list,tld_reseller_list)   
         save(model_agg_rf, 
              file=file.path(fullDir, 'model_agg_rf.Rdata')
             )
         
     } 
     
-    for (reseller_str in reseller_list) {
+    
+    cat("\n\nTraining model_seg_glm & model_seg_rf\n")
+    for (reseller_str in reseller_list_ALL) {
         
         model_name <- paste0('model_seg_glm_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
         print(model_name)
@@ -491,7 +528,8 @@ train_all <- function (tld_reseller_list,
     } 
     
     
-    for (tld_reseller_str in tld_reseller_list) {
+    cat("\n\nTraining model_seg2_glm & model_seg2_rf\n")
+    for (tld_reseller_str in tld_reseller_list_ALL) {
 
         model_name <- paste0('model_seg2_glm_',str_replace_all(tld_reseller_str, "[^[:alnum:]]", ""))
         print(model_name)
@@ -510,7 +548,7 @@ train_all <- function (tld_reseller_list,
             )
     }
     
-    return(tld_reseller_list)
+    return(tld_reseller_list, tld_reseller_list_ALL)
 
 }
     
@@ -521,60 +559,79 @@ pred_all <- function (tld_reseller_list,
                       fullDir='../../data/output/models_20201015' # dir of models
                       ){   
     
+    
+    tld_reseller_list_ALL = tld_reseller_list
+    
     # exclude low-volume tld-re's      
-    tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_exl_list)]
+    tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_excl_list)]
    
+    cat("\n\nPredicting model_agg_glm_ALL\n")
+    load(file.path(fullDir, 'model_agg_glm_ALL.Rdata'))    
+    preds_agg_glm_ALL = lapply(tld_reseller_list_ALL, 
+           function(tld_reseller_str) pred_agg_glm(model_agg_glm_ALL, test_list, tld_reseller_str)
+           )
+    rm(model_agg_glm)
+    gc()
+    
     cat("\n\nPredicting model_agg_glm\n")
     load(file.path(fullDir, 'model_agg_glm.Rdata'))    
-    preds_agg_glm = lapply(tld_reseller_list, 
+    preds_agg_glm = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_agg_glm(model_agg_glm, test_list, tld_reseller_str)
            )
     rm(model_agg_glm)
     gc()
     
+    cat("\n\nPredicting model_agg_rf_ALL\n")
+    load(file.path(fullDir, 'model_agg_rf_ALL.Rdata'))
+    preds_agg_rf_ALL = lapply(tld_reseller_list_ALL, 
+           function(tld_reseller_str) pred_agg_rf(model_agg_rf_ALL, test_list, tld_reseller_str)
+           )
+    rm(model_agg_rf)
+    gc()
+    
     cat("\n\nPredicting model_agg_rf\n")
     load(file.path(fullDir, 'model_agg_rf.Rdata'))
-    preds_agg_rf = lapply(tld_reseller_list, 
+    preds_agg_rf = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_agg_rf(model_agg_rf, test_list, tld_reseller_str)
            )
     rm(model_agg_rf)
     gc()
 
-    cat("\n\nPredicting model_seg_glm\n")   
+    cat("\n\nPredicting model_seg_glm_ALL\n")   
     lapply(Sys.glob(file.path(fullDir,'model_seg_glm_*')),load,.GlobalEnv)
-    preds_seg_glm = lapply(tld_reseller_list, 
+    preds_seg_glm_ALL = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_seg_glm(
                test_list, 
                tld_reseller_str)
            )
     rm(list=ls(pattern='^model_seg_glm_'))
     
-    cat("\n\nPredicting model_seg_rf\n")  
+    cat("\n\nPredicting model_seg_rf_ALL\n")  
     lapply(Sys.glob(file.path(fullDir,'model_seg_rf_*')),load,.GlobalEnv)
-    preds_seg_rf = lapply(tld_reseller_list, 
+    preds_seg_rf_ALL = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_seg_rf(
                test_list, 
                tld_reseller_str)
            )
     rm(list=ls(pattern='^model_seg_rf_'))
 
-    cat("\n\nPredicting model_seg2_glm\n")
+    cat("\n\nPredicting model_seg2_glm_ALL\n")
     lapply(Sys.glob(file.path(fullDir,'model_seg2_glm_*')),load,.GlobalEnv)
-    preds_seg2_glm = lapply(tld_reseller_list, 
+    preds_seg2_glm_ALL = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_seg2_glm(
                test_list, 
                tld_reseller_str)
            )
     rm(list=ls(pattern='^model_seg2_glm_'))
 
-    cat("\n\nPredicting model_seg2_rf\n")     
+    cat("\n\nPredicting model_seg2_rf_ALL\n")     
     lapply(Sys.glob(file.path(fullDir,'model_seg2_rf_*')),load,.GlobalEnv)
-    preds_seg2_rf = lapply(tld_reseller_list, 
+    preds_seg2_rf_ALL = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_seg2_rf(
                test_list, 
                tld_reseller_str)
            )
-    rm(list=ls(pattern='^model_rf2_rf_'))
+    rm(list=ls(pattern='^model_seg2_rf_'))
 
     
     # combine all preds into one list
@@ -586,12 +643,14 @@ pred_all <- function (tld_reseller_list,
         } else{
             preds_list[[tld_reseller_str]] = cbind(
                   test_list[[tld_reseller_str]],
+                  'pred_agg_glm_ALL'=preds_agg_glm_ALL[[i]]$predicted,
+                  'pred_agg_rf_ALL'=preds_agg_rf_ALL[[i]]$predicted,
                   'pred_agg_glm'=preds_agg_glm[[i]]$predicted,
                   'pred_agg_rf'=preds_agg_rf[[i]]$predicted,
-                  'pred_seg_glm'=preds_seg_glm[[i]]$predicted,
-                  'pred_seg_rf' = preds_seg_rf[[i]]$predicted,
-                  'pred_seg2_glm'=preds_seg2_glm[[i]]$predicted,
-                  'pred_seg2_rf'=preds_seg2_rf[[i]]$predicted)
+                  'pred_seg_glm_ALL'=preds_seg_glm_ALL[[i]]$predicted,
+                  'pred_seg_rf_ALL' = preds_seg_rf_ALL[[i]]$predicted,
+                  'pred_seg2_glm_ALL'=preds_seg2_glm_ALL[[i]]$predicted,
+                  'pred_seg2_rf_ALL'=preds_seg2_rf_ALL[[i]]$predicted)
         }
 
         i=i+1
@@ -602,7 +661,7 @@ pred_all <- function (tld_reseller_list,
     preds_df <- rbindlist(preds_list,use.names=TRUE)
     
     # add in excluded tld-res
-    excl_df = rbindlist(test_list[tld_registrar_exl_list], use.names=TRUE)
+    excl_df = rbindlist(test_list[tld_registrar_excl_list], use.names=TRUE)
     preds_df = rbind(preds_df, excl_df, use.names=TRUE, fill=TRUE)                               
                                                    
     return(preds_df)
