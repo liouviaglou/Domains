@@ -1,5 +1,3 @@
-# Rscript tld_reseller_compare_lis_fb.R >> /home/jupyter/local/Domains_202003/data/output/tld_reseller_compare_list_3.log 2>&1
-
 suppressMessages(library(dplyr))
 suppressMessages(library(data.table))
 suppressMessages(library(ranger))
@@ -371,7 +369,7 @@ pred_seg2_rf <- function(test_list, tld_reseller_str) {
 tld_registrar_excl <- function(train_list = expiry_train_prepped_2_1,
                               N=NULL) {
     
-    train_df = rbindlist(expiry_train_prepped_2_1, use.names=TRUE)
+    train_df = rbindlist(train_list, use.names=TRUE)
     
     if(is.null(N)){ # threshold for low-volume tld-re
         # by default, N=100*(num_quarters)
@@ -467,7 +465,6 @@ train_all <- function (tld_reseller_list,
       filter(tld_registrar_index %in% tld_reseller_list) %>% 
       distinct(reseller)  %>%  pull(reseller)
 
-    dir.create(fullDir, showWarnings = FALSE)
     
     if(is.null(model_agg_glm)) {
         

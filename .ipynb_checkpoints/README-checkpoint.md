@@ -23,12 +23,20 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201021
+
+Prepped data & script for deployment
+Issue with data - ironing out w/ Shadir
+
 ## 20201020
 
 Error handling -- abandoned
 Added columns for training  & testing w/o excluding low volume tld-re's
 Now training two types of aggregate models - w/ and w/o excluded tld-res
 Training segmented models & Generating predictions for all tld-re's... then will filter out
+
+Saved new data as bigquery table to be queried
+
 
 ## 20201019
 

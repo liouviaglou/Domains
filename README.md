@@ -23,6 +23,11 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201021
+
+Prepped data & script for deployment
+Issue with data - ironing out w/ Shadir
+
 ## 20201020
 
 Error handling -- abandoned
