@@ -23,6 +23,50 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201103 
+
+- ran script excluding tlds pw and in.net
+- QAed preds.csv 
+   - ***why does preds contain a different set of domain_ids than expiry_test_df???***
+      - date range is correct, but domain_id not overlapping
+      
+      
+
+- exclude from preds.csv  low volumn combinstions from segmented results
+   - all models (except for agg), are trained on all the data
+   - agg models are trained on all the data and on the subset of non-low-volume tld-re's
+   - but predictions are generated only on non-low volume tld-re's
+     - ***CONFIRM THAT LOW VOLUME TLD-RE'S ARE EXCLUDED FROM PRED_DF***
+
+## 20201102
+
+- When query is executed from .sql file, limits to 6876 rows (even when executing a count(\*), returns 6876 == **why??**)
+- Kicked off script on Efficient Instance, 16 vCPUs, 128 GB RAM (increase RAM w/ increasing CPU?)
+- agg_rf_ALL model takes about 90 GB RAM to train 
+
+## 20201028
+
+RUNNING FOR ALL OF DATA 3:54 (see ADDRESS for issue to ADDRESS)
+limited agg models may actually be trained on all data (or vice versa)
+compare model objects to see fi theyre equivalent
+figure out which one is the underlying singular model -- all or limited?
+
+Note:
+predicting seg2 and seg models for all tld_registrars, even low volume ones -- build out second step of exclusion
+but training 2 agg models on excluded and full list
+
+ADDRESS:
+predictions for model_agg_glm_ALL == model_agg_glm  and likewise fo RF
+
+build out error handling
+
+
+## 20201023
+
+
+
+exclude renwed_count>1 from data!
+
 ## 20201021
 
 Prepped data & script for deployment

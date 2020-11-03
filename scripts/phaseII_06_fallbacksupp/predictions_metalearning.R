@@ -1,4 +1,4 @@
-# Rscript predictions_metalearning.R >> /home/jupyter/local/Domains_202003/data/output/predictions_metalearning.log 2>&1
+# Rscript predictions_metalearning.R > /home/jupyter/local/Domains_202003/data/output/predictions_metalearning.log 2>&1
 
 suppressMessages(library(dplyr))
 suppressMessages(library(data.table))
@@ -16,7 +16,7 @@ source('/home/jupyter/local/Domains_202003/scripts/phaseII_06_fallbacksupp/load_
 
 
 # define oputput folder
-fullDir='/home/jupyter/local/Domains_202003/data/output/models_20201021'
+fullDir='/home/jupyter/local/Domains_202003/data/output/models_20201103'
 dir.create(fullDir)
 
 # define tld-re's for processing
@@ -24,11 +24,14 @@ tld_reseller_list = expiry_train_df %>%  distinct(tld_registrar_index) %>% pull(
 tld_registrar_excl_list = tld_registrar_excl(train_list = expiry_train_list)
 tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_excl_list)]
 
-# TEST #1
-tld_reseller_list = c('websitenamecheap','storeuol','storemat bao','onlinedonweb','onlinecrazy domains')
+# TEST #1.1
+# tld_reseller_list = c('websitenamecheap','storeuol','storemat bao','onlinedonweb','onlinecrazy domains')
+# TEST #1.2
+# tld_reseller_list = c('spaceovh', 'onlinerebrandly', 'websitebeget', 'spacedomains4bitcoins', 'sitehostgator')
 
 # TEST #2
 # tld_reseller_list = sample(tld_reseller_list, size = 5)
+# cat(paste0(tld_reseller_list, sep=","))
 
 # train & save models
 tld_reseller_list = train_all(  tld_reseller_list,

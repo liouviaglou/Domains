@@ -196,7 +196,7 @@ build_model_first_renewal_agg_plus <-function(train_data){
 
 predict_first_renewal<-function(test_data, model){
   
-    
+
   if (is.na(model) | is.null(test_data)){
       test_data$probabilities<- rep(NA, dim(test_data)[1])
   }else{
@@ -215,7 +215,10 @@ predict_first_renewal<-function(test_data, model){
   #test.data$probabilities <- predict(model,newdata=subset(test.data,select=c(Coeff.Variation, LogArpt, SLD.Length, SLD.Type, Day.Domains, Gibb.Score)),type='response');
   
   # had to comment out the following to get predition list to work
-  test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
+  if("Status" %in% colnames(test_data))
+    {
+      test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
+    }
 #   test_data$first_renewal_prediction<-round(test_data$first_renewal_prediction,3)
   test_data$first_renewal_prediction<-round(test_data$probabilities,3)
   return(test_data)
@@ -245,7 +248,11 @@ predict_first_renewal_reg<-function(test_data, model){
 #   test_data$first_renewal_prediction<-round(test_data$first_renewal_prediction,3)
   # made the following mods
   test_data$first_renewal_prediction<-round(test_data$probabilities,3)
-  test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
+    
+  if("Status" %in% colnames(test_data))
+    {
+      test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
+    }
   return(test_data)
 }
                       
@@ -271,7 +278,10 @@ predict_first_renewal_agg<-function(test_data, model){
 #   test_data$first_renewal_prediction<-round(test_data$first_renewal_prediction,3)
   # made the following mods
   test_data$first_renewal_prediction<-round(test_data$probabilities,3)
-  test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
+    if("Status" %in% colnames(test_data))
+    {
+      test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
+    }
   return(test_data)
 }
                       
@@ -297,7 +307,10 @@ predict_first_renewal_agg_plus<-function(test_data, model){
 #   test_data$first_renewal_prediction<-round(test_data$first_renewal_prediction,3)
   # made the following mods
   test_data$first_renewal_prediction<-round(test_data$probabilities,3)
-  test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
+    if("Status" %in% colnames(test_data))
+    {
+      test_data$first_renewal_prediction[test_data$Status == "Deleted"]<-0
+    }
   return(test_data)
 }
                       

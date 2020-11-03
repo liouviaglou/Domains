@@ -1,5 +1,5 @@
 get_expiry_data_str <- paste("SELECT sub.renewal_type, sub.renewed_count, DATE(sub.Expiry_date) as expiry_date, DATE(sub.creation_date1) as creation_date,
-      sub.domain_id, sub.domain,sub.registrar_shortname as registrar, sub.client_shortname as reseller,  sub.client_country as reseller_country, 
+      sub.status as status,sub.domain_id, sub.domain,sub.registrar_shortname as registrar, sub.client_shortname as reseller,  sub.client_country as reseller_country, 
       sub.registrant_country as registrant_country, sub.noofyears as reg_period, sub.domain_revenue as reg_revenue, sub.arpt as reg_arpt, 
       sub.renew_mbg as renew_mbg, sub.renewal_item_id, 
       sub.renew_type, sub.autorenew_type,  sub.renewal_status, DATE(sub.renew_date) as renew_date, sub.renew_arpt, 
@@ -79,12 +79,12 @@ FROM   (SELECT 'FirstTime'  AS renewal_type,
 
 
                
-        FROM   `radixbi-249015.prediction_vendors.newreg` n 
+        FROM   radixbi-249015.prediction_vendors.newreg n 
               
         WHERE  n.mbg = 0 
                AND n.expiry_date >= '",expiry_date_start,"'
                AND n.expiry_date <= '",expiry_date_start,"'
-               AND n.period > 0 
+                              AND n.period > 0 
         UNION ALL
         
         SELECT CASE 
@@ -176,24 +176,24 @@ FROM   (SELECT 'FirstTime'  AS renewal_type,
                  ELSE 0 
                END AS 
                registration_arpt 
-        FROM   `radixbi-249015.prediction_vendors.renews` n 
-               LEFT OUTER JOIN `radixbi-249015.prediction_vendors.newreg` pr 
+        FROM   radixbi-249015.prediction_vendors.renews n 
+               LEFT OUTER JOIN radixbi-249015.prediction_vendors.newreg pr 
                             ON n.domain_id = pr.domain_id 
                              
         WHERE  n.mbg = 0 
-               AND n.transaction_expiry >= '",expiry_date_start,"'
+                AND n.transaction_expiry >= '",expiry_date_start,"'
                AND n.transaction_expiry <= '",expiry_date_start,"'
-               AND n.period > 0 
+              AND n.period > 0 
                AND ( n.renew_type IN ( 'renewal', 'transfer' ) 
                       OR n.autorenew_type = 'realized' )
               ) AS sub 
                       
        left join (select domain_id, gibb_score, pattern_domain_count, pattern, 
             day_domains, sld_length, sld_type, sld_type2, 
-                  from `radixbi-249015.data_science.npv_prepped_data`) as npv_prepped_data
+                  from radixbi-249015.data_science.npv_prepped_data) as npv_prepped_data
        on sub.domain_id = npv_prepped_data.domain_id
                       
-ORDER  BY expiry_date", sep="")
+where Status!='Deleted'", sep="")
 
 count_expiry_data_str <- paste("SELECT COUNT(*) FROM   (SELECT 'FirstTime'  AS renewal_type, 
                1 AS renewed_count, 
@@ -268,12 +268,12 @@ count_expiry_data_str <- paste("SELECT COUNT(*) FROM   (SELECT 'FirstTime'  AS r
 
 
                
-        FROM   `radixbi-249015.prediction_vendors.newreg` n 
+        FROM   radixbi-249015.prediction_vendors.newreg n 
               
         WHERE  n.mbg = 0 
                AND n.expiry_date >= '",expiry_date_start,"'
                AND n.expiry_date <= '",expiry_date_start,"'
-               AND n.period > 0 
+                              AND n.period > 0 
         UNION ALL
         
         SELECT CASE 
@@ -365,21 +365,23 @@ count_expiry_data_str <- paste("SELECT COUNT(*) FROM   (SELECT 'FirstTime'  AS r
                  ELSE 0 
                END AS 
                registration_arpt 
-        FROM   `radixbi-249015.prediction_vendors.renews` n 
-               LEFT OUTER JOIN `radixbi-249015.prediction_vendors.newreg` pr 
+        FROM   radixbi-249015.prediction_vendors.renews n 
+               LEFT OUTER JOIN radixbi-249015.prediction_vendors.newreg pr 
                             ON n.domain_id = pr.domain_id 
                              
         WHERE  n.mbg = 0 
-               AND n.transaction_expiry >= '",expiry_date_start,"'
+                AND n.transaction_expiry >= '",expiry_date_start,"'
                AND n.transaction_expiry <= '",expiry_date_start,"'
-               AND n.period > 0 
+              AND n.period > 0 
                AND ( n.renew_type IN ( 'renewal', 'transfer' ) 
                       OR n.autorenew_type = 'realized' )
               ) AS sub 
                       
        left join (select domain_id, gibb_score, pattern_domain_count, pattern, 
             day_domains, sld_length, sld_type, sld_type2, 
-                  from `radixbi-249015.data_science.npv_prepped_data`) as npv_prepped_data
-       on sub.domain_id = npv_prepped_data.domain_id", sep="")
+                  from radixbi-249015.data_science.npv_prepped_data) as npv_prepped_data
+       on sub.domain_id = npv_prepped_data.domain_id
+                      
+where Status!='Deleted'", sep="")
 
         
