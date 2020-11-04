@@ -5,7 +5,7 @@ library(data.table)
 
 # load data
 cat("Loading data...")
-expiry_df <- readRDS("/home/jupyter/local/Domains_202003/data/output/expiry_20190601_20200901")
+expiry_df <- readRDS("/home/jupyter/Domains_202003/data/input/expiry_20190601_20200901")
 cat("Loaded", expiry_df %>% nrow(),"rows\n")
 
 # select most recent 5Q [1 quarter = 90 days, 5 quarters = 450 days ]
@@ -14,18 +14,13 @@ cat("Removing", expiry_df %>%filter(expiry_date < as.Date("2019-06-01") | expiry
 expiry_df <- expiry_df %>% filter(expiry_date >= as.Date("2019-06-01") & expiry_date <= as.Date("2020-09-01"))
 
 # remove renewed_count>1
-cat("Removing", expiry_df %>% filter(renewed_count==1) %>% tally() %>% pull(n) ,"rows due to renewed_count constraints\n")
+cat("Removing", expiry_df %>% filter(renewed_count>1) %>% tally() %>% pull(n) ,"rows due to renewed_count constraints\n")
 expiry_df <- expiry_df %>% filter(renewed_count==1)
 
 # remove where gibb_score, etc. are NA
 cat("Removing", expiry_df %>% filter(is.na(gibb_score)) %>% tally() %>% pull(n) ,"rows due to missing gibb_score\n")
 expiry_df <- expiry_df %>% filter(!is.na(gibb_score))
 cat("... now dataset min(creation_date) is ", expiry_df %>% summarise(min(creation_date)) %>% pull(1) %>% as.character(),".\n")
-
-# remove where tld is .pw and .in.net (added 20201103)
-cat("Removing", expiry_df %>% filter(tld=="pw" | tld=="in.net") %>% tally() %>% pull(n) ,"rows due to tld pw and in.net\n")
-expiry_df <- expiry_df %>% filter(tld!="pw" & tld!="in.net") 
-cat("Remaining", expiry_df %>% nrow() ,"rows\n")
 
 # add necessary columns
 expiry_df <- expiry_df %>% mutate (reg_arpt = ifelse(reg_arpt <= 0, 0.0001,reg_arpt),

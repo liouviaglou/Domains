@@ -23,6 +23,15 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201104
+
+Restarting with fresh instance
+- create dir structure
+- copy files: data for model training
+   - gsutil cp gs://data_outputt/output/expiry_20190601_20200901 /home/jupyter/Domains_202003/data/input/expiry_20190601_20200901
+- installed necessayr packages (partykit, ranger, tictoc, caret, e1071, randomForest, akima, plotly, (rPython), pbapply, stringdist, dominanceanalysis, zoo), 
+
+
 ## 20201103 
 
 - ran script excluding tlds pw and in.net

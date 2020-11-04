@@ -1,4 +1,4 @@
-# Rscript predictions_metalearning.R > /home/jupyter/local/Domains_202003/data/output/predictions_metalearning.log 2>&1
+# Rscript predictions_metalearning.R > /home/jupyter/Domains_202003/data/output/predictions_metalearning.log 2>&1
 
 suppressMessages(library(dplyr))
 suppressMessages(library(data.table))
@@ -7,22 +7,22 @@ suppressMessages(library(pbapply))
 suppressMessages(library(stringr))
 
 # load & prep input data
-source('/home/jupyter/local/Domains_202003/scripts/orig/functions_models.R')
-source('/home/jupyter/local/Domains_202003/scripts/phaseII_03_forest/functions_eval.R')
-source('/home/jupyter/local/Domains_202003/scripts/phaseII_06_fallbacksupp/functions_metalearning.R')
-source('/home/jupyter/local/Domains_202003/scripts/phaseII_06_fallbacksupp/load_prep_data_expiry_2.R')
+source('/home/jupyter/Domains_202003/scripts/orig/functions_models.R')
+source('/home/jupyter/Domains_202003/scripts/phaseII_03_forest/functions_eval.R')
+source('/home/jupyter/Domains_202003/scripts/phaseII_06_fallbacksupp/functions_metalearning.R')
+source('/home/jupyter/Domains_202003/scripts/phaseII_06_fallbacksupp/load_prep_data_expiry_2.R')
 # defines expiry_df & list of expiry_20180101_20190331
 # as well as expiry_train_df, expiry_test_df,  expiry_train_list, expiry_test_list
 
 
 # define oputput folder
-fullDir='/home/jupyter/local/Domains_202003/data/output/models_20201103'
+fullDir='/home/jupyter/Domains_202003/data/output/models_20201104'
 dir.create(fullDir)
 
 # define tld-re's for processing
 tld_reseller_list = expiry_train_df %>%  distinct(tld_registrar_index) %>% pull(tld_registrar_index)
 tld_registrar_excl_list = tld_registrar_excl(train_list = expiry_train_list)
-tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_excl_list)]
+# tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_excl_list)] # done w/in functions
 
 # TEST #1.1
 # tld_reseller_list = c('websitenamecheap','storeuol','storemat bao','onlinedonweb','onlinecrazy domains')

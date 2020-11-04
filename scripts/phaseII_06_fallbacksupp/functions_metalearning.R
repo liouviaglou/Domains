@@ -384,9 +384,21 @@ tld_registrar_excl <- function(train_list = expiry_train_prepped_2_1,
     N_perc = as.double(round(100*length(tld_registrar_excl_list)/(train_df %>% 
                         summarise(n_distinct(tld_registrar_index)) %>% pull(1) ),2))
     
-    (cat(paste0("\n\nExcluding ",length(tld_registrar_excl_list)," tld-re's (",
+    cat(paste0("Excluding ",length(tld_registrar_excl_list)," tld-re's (",
                 
-                N_perc,"%), due to volume < ",N," \n")))
+                N_perc,"%), due to volume < ",N," \n"))
+    
+    
+    # remove where tld is .pw and .in.net (added 20201103)
+    
+    tld_registrar_excl_list_2 = train_df %>% filter(tld=="pw" | tld=="in.net") %>% distinct(tld_registrar_index)  %>% pull(tld_registrar_index) 
+        
+    N_perc_2 = as.double(round(100*length(tld_registrar_excl_list_2)/(train_df %>% 
+                        summarise(n_distinct(tld_registrar_index)) %>% pull(1) ),2))
+    
+    cat(paste0("Excluding ",length(tld_registrar_excl_list_2)," tld-re's (",
+                
+                N_perc_2,"%) associated with tld's 'pw' and 'in.net' \n"))
     
     return(tld_registrar_excl_list)
     
@@ -503,47 +515,47 @@ train_all <- function (tld_reseller_list,
     } 
     
     
-#     cat("\n\nTraining model_seg_glm & model_seg_rf\n")
-#     for (reseller_str in reseller_list_ALL) {
+    cat("\n\nTraining model_seg_glm & model_seg_rf\n")
+    for (reseller_str in reseller_list_ALL) {
         
-#         model_name <- paste0('model_seg_glm_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
-#         print(model_name)
+        model_name <- paste0('model_seg_glm_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
+        print(model_name)
         
-#         assign(model_name,train_seg_glm(train_list, reseller_str) )
-#         save(list=model_name, 
-#              file=file.path(fullDir, paste0(model_name,'.Rdata'))
-#             )
+        assign(model_name,train_seg_glm(train_list, reseller_str) )
+        save(list=model_name, 
+             file=file.path(fullDir, paste0(model_name,'.Rdata'))
+            )
         
-#         model_name <- paste0('model_seg_rf_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
-#         print(model_name)
+        model_name <- paste0('model_seg_rf_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
+        print(model_name)
         
-#         assign(model_name,train_seg_rf(train_list, reseller_str)  )
-#         save(list=model_name, 
-#              file=file.path(fullDir, paste0(model_name,'.Rdata'))
-#             )
+        assign(model_name,train_seg_rf(train_list, reseller_str)  )
+        save(list=model_name, 
+             file=file.path(fullDir, paste0(model_name,'.Rdata'))
+            )
         
-#     } 
+    } 
     
     
-#     cat("\n\nTraining model_seg2_glm & model_seg2_rf\n")
-#     for (tld_reseller_str in tld_reseller_list_ALL) {
+    cat("\n\nTraining model_seg2_glm & model_seg2_rf\n")
+    for (tld_reseller_str in tld_reseller_list_ALL) {
 
-#         model_name <- paste0('model_seg2_glm_',str_replace_all(tld_reseller_str, "[^[:alnum:]]", ""))
-#         print(model_name)
+        model_name <- paste0('model_seg2_glm_',str_replace_all(tld_reseller_str, "[^[:alnum:]]", ""))
+        print(model_name)
 
-#         assign(model_name,train_seg2_glm(train_list, tld_reseller_str) )
-#         save(list=model_name, 
-#              file=file.path(fullDir, paste0(model_name,'.Rdata'))
-#             )
+        assign(model_name,train_seg2_glm(train_list, tld_reseller_str) )
+        save(list=model_name, 
+             file=file.path(fullDir, paste0(model_name,'.Rdata'))
+            )
 
-#         model_name <- paste0('model_seg2_rf_',str_replace_all(tld_reseller_str, "[^[:alnum:]]", ""))
-#         print(model_name)
+        model_name <- paste0('model_seg2_rf_',str_replace_all(tld_reseller_str, "[^[:alnum:]]", ""))
+        print(model_name)
 
-#         assign(model_name,train_seg2_rf(train_list, tld_reseller_str)  )
-#         save(list=model_name, 
-#              file=file.path(fullDir, paste0(model_name,'.Rdata'))
-#             )
-#     }
+        assign(model_name,train_seg2_rf(train_list, tld_reseller_str)  )
+        save(list=model_name, 
+             file=file.path(fullDir, paste0(model_name,'.Rdata'))
+            )
+    }
     
     return(tld_reseller_list_ALL) # return all, predict for all and then exclude
 
@@ -563,7 +575,7 @@ pred_all <- function (tld_reseller_list,
     tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_excl_list)]
    
     cat("\n\nPredicting model_agg_glm_ALL\n")
-    load(file.path(fullDir, 'model_agg_glm_ALL_excltld.Rdata'))    
+    load(file.path(fullDir, 'model_agg_glm_ALL.Rdata'))    
     preds_agg_glm_ALL = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_agg_glm(model_agg_glm_ALL, test_list, tld_reseller_str)
            )
@@ -571,7 +583,7 @@ pred_all <- function (tld_reseller_list,
     gc()
     
     cat("\n\nPredicting model_agg_glm\n")
-    load(file.path(fullDir, 'model_agg_glm_excltld.Rdata'))    
+    load(file.path(fullDir, 'model_agg_glm.Rdata'))    
     preds_agg_glm = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_agg_glm(model_agg_glm, test_list, tld_reseller_str)
            )
@@ -579,7 +591,7 @@ pred_all <- function (tld_reseller_list,
     gc()
     
     cat("\n\nPredicting model_agg_rf_ALL\n")
-    load(file.path(fullDir, 'model_agg_rf_ALL_excltld.Rdata'))
+    load(file.path(fullDir, 'model_agg_rf_ALL.Rdata'))
     preds_agg_rf_ALL = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_agg_rf(model_agg_rf_ALL, test_list, tld_reseller_str)
            )
@@ -587,48 +599,48 @@ pred_all <- function (tld_reseller_list,
     gc()
     
     cat("\n\nPredicting model_agg_rf\n")
-    load(file.path(fullDir, 'model_agg_rf_excltld.Rdata'))
+    load(file.path(fullDir, 'model_agg_rf.Rdata'))
     preds_agg_rf = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_agg_rf(model_agg_rf, test_list, tld_reseller_str)
            )
     rm(model_agg_rf)
     gc()
 
-#     cat("\n\nPredicting model_seg_glm_ALL\n")   
-#     lapply(Sys.glob(file.path(fullDir,'model_seg_glm_*')),load,.GlobalEnv)
-#     preds_seg_glm_ALL = lapply(tld_reseller_list_ALL, 
-#            function(tld_reseller_str) pred_seg_glm(
-#                test_list, 
-#                tld_reseller_str)
-#            )
-#     rm(list=ls(pattern='^model_seg_glm_'))
+    cat("\n\nPredicting model_seg_glm_ALL\n")   
+    lapply(Sys.glob(file.path(fullDir,'model_seg_glm_*')),load,.GlobalEnv)
+    preds_seg_glm_ALL = lapply(tld_reseller_list_ALL, 
+           function(tld_reseller_str) pred_seg_glm(
+               test_list, 
+               tld_reseller_str)
+           )
+    rm(list=ls(pattern='^model_seg_glm_'))
     
-#     cat("\n\nPredicting model_seg_rf_ALL\n")  
-#     lapply(Sys.glob(file.path(fullDir,'model_seg_rf_*')),load,.GlobalEnv)
-#     preds_seg_rf_ALL = lapply(tld_reseller_list_ALL, 
-#            function(tld_reseller_str) pred_seg_rf(
-#                test_list, 
-#                tld_reseller_str)
-#            )
-#     rm(list=ls(pattern='^model_seg_rf_'))
+    cat("\n\nPredicting model_seg_rf_ALL\n")  
+    lapply(Sys.glob(file.path(fullDir,'model_seg_rf_*')),load,.GlobalEnv)
+    preds_seg_rf_ALL = lapply(tld_reseller_list_ALL, 
+           function(tld_reseller_str) pred_seg_rf(
+               test_list, 
+               tld_reseller_str)
+           )
+    rm(list=ls(pattern='^model_seg_rf_'))
 
-#     cat("\n\nPredicting model_seg2_glm_ALL\n")
-#     lapply(Sys.glob(file.path(fullDir,'model_seg2_glm_*')),load,.GlobalEnv)
-#     preds_seg2_glm_ALL = lapply(tld_reseller_list_ALL, 
-#            function(tld_reseller_str) pred_seg2_glm(
-#                test_list, 
-#                tld_reseller_str)
-#            )
-#     rm(list=ls(pattern='^model_seg2_glm_'))
+    cat("\n\nPredicting model_seg2_glm_ALL\n")
+    lapply(Sys.glob(file.path(fullDir,'model_seg2_glm_*')),load,.GlobalEnv)
+    preds_seg2_glm_ALL = lapply(tld_reseller_list_ALL, 
+           function(tld_reseller_str) pred_seg2_glm(
+               test_list, 
+               tld_reseller_str)
+           )
+    rm(list=ls(pattern='^model_seg2_glm_'))
 
-#     cat("\n\nPredicting model_seg2_rf_ALL\n")     
-#     lapply(Sys.glob(file.path(fullDir,'model_seg2_rf_*')),load,.GlobalEnv)
-#     preds_seg2_rf_ALL = lapply(tld_reseller_list_ALL, 
-#            function(tld_reseller_str) pred_seg2_rf(
-#                test_list, 
-#                tld_reseller_str)
-#            )
-#     rm(list=ls(pattern='^model_seg2_rf_'))
+    cat("\n\nPredicting model_seg2_rf_ALL\n")     
+    lapply(Sys.glob(file.path(fullDir,'model_seg2_rf_*')),load,.GlobalEnv)
+    preds_seg2_rf_ALL = lapply(tld_reseller_list_ALL, 
+           function(tld_reseller_str) pred_seg2_rf(
+               test_list, 
+               tld_reseller_str)
+           )
+    rm(list=ls(pattern='^model_seg2_rf_'))
 
     
     # combine all preds into one list
@@ -665,26 +677,4 @@ pred_all <- function (tld_reseller_list,
 
 }
     
-
-
-# train_all <- function (tld_reseller_str,
-#                       reseller_str,
-#                       model_agg_glm = model_agg_glm,
-#                       model_agg_rf = model_agg_rf,
-#                       train_list = expiry_train_prepped_2_1,
-#                       test_list = expiry_test_prepped_2_1){
-# }
-    
-
-
-# pred_all <- function (tld_reseller_str,
-#                       reseller_str,
-#                       model_agg_glm = model_agg_glm,
-#                       model_agg_rf = model_agg_rf,
-#                       train_list = expiry_train_prepped_2_1,
-#                       test_list = expiry_test_prepped_2_1){
-# }
-    
-
-
 

@@ -23,12 +23,25 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201104
+
+Restarting with fresh instance
+- create dir structure
+- copy files: data for model training
+   - gsutil cp gs://data_outputt/output/expiry_20190601_20200901 /home/jupyter/Domains_202003/data/input/expiry_20190601_20200901
+- installed necessayr packages (partykit, ranger, tictoc, caret, e1071, randomForest, akima, plotly, (rPython), pbapply, stringdist, dominanceanalysis, zoo), 
+
+
 ## 20201103 
 
 - ran script excluding tlds pw and in.net
 - QAed preds.csv 
    - ***why does preds contain a different set of domain_ids than expiry_test_df???***
       - date range is correct, but domain_id not overlapping
+   - ***why are performance metrics for agg and agg_ALL models the same? ***
+      - are actual predictions the same?
+   - ***why does gains chart have a jump after 0.9***
+      - is it because we need to first exclude NA rows from df?
       
       
 
