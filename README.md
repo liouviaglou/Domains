@@ -29,7 +29,13 @@ Restarting with fresh instance
 - create dir structure
 - copy files: data for model training
    - gsutil cp gs://data_outputt/output/expiry_20190601_20200901 /home/jupyter/Domains_202003/data/input/expiry_20190601_20200901
+   - gsutil cp -r /home/jupyter/Domains_202003/data/output/ gs://data_outputt/output/
+   - for file in Domains_202003/data/output/models_20201104/*_excltld*; do mv "${file}" "${file/_excltld/}"; done
+   
 - installed necessayr packages (partykit, ranger, tictoc, caret, e1071, randomForest, akima, plotly, (rPython), pbapply, stringdist, dominanceanalysis, zoo), 
+- set up git
+
+- after preds finish, save to google cloud including models
 
 
 ## 20201103 

@@ -34,13 +34,13 @@ tld_registrar_excl_list = tld_registrar_excl(train_list = expiry_train_list)
 # cat(paste0(tld_reseller_list, sep=","))
 
 # train & save models
-tld_reseller_list = train_all(  tld_reseller_list,
-                                tld_registrar_excl_list,
-                                train_list = expiry_train_list,
-                                test_list = expiry_test_list,
-                                model_agg_glm = NULL, 
-                                model_agg_rf = NULL,
-                                fullDir)   
+# tld_reseller_list = train_all(  tld_reseller_list,
+#                                 tld_registrar_excl_list,
+#                                 train_list = expiry_train_list,
+#                                 test_list = expiry_test_list,
+#                                 model_agg_glm = NULL, 
+#                                 model_agg_rf = NULL,
+#                                 fullDir)   
 
 # predict based on saved models
 preds_df <- pred_all(tld_reseller_list, tld_registrar_excl_list,
