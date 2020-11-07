@@ -326,7 +326,17 @@ list_predict_first_renewal<-function(tld_registrar,test_data, data_models) {
 #   print(tld_registrar)
   ########END:for substitute TLD#######################
   tld_registrar_data<-test_data[[tld_registrar]]
-  model<-data_models[[tld_registrar]]
+  
+  # LVG debugging:
+  # sometimes (see tld_reseller=='siteregistrator domenov') extracting first element by name 
+  # from list of length one doesn't work (?) so extracting it by index, 
+  # since if there's only one element, that's the one we want
+    if(length(data_models)==1){
+        model<-data_models[[1]]
+    } else {
+        model<-data_models[[tld_registrar]]
+    }
+  
     
     # LVG removed the following and replaced with NA-fill in predict_first_renewal()
 #   if(is.null(tld_registrar_data) | is.null(model) | is.logical(tld_registrar_data) | is.logical(model)) { return(NA)}

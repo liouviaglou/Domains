@@ -636,6 +636,13 @@ pred_all <- function (tld_reseller_list,
 
     save(preds_seg_rf_ALL, file=file.path(fullDir, 'preds_seg_rf_ALL.RData'))    
     
+#     load(file.path(fullDir, 'preds_seg_rf_ALL.RData'))
+#     load(file.path(fullDir, 'preds_seg_glm_ALL.RData'))
+#     load(file.path(fullDir, 'preds_agg_rf.RData'))
+#     load(file.path(fullDir, 'preds_agg_rf_ALL.RData'))
+#     load(file.path(fullDir, 'preds_agg_glm.RData'))
+#     load(file.path(fullDir, 'preds_agg_glm_ALL.Rdata'))
+    
     cat("\n\nPredicting model_seg2_glm_ALL\n")
     lapply(Sys.glob(file.path(fullDir,'model_seg2_glm_*')),load,.GlobalEnv)
     preds_seg2_glm_ALL = lapply(tld_reseller_list_ALL, 
@@ -684,10 +691,8 @@ pred_all <- function (tld_reseller_list,
     na.omit.list <- function(y) { return(y[!sapply(y, function(x) all(is.na(x)))]) }
     preds_list <- na.omit.list(preds_list)
     preds_df <- rbindlist(preds_list,use.names=TRUE)
-                                                   
-    
-    
-    # add in excluded tld-res
+                                                       
+    # add in excluded tld-res -- not needed since we're predicting on ALL
 #     excl_df = rbindlist(test_list[tld_registrar_excl_list], use.names=TRUE)
 #     preds_df = rbind(preds_df, excl_df, use.names=TRUE, fill=TRUE)                               
                                                    

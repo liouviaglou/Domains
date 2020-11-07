@@ -23,6 +23,15 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201107
+
+Ran into an issue where, for some reason, extracting a the first element from a list by name doesn't work when the list is of length 1. This caused a fail for tld_registrar_str = "siteregistrator domenov" in generating predictions for seg2_glm. I modified the original functions code to extract the first element by index if there is only one element. 
+
+58 domain_ids do not have predictions. these pertain to tld-re's that do not exist in training data. but we should still have predictions for them since we're looping through test data
+
+7% improvement in lift@10% and 3% improvement in AUC: agg_rf over seg2_glm
+
+
 ## 20201104
 
 Restarting with fresh instance
