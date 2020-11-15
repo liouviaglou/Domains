@@ -240,7 +240,7 @@ pred_seg_glm <- function(test_list, tld_reseller_str) {
     test_df_tld_reseller =  rbindlist(test_list_tld_reseller,use.names=TRUE)    
 
     # if test data contains no observations, skip!
-    if ((dim(test_df_tld_reseller)[1]==0) | (!exists("model"))){
+    if ((dim(test_df_tld_reseller)[1]==0) ){
         pred_df_seg_glm = NA
     } else {
         
@@ -249,12 +249,18 @@ pred_seg_glm <- function(test_list, tld_reseller_str) {
 
         model_name <- paste0('model_seg_glm_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
         model <- get(model_name)
+        
+        if ((!exists("model"))) {
+            pred_df_seg_glm = NA
+        } else {
+            pred = predict_first_renewal_reg(test_df_tld_reseller, model)
 
-
-        pred = predict_first_renewal_reg(test_df_tld_reseller, model)
-
-        pred_df_seg_glm = data.frame("actual" = pred$renewal_status,
+            pred_df_seg_glm = data.frame("actual" = pred$renewal_status,
                                       "predicted" = pred$first_renewal_prediction)
+        }
+
+
+        
     } 
     return(pred_df_seg_glm)
 }
@@ -268,7 +274,7 @@ pred_seg_rf <- function(test_list, tld_reseller_str) {
     test_df_tld_reseller =  rbindlist(test_list_tld_reseller,use.names=TRUE)
     
      # if test data contains no observations, skip!
-    if ((dim(test_df_tld_reseller)[1]==0) | (!exists("model"))) {
+    if ((dim(test_df_tld_reseller)[1]==0)) {
         pred_df_seg_rf = NA
     } else {
             
@@ -277,19 +283,27 @@ pred_seg_rf <- function(test_list, tld_reseller_str) {
 
         model_name <- paste0('model_seg_rf_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
         model <- get(model_name)
-
-        pred <- predict(model, 
+        
+        if ((!exists("model"))){
+            pred_df_seg_rf = NA
+        } else {
+            
+             pred <- predict(model, 
                     data = test_df_tld_reseller,
                     type="response")$predictions
 
-        # if all Renewed col doesn't exist in predictions, create it with value 0
-        if(is.null(as.data.frame(pred)$Renewed)){
-            pred <- as.data.frame(pred)
-            pred$Renewed <- 0
+            # if all Renewed col doesn't exist in predictions, create it with value 0
+            if(is.null(as.data.frame(pred)$Renewed)){
+                pred <- as.data.frame(pred)
+                pred$Renewed <- 0
+            }
+
+            pred_df_seg_rf = data.frame("actual" = test_df_tld_reseller$renewal_status,
+                              "predicted" = as.data.frame(pred)$Renewed)
+            
         }
 
-        pred_df_seg_rf = data.frame("actual" = test_df_tld_reseller$renewal_status,
-                          "predicted" = as.data.frame(pred)$Renewed)
+       
 
          } 
     return(pred_df_seg_rf)
@@ -307,17 +321,23 @@ pred_seg2_glm <- function(test_list, tld_reseller_str) {
     test_df_tld_reseller =  rbindlist(test_list_tld_reseller,use.names=TRUE)
     
     # if test data contains no observations, skip!
-    if ((dim(test_df_tld_reseller)[1]==0) | (!exists("model"))){
+    if ((dim(test_df_tld_reseller)[1]==0)){
         pred_df_seg2_glm = NA
     } else {
         
         model_name <- paste0('model_seg2_glm_',str_replace_all(tld_reseller_str, "[^[:alnum:]]", ""))
         model <- get(model_name)
-
-        pred = mass_predict_first_renewal(test_list_tld_reseller, model)
+        
+        if ((!exists("model"))){
+            pred_df_seg2_glm = NA
+        } else{
+            pred = mass_predict_first_renewal(test_list_tld_reseller, model)
     
-        pred_df_seg2_glm = data.frame("actual" = pred$renewal_status,
+            pred_df_seg2_glm = data.frame("actual" = pred$renewal_status,
                                       "predicted" = pred$first_renewal_prediction)
+        }
+
+        
     }
     
     return(pred_df_seg2_glm)
@@ -332,25 +352,31 @@ pred_seg2_rf <- function(test_list, tld_reseller_str) {
     test_list_tld_reseller = test_list[tld_reseller_str]
     test_df_tld_reseller =  rbindlist(test_list_tld_reseller,use.names=TRUE)
     
-    if ((dim(test_df_tld_reseller)[1]==0) | (!exists("model"))){
+    if ((dim(test_df_tld_reseller)[1]==0)){
         pred_df_seg2_rf = NA
     } else {
       
         model_name <- paste0('model_seg2_rf_',str_replace_all(tld_reseller_str, "[^[:alnum:]]", ""))
         model <- get(model_name)
-
-        pred <- predict(model, 
+        
+        if((!exists("model"))){
+            pred_df_seg2_rf = NA
+        } else {
+            pred <- predict(model, 
                         data = test_df_tld_reseller,
                         type="response")$predictions
 
-        # if all Renewed col doesn't exist in predictions, create it with value 0
-        if(is.null(as.data.frame(pred)$Renewed)){
-            pred <- as.data.frame(pred)
-            pred$Renewed <- 0
+            # if all Renewed col doesn't exist in predictions, create it with value 0
+            if(is.null(as.data.frame(pred)$Renewed)){
+                pred <- as.data.frame(pred)
+                pred$Renewed <- 0
+            }
+
+            pred_df_seg2_rf = data.frame("actual" = test_df_tld_reseller$renewal_status,
+                              "predicted" = as.data.frame(pred)$Renewed)
         }
 
-        pred_df_seg2_rf = data.frame("actual" = test_df_tld_reseller$renewal_status,
-                          "predicted" = as.data.frame(pred)$Renewed)
+        
     }
     
     # need to combine all predictions into one dataframe, rbind with test data
@@ -653,7 +679,7 @@ pred_all <- function (tld_reseller_list,
            )
     rm(list=ls(pattern='^model_seg2_glm_'))
     
-    save(preds_seg2_glm_ALL, file=file.path(fullDir, 'preds_seg2_glm_ALL.RData'))    
+    save(preds_seg2_glm_ALL, file=file.path(predDir, 'preds_seg2_glm_ALL.RData'))    
 
     cat("\n\nPredicting model_seg2_rf_ALL\n")     
     lapply(Sys.glob(file.path(fullDir,'model_seg2_rf_*')),load,.GlobalEnv)
@@ -671,21 +697,16 @@ pred_all <- function (tld_reseller_list,
     preds_list = list()
     i=1
     for (tld_reseller_str in tld_reseller_list_ALL) {
-        if (is.na(preds_seg_glm_ALL[[i]])) { # replace preds_seg_glm with preds_seg_glm_ALL. dont know why 20201028
-            preds_list[[tld_reseller_str]]= NA
-        } else{
             preds_list[[tld_reseller_str]] = cbind(
                   test_list[[tld_reseller_str]],
-                  'pred_agg_glm_ALL'=preds_agg_glm_ALL[[i]]$predicted,
-                  'pred_agg_rf_ALL'=preds_agg_rf_ALL[[i]]$predicted,
-                  'pred_agg_glm'=preds_agg_glm[[i]]$predicted,
-                  'pred_agg_rf'=preds_agg_rf[[i]]$predicted,
-                  'pred_seg_glm_ALL'=preds_seg_glm_ALL[[i]]$predicted,
-                  'pred_seg_rf_ALL' = preds_seg_rf_ALL[[i]]$predicted,
-                  'pred_seg2_glm_ALL'=preds_seg2_glm_ALL[[i]]$predicted,
-                  'pred_seg2_rf_ALL'=preds_seg2_rf_ALL[[i]]$predicted)
-        }
-
+                  'pred_agg_glm_ALL'=ifelse(is.na(preds_agg_glm_ALL[[i]]), NA , preds_agg_glm_ALL[[i]]$predicted) ,
+                  'pred_agg_rf_ALL'= ifelse(is.na(preds_agg_rf_ALL[[i]]), NA , preds_agg_rf_ALL[[i]]$predicted),
+                  'pred_agg_glm'=ifelse(is.na(preds_agg_glm[[i]]), NA , preds_agg_glm[[i]]$predicted),
+                  'pred_agg_rf'=ifelse(is.na(preds_agg_rf[[i]]), NA , preds_agg_rf[[i]]$predicted),
+                  'pred_seg_glm_ALL'=ifelse(is.na(preds_seg_glm_ALL[[i]]), NA , preds_seg_glm_ALL[[i]]$predicted),
+                  'pred_seg_rf_ALL' = ifelse(is.na(preds_seg_rf_ALL[[i]]), NA , preds_seg_rf_ALL[[i]]$predicted),
+                  'pred_seg2_glm_ALL'=ifelse(is.na(preds_seg2_glm_ALL[[i]]), NA , preds_seg2_glm_ALL[[i]]$predicted),
+                  'pred_seg2_rf_ALL'=ifelse(is.na(preds_seg2_rf_ALL[[i]]), NA , preds_seg2_rf_ALL[[i]]$predicted))
         i=i+1
     }
 
