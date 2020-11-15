@@ -27,9 +27,11 @@ PHASE 1
 
 Ran into an issue where, for some reason, extracting a the first element from a list by name doesn't work when the list is of length 1. This caused a fail for tld_registrar_str = "siteregistrator domenov" in generating predictions for seg2_glm. I modified the original functions code to extract the first element by index if there is only one element. 
 
-58 domain_ids do not have predictions. these pertain to tld-re's that do not exist in training data. but we should still have predictions for them since we're looping through test data
+58 domain_ids do not have predictions. these pertain to tld-re's that do not exist in training data. Modified code so we cycle through test for testing and train for testing. 
 
 7% improvement in lift@10% and 3% improvement in AUC: agg_rf over seg2_glm
+
+With a cutoff of 0.5 for classification, the agg_rf model has a true-positive rate of 0.25357 and a true-negative rate of 0.98546 whereas the seg2_glm  model achieves a true-positive rate of  0.21371 and a true-negative rate of 0.98635. If we tweak this cut-off to be equal to the positive class distribution in the test data (0.08937016), we get [0.86432, 0.76968] and [0.81053, 0.77792] for the [true-positive, true-negative] rates of the agg_rf and seg2_glm model, respectively.
 
 
 ## 20201104

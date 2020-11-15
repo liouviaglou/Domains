@@ -18,10 +18,12 @@ source('/home/jupyter/Domains_202003/scripts/phaseII_06_fallbacksupp/load_prep_d
 # define oputput folder
 fullDir='/home/jupyter/Domains_202003/data/output/models_20201104'
 dir.create(fullDir)
+dir.create(file.path(fullDir,'preds'))
 
 # define tld-re's for processing
-tld_reseller_list = expiry_train_df %>%  distinct(tld_registrar_index) %>% pull(tld_registrar_index)
-tld_registrar_excl_list = tld_registrar_excl(train_list = expiry_train_list)
+# tld_reseller_list = expiry_train_df %>%  distinct(tld_registrar_index) %>% pull(tld_registrar_index)
+# tld_registrar_excl_list = tld_registrar_excl(train_list = expiry_train_list)
+
 # tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_excl_list)] # done w/in functions
 
 # TEST #1.1
@@ -34,17 +36,28 @@ tld_registrar_excl_list = tld_registrar_excl(train_list = expiry_train_list)
 # cat(paste0(tld_reseller_list, sep=","))
 
 # train & save models
-tld_reseller_list = train_all(  tld_reseller_list,
-                                tld_registrar_excl_list,
-                                train_list = expiry_train_list,
-                                test_list = expiry_test_list,
-                                model_agg_glm = NULL, 
-                                model_agg_rf = NULL,
-                                fullDir)   
+# tld_reseller_list = train_all(  tld_reseller_list,
+#                                 tld_registrar_excl_list,
+#                                 train_list = expiry_train_list,
+#                                 test_list = expiry_test_list,
+#                                 model_agg_glm = NULL, 
+#                                 model_agg_rf = NULL,
+#                                 fullDir)   
+
+
+# tld_reseller_list = expiry_test_df %>%  distinct(tld_registrar_index) %>% pull(tld_registrar_index)
+# tld_registrar_excl_list = tld_registrar_excl(train_list = expiry_train_list)
+
+# Elements in test but not in train 
+tld_reseller_list1 = expiry_train_df %>%  distinct(tld_registrar_index) %>% pull(tld_registrar_index)
+tld_reseller_list2 = expiry_test_df %>%  distinct(tld_registrar_index) %>% pull(tld_registrar_index)
+tld_reseller_list = setdiff(tld_reseller_list2,tld_reseller_list1)
+tld_registrar_excl_list = tld_registrar_excl(train_list = expiry_train_list)
+cat("Processing", length(tld_reseller_list),"tld-re's\n")
 
 # predict based on saved models
 preds_df <- pred_all(tld_reseller_list, tld_registrar_excl_list,
                      test_list = expiry_test_list,
                      fullDir)
 
-write.csv(preds_df, file=file.path(fullDir,'preds.csv'),row.names = FALSE)
+write.csv(preds_df, file=file.path(fullDir,'preds','preds.csv'),row.names = FALSE)
