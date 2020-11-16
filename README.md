@@ -23,13 +23,57 @@ PHASE 1
 
 ## Lab Notebook 
 
+
+## 20201117
+
+Topics for meeting:
+
+0. Had to repull data to include region variable for fallback table use.
+    0.a) instead of retraining, want to just append predictions to new data but new data has more rows
+    0.a) issue: region is not unique to domain_id (so cant use new dataThe \[region,domain\] as lookup)... 
+    0.c) but predictions are unique to domain_id (so pred data \[domain, pred\] as lookup)... 
+    0.d) in general, ***why multiple domain id rows in a given expiry pull??***
+1. DP data
+    1.a) query
+    1.b) additional table
+2. Targeting
+    2.a) multi-target prediction w. 2 target vars: 
+        -(1) whether domain actually renewed 
+        -(2) predicted probability of renewal
+
+## 20201116
+
+analyzing model performance & suplementing with fallback
+
+w/o supplementation
+agg_rf_all outperforms seg2_glm by 6.75% lift@10%, 3.1% auc, 6.6% sensitivity (8.9% cutoff), 18.7% sesitivity (50% cutoff)
+
+copied over geo_lookupmap
+gsutil cp gs://data_input/PredictiveModelAnalysis_ResellerGeoMap.csv /home/jupyter/Domains_202003/data/input/PredictiveModelAnalysis_ResellerGeoMap.csv
+
+new data has no reg_arpt_org... replacing with reg_arpt in script if variable not found
+
+new data has no region variable so repulling data & appending predictions to it. 
+5,427,638 vs. 5,427,633 observations & 5,255,335 vs 5,255,333 domain_ids
+region is not unique to domain_id
+
+**Brainstorm for targeting**
+Ideally, want domains that are more likely to renew with targeting (less likely to renew without it)
+Want high quality domains that are unlikely to renew otherwise
+multi-target prediction w. 2 target vars: (1) whether domain actually renewed (2) predicted probability of renewal based on characteristics
+domains that are low on (1) but high on (2) -- they did not actually renew but they had the charactiristics of a high qualiuty renewing domain -- ould potentially be domains that require targeting
+
+gsutil cp gs://data_outputt/output/expiry_20190601_20200901 /home/jupyter/Domains_202003/data/output/expiry_20190601_20200901
+
+
+
 ## 20201115
 
 Reran script for 54 missing tld-re's
 Edited script to skip over predictions for which models don't exist
 *Accidentally overwrote preds_seg2_glm_ALL.RData w/ only 52 issing tld-re's...* -- FIXED, pulled from storage
 gsutil cp gs://data_outputt/output/output/models_20201104/preds_seg2_glm_ALL.RData /home/jupyter/Domains_202003/data/output/models_20201104/preds_seg2_glm_ALL.RData
-pushed to git `gsutil cp /home/jupyter/local/Domains_202003/data/output/* gs://data_outputt/output/
+pushed to git `gsutil cp -r /home/jupyter/Domains_202003/data/output/ gs://data_outputt/output/`
 
 
 ## 20201114 

@@ -5,7 +5,7 @@ library(data.table)
 
 # load data
 cat("Loading data...")
-expiry_df <- readRDS("/home/jupyter/Domains_202003/data/input/expiry_20190601_20200901")
+expiry_df <- readRDS("/home/jupyter/Domains_202003/data/output/expiry_20190601_20200901_20201116_excl")
 cat("Loaded", expiry_df %>% nrow(),"rows\n")
 
 # select most recent 5Q [1 quarter = 90 days, 5 quarters = 450 days ]

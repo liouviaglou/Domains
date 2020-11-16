@@ -1,7 +1,70 @@
 # XX time Rscript prep_expiry.R >> /home/jupyter/local/Domains_202003/data/output/prep_expiry.log 2>&1
 
-fallback_gen <- function ( npv_historic_renewal_data = expiry_train_df_1, # training data w/ reseller geo
+geo_suppl <- function (expiry_df, # train or test data w/o reseller_geo information
+                       geoLookupDF = geoLookupDF # from google sheets PredictiveModelAnalysis_ResellerGeoMap
+                      ){
+    
+    cat("Expiry data originally has", expiry_df %>% nrow(),"rows and", expiry_df %>% nrow(),"missing geo's.\n")
+    
+    geoLookupDF <- geoLookupDF %>% filter_all(any_vars(!is.na(.)))
+    
+    # use a lookup with duplicate rows removed, remove duplicate rows in geo_lookup due to registrar level segmentation
+    geoLookupDF_2 <- geoLookupDF %>% distinct(reseller,reseller_country, reseller_geo)
+    
+    # PASS #1: merge on reseller & reseller country to obtain reseller_geo from lookupo
+
+    # prep expiry variables for merging
+    expiry_df$reseller <- factor(expiry_df$reseller)
+    expiry_df$reseller_country <- factor(expiry_df$reseller_country)
+    expiry_df <- as.data.frame(expiry_df)
+    
+    # prep geolookup variables for merging
+    geoLookupDF$reseller <- factor(geoLookupDF$reseller)
+    geoLookupDF$reseller_country <- factor(geoLookupDF$reseller_country)
+    geoLookupDF <- as.data.frame(geoLookupDF)
+    
+    # execute merge
+    expiry_df <- merge(expiry_df,
+                       geoLookupDF_2,
+                       on=c('reseller','reseller_country'), 
+                       all.x = TRUE)
+    
+    cat("... after intial merge on reseller & _country, expiry has", expiry_df %>% nrow(),
+        "rows and", expiry_df %>% filter(is.na(reseller_geo)) %>% nrow(),"missing geo's.\n")
+    
+    # PASS #2: unmatched geos get assigned based on reseller_country alone (not reseller name info)
+    
+    # first, create a new lookup where we drop everything except for reseller_country and _geo and have NA map to Others
+    geoLookupDF_2 <- geoLookupDF_2 %>% distinct(reseller_country, reseller_geo) %>% 
+      mutate(reseller_geo = as.character(reseller_geo)) %>%
+      mutate ( reseller_geo = if_else(is.na(reseller_country), 'Others', reseller_geo) ) %>% 
+      distinct(reseller_country, reseller_geo) %>% 
+      mutate(reseller_geo = as.factor(reseller_geo))
+
+    # second, use this new lookup to fill missing reseller_geo based just on reseller_country
+    expiry_df[['reseller_geo']][is.na(expiry_df[['reseller_geo']])]<-
+      geoLookupDF_2$reseller_geo[match( expiry_df$reseller_country[is.na(expiry_df[['reseller_geo']])],
+                                       geoLookupDF_2$reseller_country)]
+    
+    cat("... after secondary fill with _country, expiry has", expiry_df %>% nrow(),
+        "rows and", expiry_df %>% filter(is.na(reseller_geo)) %>% nrow(),"missing geo's.\n")
+
+
+    # third, some manual tweaks
+    expiry_df[['reseller_geo']][expiry_df[['reseller_country']]=='Southafrica']<-'South Africa'
+    expiry_df[['reseller_geo']][expiry_df[['reseller_country']]=='Delaware']<-'United States'
+    
+    cat("... after manual tweaks with _country, expiry has", expiry_df %>% nrow(),
+        "rows and", expiry_df %>% filter(is.na(reseller_geo)) %>% nrow(),"missing geo's.\n")
+    
+    return(expiry_df)
+    
+}
+
+fallback_gen <- function ( npv_historic_renewal_data = expiry_train_df_1, # training data w/ reseller geo (gen w/ geo_supll funct.)
                            reseller_am_geo_map = geoLookupDF){
+    
+    geoLookupDF <- geoLookupDF %>% filter_all(any_vars(!is.na(.)))
     
     npv_historic_renewal_data$reseller_am<-
     reseller_am_geo_map$reseller_am[match(npv_historic_renewal_data$reseller,
@@ -12,6 +75,11 @@ fallback_gen <- function ( npv_historic_renewal_data = expiry_train_df_1, # trai
                                            reseller_am_geo_map$reseller)]
 
     npv_historic_renewal_data$reseller_geo[is.na(npv_historic_renewal_data$reseller_geo)]<-"Others"
+    
+    # LVG added 11/16
+    if(!("reg_arpt_org" %in% colnames(npv_historic_renewal_data))){
+      npv_historic_renewal_data$reg_arpt_org <- npv_historic_renewal_data$reg_arpt
+    }
     
     npv_historic_renewal_data$reg_arpt_slab<-cut(npv_historic_renewal_data$reg_arpt_org, 
                                                  breaks = c(-Inf,0,0.3,1,3,5,10,15,25,35,Inf),

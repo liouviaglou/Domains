@@ -5,7 +5,7 @@ get_expiry_data_str <- paste("SELECT sub.renewal_type, sub.renewed_count, DATE(s
       sub.renew_type, sub.autorenew_type,  sub.renewal_status, DATE(sub.renew_date) as renew_date, sub.renew_arpt, 
       npv_prepped_data.gibb_score, npv_prepped_data.pattern, npv_prepped_data.pattern_domain_count, 
       npv_prepped_data.day_domains, npv_prepped_data.sld_length, 
-      npv_prepped_data.sld_type, npv_prepped_data.sld_type2
+      npv_prepped_data.sld_type, npv_prepped_data.sld_type2, sub.tld, sub.region
 FROM   (SELECT 'FirstTime'  AS renewal_type, 
                1 AS renewed_count, 
                n.expiry_date AS Expiry_date, 
