@@ -23,6 +23,15 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201115
+
+Reran script for 54 missing tld-re's
+Edited script to skip over predictions for which models don't exist
+*Accidentally overwrote preds_seg2_glm_ALL.RData w/ only 52 issing tld-re's...* -- FIXED, pulled from storage
+gsutil cp gs://data_outputt/output/output/models_20201104/preds_seg2_glm_ALL.RData /home/jupyter/Domains_202003/data/output/models_20201104/preds_seg2_glm_ALL.RData
+pushed to git `gsutil cp /home/jupyter/local/Domains_202003/data/output/* gs://data_outputt/output/
+
+
 ## 20201114 
 
 rerunnng predict for tld-re's in test but not in train

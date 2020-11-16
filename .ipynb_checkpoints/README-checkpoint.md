@@ -23,6 +23,18 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201115
+
+Reran script for 54 missing tld-re's
+Edited script to skip over predictions for which models don't exist
+**Accidentally overwrote seg2_glm_ALL.RData w/ only 52 issing tld-re's... don't push to gcp storage**
+
+## 20201114 
+
+rerunnng predict for tld-re's in test but not in train
+need to ensure seg and seg2 testing gets skipped if model doeesn't exist
+need to create train and test models subdirectories -- or just write outputs to one directory up
+
 ## 20201107
 
 Ran into an issue where, for some reason, extracting a the first element from a list by name doesn't work when the list is of length 1. This caused a fail for tld_registrar_str = "siteregistrator domenov" in generating predictions for seg2_glm. I modified the original functions code to extract the first element by index if there is only one element. 
