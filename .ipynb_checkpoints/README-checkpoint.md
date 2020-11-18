@@ -23,7 +23,52 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201118
+
+analyzing model performance & suplementing with fallback
+
+w/ supplementation...
+
+overall
+agg_rf_all outperforms seg2_glm_FB by 10.6% lift@10%, 3.0% auc, 7.5% sensitivity (8.9% cutoff), 40% sesitivity (50% cutoff)
+
+by reseller priority
+LIFT:
+$`1`lift_ : 0.0875077191325511
+$`2`lift_ : 0.105785123966942
+$`3`lift_ : 0.103559127439725
+$`4`lift_ : 0.240233036326251
+
+AUC:
+$`1`0.0336204443967987
+$`2`0.0282365629643229
+$`3`0.0172944910947444
+$`4`0.0340603277189555
+
+
+True Positive Improvement @ 0.089 cutoff
+$`1`0.0788815188465664
+$`2`0.0105253176559833
+$`3`0.0714998337213169
+$`4`0.0997310159321332
+
+
+True Positive Improvement @ 0.500 cutoff
+$`1`0.186810746798905
+$`2`0.342144788224692
+$`3`0.474928658785161
+$`4`0.648679033164699
+
+
+assess model performance
+summarize tld-res for which each model does better
+execiute metalearning
+
 ## 20201117
+
+Finished fallback suppl.
+---
+
 
 After preprocessing the data, both new and old datasets have the same number of rows and the same set of domain_ids. Domain_ids are unique.
 
