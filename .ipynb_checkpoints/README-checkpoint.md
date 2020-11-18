@@ -23,8 +23,13 @@ PHASE 1
 
 ## Lab Notebook 
 
-
 ## 20201117
+
+After preprocessing the data, both new and old datasets have the same number of rows and the same set of domain_ids. Domain_ids are unique.
+
+`gsutil cp -r /home/jupyter/Domains_202003/data/output/datapull_20201116 gs://output_shared/`
+
+----
 
 Topics for meeting:
 

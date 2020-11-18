@@ -396,6 +396,7 @@ tld_registrar_excl <- function(train_list = expiry_train_prepped_2_1,
                               N=NULL) {
     
     train_df = rbindlist(train_list, use.names=TRUE)
+    train_df$expiry_date <- as.Date(train_df$expiry_date)
     
     if(is.null(N)){ # threshold for low-volume tld-re
         # by default, N=100*(num_quarters)
@@ -429,6 +430,45 @@ tld_registrar_excl <- function(train_list = expiry_train_prepped_2_1,
     return(tld_registrar_excl_list)
     
 }
+
+tld_registrar_excl_df <- function(train_df,
+                              N=NULL) { # same function as above but takes a df instead of a list
+    
+    train_df$expiry_date <- as.Date(train_df$expiry_date)
+    
+    if(is.null(N)){ # threshold for low-volume tld-re
+        # by default, N=100*(num_quarters)
+        
+        num_q = (as.yearqtr(max(train_df$expiry_date))-as.yearqtr(min(train_df$expiry_date)))*4
+        N = as.integer(100 * num_q)
+    }
+    
+    tld_registrar_excl_list = train_df %>% group_by(tld_registrar_index) %>% tally() %>% 
+    filter(n<N) %>% pull(tld_registrar_index)
+    
+    N_perc = as.double(round(100*length(tld_registrar_excl_list)/(train_df %>% 
+                        summarise(n_distinct(tld_registrar_index)) %>% pull(1) ),2))
+    
+    cat(paste0("Excluding ",length(tld_registrar_excl_list)," tld-re's (",
+                
+                N_perc,"%), due to volume < ",N," \n"))
+    
+    
+    # remove where tld is .pw and .in.net (added 20201103)
+    
+    tld_registrar_excl_list_2 = train_df %>% filter(tld=="pw" | tld=="in.net") %>% distinct(tld_registrar_index)  %>% pull(tld_registrar_index) 
+        
+    N_perc_2 = as.double(round(100*length(tld_registrar_excl_list_2)/(train_df %>% 
+                        summarise(n_distinct(tld_registrar_index)) %>% pull(1) ),2))
+    
+    cat(paste0("Excluding ",length(tld_registrar_excl_list_2)," tld-re's (",
+                
+                N_perc_2,"%) associated with tld's 'pw' and 'in.net' \n"))
+    
+    return(tld_registrar_excl_list)
+    
+}
+
 
 geo_lookup <- function(geoLookupDF,
                          preds_df) {

@@ -212,6 +212,9 @@ fallback_app_1 <- function (test_data_op=expiry_test_predictions,
                           out_col='pred_df_seg2_glm_fb'){
     
 
+    if (!('reg_arpt_org' %in% names(test_data_op))){
+        test_data_op$reg_arpt_org <- test_data_op$reg_arpt
+    }
     test_data_op$reg_arpt_slab<-cut(test_data_op$reg_arpt_org, 
                                              breaks = c(-Inf,0,0.3,1,3,5,10,15,25,35,Inf),
                                              right = TRUE)
