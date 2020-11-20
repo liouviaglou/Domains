@@ -23,6 +23,103 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201119
+
+### Metalearning w/ l10 & auc as metrics
+
+#### Summary of wins
+
+##### Binary agg_rf vs. seg2_glm_fb
+
+|     | agg_rf_ALL  | seg2_glm_fb |
+|-----|-------------|-------------|
+| auc | 762         | 720         |
+| l10 | 516         | 966         |
+
+*About a 5050 split in wins bvetween seg2_glm and agg_rf
+
+##### Multiclass
+
+|        Var1 | AUC Wins | L10 Wins |  
+|------------:|---------:|---------:|
+|    seg2_glm |      487 |      731 |   
+|      seg_rf |      213 |      132 |   
+|     seg2_rf |      163 |      169 |   
+|     seg_glm |      157 |      178 |   
+|  agg_rf_ALL |      145 |       53 |   
+|      agg_rf |      116 |       81 |   
+| agg_glm_ALL |      100 |       81 |   
+|     agg_glm |       57 |       36 |   
+| seg2_glm_fb |       44 |       21 |   
+
+*seg2_glm_fb is the worst performing model in terms of number of wins in both auc and l10
+*seg2_glm is the best performing model in terms of number of wins in both auc and l10
+
+##### Binary seg2_glm_fb vs. seg2_glm
+
+|     | seg2_glm    | seg2_glm_fb |
+|-----|-------------|-------------|
+| auc | 1221        | 261         |
+| l10 | 1130        | 176         |
+
+*seg2_glm_fb outperforms seg2_glm for <20% of tld-re's whereas fb supplementation was applied to ~75% of tld-re's in this data... signifies that fb supplementation may be too broad (number of supplemented tld-re's exceeds number of those for which this makes sense)
+
+
+#### Summary of Preds
+
+##### Binary agg_rf vs. seg2_glm_fb
+
+###### AUC
+
+72% accuracy (with 2 classes so vs. 50% random choice accuracy)
+42% of tld-re's get classified as seg2_glm_fb (w/ 79% true positive and 66% true negative rate)
+58% of tld-re's get classified as agg_rf (w/ 66% true positive and 79% true negative rate) 
+top 5 most important variables for prediction: 'n','sldlen_kurt','gibbs_kurt','daydom_rng','gibbs_rng'
+
+###### L10
+
+76% accuracy (with 2 classes so vs. 50% random choice accuracy)
+69% of tld-re's get classified as seg2_glm_fb (w/ 84% true positive and 58% true negative rate)
+31% of tld-re's get classified as agg_rf (w/ 58% true positive and 84% true negative rate) 
+top 5 most important variables for prediction: 'n','daydom_rng','daydom_max','sldlen_kurt','daydom_mean'
+
+
+
+##### Multiclass 
+
+###### AUC
+
+42% accuracy (with 9 classes so vs. 11% random choice accuracy)
+38% of tld-re's get classified as seg2_glm (w/ 80% true positive and true negative rate)
+18% of tld-re's get classified as seg_rf (w/ 32% true positive and 89% true negative rate) 
+top 5 most important variables for prediction: 'n','daydom_kurt','ren_prp','gibbs_rng','gibbs_kurt'
+
+###### L10
+
+61% accuracy (with 9 classes so vs. 11% random choice accuracy)
+67% of tld-re's get classified as seg2_glm (w/ 80% true positive and 75% true negative rate)
+20% of tld-re's get classified as seg2_rf (w/ 21% true positive and 96% true negative rate) 
+top 5 most important variables for prediction: 'n','sldlen_kurt','gibbs_rng','ren_prp','daydom_kurt'
+
+
+##### Binary seg2_glm_fb vs. seg2_glm
+
+###### AUC
+
+85% accuracy (with 2 classes so vs. 50% random choice accuracy)
+95% of tld-re's get classified as seg2_glm (w/ 87% true positive and 47% true negative rate)
+5% of tld-re's get classified as seg2_glm_fb (w/ 47% true positive and 87% true negative rate) 
+top 5 most important variables for prediction: 'ren_prp','n','daydom_std','country_maj','gibbs_rng'
+
+###### L10
+
+85% accuracy (with 2 classes so vs. 50% random choice accuracy)
+99% of tld-re's get classified as seg2_glm (w/ 90% true positive and 50% true negative rate)
+1% of tld-re's get classified as seg2_glm_fb (w/ 50% true positive and 90% true negative rate) 
+top 5 most important variables for prediction: 'n','ren_prp','country_maj','daydom_std','daydom_skew'
+
+
+
 ## 20201118
 
 analyzing model performance & suplementing with fallback
