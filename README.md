@@ -20,14 +20,40 @@ PHASE 1
 | 20200514 | 1.5h     | explore dtree as sub for lookup tables  |   
 + ~15 hours
 
+## For subcontractor:
+
+1. Go Back and retrain the RF models (agg_rf especially) with correct implementation of case.weights to see if it improves perf metrics [https://stats.stackexchange.com/questions/171380/implementing-balanced-random-forest-brf-in-r-using-randomforests](https://stats.stackexchange.com/questions/171380/implementing-balanced-random-forest-brf-in-r-using-randomforests).
+
+
 
 ## Lab Notebook 
+
+## 20201120
+
+Use 3-class model to predictions to assign model based on l10 metric (highest accuracy overall) -- calculated oiverall performance metrics. Left off at assigning model based on predictions in 12\_* notebook.
+
+
+do 3 class metalearning: fb vs. seg2 vs rf
+in seg2_glm vs seg2_glm_fb -- for which tld-re's is/isn't fallback appopriate?
+
+add another performance metric -- true positive rate? sensitivity
 
 ## 20201119
 
 ### Metalearning w/ l10 & auc as metrics
 
 #### Summary of wins
+
+
+##### 3-class agg_rf vs. seg2_glm vs. seg2_glm_fb 
+
+|        Var1 | AUC Wins | L10 Wins |
+|------------:|---------:|---------:|
+|    seg2_glm |      715 |      939 |
+|  agg_rf_ALL |      609 |      457 |
+| seg2_glm_fb |      158 |       86 |
+
+*About a 5050 split in wins bvetween seg2_glm and agg_rf and 9-17% fb use (compared to ~80% based on 100\*numQ cutoff)
 
 ##### Binary agg_rf vs. seg2_glm_fb
 
@@ -66,6 +92,27 @@ PHASE 1
 
 
 #### Summary of Preds
+
+
+##### 3-class agg_rf vs. seg2_glm vs. seg2_glm_fb 
+
+###### AUC
+
+67% accuracy (with 3 classes so vs. 33% random choice accuracy)
+46% of tld-re's get classified as agg_rf_ALL (w/ 57% true positive and 85% true negative rate)
+50% of tld-re's get classified as seg2_glm (w/ 78% true positive and 66% true negative rate)
+4% of tld-re's get classified as seg2_glm_fb (w/ 40% true positive and 92% true negative rate)
+top 5 most important variables for prediction: 'n','sldlen_kurt','daydom_kurt','sldlen_rng','ren_prp'
+
+###### L10
+
+76% accuracy (with 3 classes so vs. 33% random choice accuracy)
+25.6% of tld-re's get classified as agg_rf_ALL (w/ 58% true positive and 89% true negative rate)
+73.9% of tld-re's get classified as seg2_glm (w/ 82% true positive and 60% true negative rate)
+00.6% of tld-re's get classified as seg2_glm_fb (w/ 100% true positive and 95% true negative rate)
+top 5 most important variables for prediction: 'n','gibbs_rng','sldlen_kurt','daydom_rng','gibbs_max'
+
+
 
 ##### Binary agg_rf vs. seg2_glm_fb
 
