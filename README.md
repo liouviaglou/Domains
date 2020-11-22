@@ -28,9 +28,17 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201122
+
+Summary of metalearning assignment:
+
+Assigning model type based on l10 and auc metrics improves lift@10 and AUC by 7% over seg2_glm_fb, trupositive by 2-10% depending on cutoff used.
+
+Next steps: Script this up!
+
 ## 20201120
 
-Use 3-class model to predictions to assign model based on l10 metric (highest accuracy overall) -- calculated oiverall performance metrics. Left off at assigning model based on predictions in 12\_* notebook.
+Used 3-class model to predictions to assign model based on l10 metric (highest accuracy overall) -- calculated oiverall performance metrics. Left off at assigning model based on predictions in 12\_* notebook.
 
 
 do 3 class metalearning: fb vs. seg2 vs rf

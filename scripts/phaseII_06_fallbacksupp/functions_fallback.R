@@ -66,6 +66,8 @@ fallback_gen <- function ( npv_historic_renewal_data = expiry_train_df_1, # trai
     
     geoLookupDF <- geoLookupDF %>% filter_all(any_vars(!is.na(.)))
     
+    npv_historic_renewal_data$creation_date <- as.Date(npv_historic_renewal_data$creation_date)
+    
     npv_historic_renewal_data$reseller_am<-
     reseller_am_geo_map$reseller_am[match(npv_historic_renewal_data$reseller,
                                           reseller_am_geo_map$reseller)]
@@ -205,6 +207,52 @@ fallback_gen <- function ( npv_historic_renewal_data = expiry_train_df_1, # trai
            'npv_fallback_third_final')
     
     return(npv_fallback_list)
+}
+
+fallback_app_1_dplyr <- function (test_data_op=expiry_test_predictions,
+                          out_col='pred_df_seg2_glm'){
+    
+
+    if (!('reg_arpt_org' %in% names(test_data_op))){
+        test_data_op$reg_arpt_org <- test_data_op$reg_arpt
+    }
+    
+    test_data_op$reg_arpt_slab<-cut(test_data_op$reg_arpt_org, 
+                                             breaks = c(-Inf,0,0.3,1,3,5,10,15,25,35,Inf),
+                                             right = TRUE)
+
+    test_data_op<-test_data_op %>%
+    mutate(temp_index = paste(tld, reseller_geo, reg_arpt_slab, sep = ""))
+
+    test_data_op[[out_col]][is.na(test_data_op[[out_col]])]<-
+    npv_fallback_first_geo_arpt_tld$renewal_rate[match(test_data_op$temp_index[is.na(test_data_op[[out_col]])],
+                                                     npv_fallback_first_geo_arpt_tld$index)]
+    
+    test_data_op<-test_data_op %>%
+    mutate(temp_index = paste(reseller_geo, reg_arpt_slab, sep = ""))
+
+    test_data_op[[out_col]][is.na(test_data_op[[out_col]])]<-
+    npv_fallback_first_geo_arpt$renewal_rate[match(test_data_op$temp_index[is.na(test_data_op[[out_col]])],
+                                                 npv_fallback_first_geo_arpt$index)]
+    
+    test_data_op<-test_data_op %>%
+    mutate(temp_index = paste(tld, reg_arpt_slab, sep = ""))
+
+    test_data_op[[out_col]][is.na(test_data_op[[out_col]])]<-
+    npv_fallback_first_tld_arpt$renewal_rate[match(test_data_op$temp_index[is.na(test_data_op[[out_col]])],
+                                                 npv_fallback_first_tld_arpt$index)]
+    
+    test_data_op<-test_data_op %>%
+      mutate(temp_index = paste(region, reg_arpt_slab, sep = ""))
+
+    test_data_op[[out_col]][is.na(test_data_op[[out_col]])]<-
+      npv_fallback_first_final$renewal_rate[match(test_data_op$temp_index[is.na(test_data_op[[out_col]])],
+                                                  npv_fallback_first_final$index)]
+
+    test_data_op<-test_data_op %>%
+      select(-temp_index)
+    
+    return(test_data_op[[out_col]])
 }
 
 fallback_app_1 <- function (test_data_op=expiry_test_predictions,
