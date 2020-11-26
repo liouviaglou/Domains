@@ -28,6 +28,10 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201123 
+
+Compiled tabular & geom_tile summary of assignment based on 80/(80/20) split
+
 ## 20201122
 
 Summary of metalearning assignment:
