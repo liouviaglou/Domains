@@ -23,10 +23,18 @@ PHASE 1
 ## For subcontractor:
 
 1. Go Back and retrain the RF models (agg_rf especially) with correct implementation of case.weights to see if it improves perf metrics [https://stats.stackexchange.com/questions/171380/implementing-balanced-random-forest-brf-in-r-using-randomforests](https://stats.stackexchange.com/questions/171380/implementing-balanced-random-forest-brf-in-r-using-randomforests).
+2. Clean up training_metalearning code (esp. perf metrics and meta-feature eng. sections, model training section (function-ize it with depedent variable being the input))
+3. Incorporate sld_length and sld_type and other categorical variables into metalearning? We can do something like count of unique or count of a specific (potentially malicious/algorithmic flag) type
 
 
 
 ## Lab Notebook 
+
+## 20201127
+
+Generating predictions on new dat aoull
+Need to figur eout how to deal with misisng data
+✖ could not find function "skewness" in training script
 
 ## 20201123 
 

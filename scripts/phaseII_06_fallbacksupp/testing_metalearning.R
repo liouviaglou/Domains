@@ -1,4 +1,4 @@
-# Rscript training_metalearning.R > /home/jupyter/Domains_202003/data/output/training_metalearning.log 2>&1
+# Rscript predictions_metalearning.R > /home/jupyter/Domains_202003/data/output/predictions_metalearning.log 2>&1
 
 # Takes as input preds_df output from predictions_metalearning.R
 # Supplements with fallback
@@ -14,11 +14,9 @@ suppressMessages(library(pbapply))
 suppressMessages(library(stringr))
 
 source('functions_fallback.R')
-source('functions_metalearning.R')
-source('../phaseII_03_forest/functions_eval.R')
 
+# load train & test_preds
 
-dataDir='/home/jupyter/Domains_202003/data/output/datapull_20201116'
 
 ########################################################################################################
 #
@@ -26,17 +24,10 @@ dataDir='/home/jupyter/Domains_202003/data/output/datapull_20201116'
 #
 ########################################################################################################
 # Load preds output from predictions_metalearning.R
-#   Notes: 1. Script writes a preds.csv file to fullDir/preds 
-#             (/home/jupyter/Domains_202003/data/output/models_2020****/preds)
-#          2. Script reads in RData & preprocesses (creating train & test subsets at the end) 
-#             via load_prep_data_expiry_2.R
-#          ... but in this case, we had some data pull issues (variables tld & geo excluded)
-#              that required me to hack together train & test and subsequent predictions
-#              instead of rerunning the entire pipeline
-expiry_df_test_preds <- read.csv(file.path(dataDir,"expiry_df_test_preds.csv"))
+expiry_df_test_preds <- read.csv("../../data/output/datapull_20201116/expiry_df_test_preds.csv")
 
 # Load training data used for predictions_metalearning.R to assign fallback values
-expiry_df_train <- read.csv(file.path(dataDir,"expiry_df_train.csv"))
+expiry_df_train <- read.csv("../../data/output/datapull_20201116/expiry_df_train.csv")
 
 # Load geo_suppl for train and test-pred data
 geoLookupDF <- read.csv("/home/jupyter/Domains_202003/data/input/PredictiveModelAnalysis_ResellerGeoMap.csv")
@@ -48,7 +39,7 @@ expiry_df_test_preds_g <- geo_suppl(expiry_df_test_preds, geoLookupDF = geoLooku
 
 ########################################################################################################
 #
-# SUPPLEMENT predictions w/ FALLBACK
+# SUPPLEMENT w/ FALLBACK
 #
 ########################################################################################################
 
@@ -95,9 +86,10 @@ expiry_df_test_preds_g <- fallback_app_1(test_data_op=expiry_df_test_preds_g,
                out_col='pred_agg_glm_ALL_fb2')
 
 
+
 ########################################################################################################
 #
-# GENERATE Meta-(performance)Metrics at tld-reseller level
+# GENERATE Tld-reseller level Performance Metrics from preds DF
 #
 ########################################################################################################
 
@@ -192,7 +184,7 @@ metrics_df <- expiry_df_test_preds_g %>%
 
 ########################################################################################################
 #
-# GENERATE Meta-fetaures at tld-reseller level 
+# FEATURE ENGINEERING Meta-fetaures at tld-reseller level 
 #
 ########################################################################################################
 
@@ -248,6 +240,7 @@ meta_df = expiry_df_test_preds_g %>%
             regarpt_kurt = kurtosis(reg_arpt, na.rm = TRUE))
 
 
+
 ########################################################################################################
 #
 # JOIN metrics and meta for pred_df
@@ -286,7 +279,7 @@ metametrics_imp_df <- missRanger(metametrics_df, num.trees = 100)
 ########################################################################################################
 #
 # TRAIN/TEST split
-# No need: Metalearning model trained on entire 20% test subset of expiry & tested on subsequent data pull
+# Metalearning model trained on entire 20% test subset of expiry & tested on subsequent data pull
 #
 ########################################################################################################
 
@@ -299,7 +292,7 @@ metametrics_imp_df <- missRanger(metametrics_df, num.trees = 100)
 
 ########################################################################################################
 #
-# TRAIN models, GENERATE predictions
+# TRAIN models
 #
 ########################################################################################################
 
@@ -321,7 +314,7 @@ model_l10 <- ranger(formula         = l10_win_04 ~ .,
                 data            = metametrics_imp_df %>% 
                                     select('l10_win_04') %>% 
                                     bind_cols(
-                                        metametrics_imp_df %>% 
+                                        train %>% 
                                         select(-contains('auc'),-contains('l10'),-'tld_registrar_index', -'tld_rat')), 
                 importance = 'impurity', 
                 num.trees       = 500,
@@ -358,7 +351,7 @@ model_auc <- ranger(formula         = auc_win_04 ~ .,
                 data            = metametrics_imp_df %>% 
                                     select('auc_win_04') %>% 
                                     bind_cols(
-                                        metametrics_imp_df %>% 
+                                        train %>% 
                                         select(-contains('auc'),-contains('l10'),-'tld_registrar_index', -'tld_rat')), 
                 importance = 'impurity', 
                 num.trees       = 500,
@@ -384,7 +377,6 @@ metametrics_imp_pred_df <- cbind(metametrics_imp_df,pred_l10$l10_win_04_pred_mod
 ########################################################################################################
 #
 # ASSIGN model to data based on predictions results
-#  need to modify this so it takes in new data pull
 #
 ########################################################################################################
 
@@ -396,32 +388,9 @@ expiry_df_test_preds_assign <- expiry_df_test_preds_assign %>%
                                 rename(l10_win_04_pred_model = length(expiry_df_test_preds_assign)-1,
                                       auc_win_04_pred_model = length(expiry_df_test_preds_assign))
                                                
-
-# MODIFICATION TO TEST ON NEW DATA PULL
-# 1. create new big query table (do this from within R?) using data coming after training data
-#    models trained on expiry 20190601-20200901 data pulled on 11/16 
-#    so new data pull should be 20200902-20201102 (assuming 3-4 week lag in assigning renewal_status flag)
-#    ... use saved query get_expiry_data_20201127 but change the 2 separate date windows accordingly
-#    ... then choose "SAVE RESULTS" & save to bigquery table named like 
-#        radix2020.expiry.expiry_20200902_20201102_20201127 (last date is date of pull)
-# 2. use notebook 03_* to pull the data into an RDS/csv (.94 million rows)
-                                               
-# expiry_new_df <- readRDS("/home/jupyter/Domains_202003/data/output/datapull_20201127/expiry_20200902_20201102_20201127")
-
-# expiry_df_test_preds_assign <- merge(expiry_new_df, 
-#                                      metametrics_imp_pred_df %>% 
-#                                         select(tld_registrar_index, length(test_pred)-1, length(test_pred)), 
-#                                      by="tld_registrar_index", all.y=TRUE) 
-# expiry_df_test_preds_assign <- expiry_df_test_preds_assign %>% 
-#                                 rename(l10_win_04_pred_model = length(expiry_df_test_preds_assign)-1,
-#                                       auc_win_04_pred_model = length(expiry_df_test_preds_assign))
-                      
-                                               
-                                               
 ########################################################################################################
 #
 # ASSIGN probability to data based on model assignment
-# need to modify this so it generates predictions using model objects but for new data pull
 #
 ########################################################################################################
 
@@ -434,8 +403,4 @@ expiry_df_test_preds_assign <- expiry_df_test_preds_g %>%
   auc_win_04_pred_value = (auc_win_04_pred_model=='auc_seg2_glm_fb')*pred_seg2_glm_ALL_fb2+
                           (auc_win_04_pred_model=='auc_agg_rf_ALL')*pred_agg_rf_ALL+
                           (auc_win_04_pred_model=='auc_seg2_glm')*pred_seg2_glm_ALL)
-                                               
-
-                                                                                         
-write.csv(expiry_df_test_preds_assign, file.path(dataDir,"expiry_df_test_preds_assign.csv")
 

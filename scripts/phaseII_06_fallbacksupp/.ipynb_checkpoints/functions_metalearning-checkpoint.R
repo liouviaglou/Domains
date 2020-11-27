@@ -763,5 +763,139 @@ pred_all <- function (tld_reseller_list,
     return(preds_df)
 
 }
-    
 
+# takes a dataframe of model assignment & feature data
+# and generates predictions based on models in fullDir
+pred_select <- function (
+                      fullDir='../../data/output/models_20201104' # dir of models
+                      ){   
+    
+    predDir = file.path(fullDir, 'preds')
+    
+    tld_reseller_list_ALL = tld_reseller_list
+    
+    # exclude low-volume tld-re's      
+    tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_excl_list)]
+   
+    cat("\n\nPredicting model_agg_glm_ALL\n")
+    load(file.path(fullDir, 'model_agg_glm_ALL.Rdata'))    
+    preds_agg_glm_ALL = lapply(tld_reseller_list_ALL, 
+           function(tld_reseller_str) pred_agg_glm(model_agg_glm_ALL, test_list, tld_reseller_str)
+           )
+    rm(model_agg_glm)
+    gc()
+    
+    save(preds_agg_glm_ALL, file=file.path(predDir, 'preds_agg_glm_ALL.Rdata'))
+    
+    cat("\n\nPredicting model_agg_glm\n")
+    load(file.path(fullDir, 'model_agg_glm.Rdata'))    
+    preds_agg_glm = lapply(tld_reseller_list_ALL, 
+           function(tld_reseller_str) pred_agg_glm(model_agg_glm, test_list, tld_reseller_str)
+           )
+    rm(model_agg_glm)
+    gc()
+    
+    save(preds_agg_glm, file=file.path(predDir, 'preds_agg_glm.RData'))
+    
+    cat("\n\nPredicting model_agg_rf_ALL\n")
+    load(file.path(fullDir, 'model_agg_rf_ALL.Rdata'))
+    preds_agg_rf_ALL = lapply(tld_reseller_list_ALL, 
+           function(tld_reseller_str) pred_agg_rf(model_agg_rf_ALL, test_list, tld_reseller_str)
+           )
+    rm(model_agg_rf)
+    gc() 
+    
+    save(preds_agg_rf_ALL, file=file.path(predDir, 'preds_agg_rf_ALL.RData'))
+    
+    cat("\n\nPredicting model_agg_rf\n")
+    load(file.path(fullDir, 'model_agg_rf.Rdata'))
+    preds_agg_rf = lapply(tld_reseller_list_ALL, 
+           function(tld_reseller_str) pred_agg_rf(model_agg_rf, test_list, tld_reseller_str)
+           )
+    rm(model_agg_rf)
+    gc()
+    
+    save(preds_agg_rf, file=file.path(predDir, 'preds_agg_rf.RData'))
+
+    cat("\n\nPredicting model_seg_glm_ALL\n")   
+    lapply(Sys.glob(file.path(fullDir,'model_seg_glm_*')),load,.GlobalEnv)
+    preds_seg_glm_ALL = lapply(tld_reseller_list_ALL, 
+           function(tld_reseller_str) pred_seg_glm(
+               test_list, 
+               tld_reseller_str)
+           )
+    rm(list=ls(pattern='^model_seg_glm_'))
+    
+    save(preds_seg_glm_ALL, file=file.path(predDir, 'preds_seg_glm_ALL.RData'))
+    
+    cat("\n\nPredicting model_seg_rf_ALL\n")  
+    lapply(Sys.glob(file.path(fullDir,'model_seg_rf_*')),load,.GlobalEnv)
+    preds_seg_rf_ALL = lapply(tld_reseller_list_ALL, 
+           function(tld_reseller_str) pred_seg_rf(
+               test_list, 
+               tld_reseller_str)
+           )
+    rm(list=ls(pattern='^model_seg_rf_'))
+
+    save(preds_seg_rf_ALL, file=file.path(predDir, 'preds_seg_rf_ALL.RData'))    
+
+    
+    cat("\n\nPredicting model_seg2_glm_ALL\n")
+    lapply(Sys.glob(file.path(fullDir,'model_seg2_glm_*')),load,.GlobalEnv)
+    preds_seg2_glm_ALL = lapply(tld_reseller_list_ALL, 
+           function(tld_reseller_str) pred_seg2_glm(
+               test_list, 
+               tld_reseller_str)
+           )
+    rm(list=ls(pattern='^model_seg2_glm_'))
+    
+    save(preds_seg2_glm_ALL, file=file.path(predDir, 'preds_seg2_glm_ALL.RData'))    
+
+    cat("\n\nPredicting model_seg2_rf_ALL\n")     
+    lapply(Sys.glob(file.path(fullDir,'model_seg2_rf_*')),load,.GlobalEnv)
+    preds_seg2_rf_ALL = lapply(tld_reseller_list_ALL, 
+           function(tld_reseller_str) pred_seg2_rf(
+               test_list, 
+               tld_reseller_str)
+           )
+    rm(list=ls(pattern='^model_seg2_rf_'))
+    
+    save(preds_seg2_rf_ALL, file=file.path(predDir, 'preds_seg2_rf_ALL.RData'))    
+
+    
+    # combine all preds into one list
+    preds_list = list()
+    i=1
+    for (tld_reseller_str in tld_reseller_list_ALL) {
+
+            preds_list[[tld_reseller_str]] = cbind(
+                  test_list[[tld_reseller_str]],
+                  'pred_agg_glm_ALL'=ifelse(is.na(preds_agg_glm_ALL[[i]]), NA , preds_agg_glm_ALL[[i]]$predicted) ,
+                  'pred_agg_rf_ALL'= ifelse(is.na(preds_agg_rf_ALL[[i]]), NA , preds_agg_rf_ALL[[i]]$predicted),
+                  'pred_agg_glm'=ifelse(is.na(preds_agg_glm[[i]]), NA , preds_agg_glm[[i]]$predicted),
+                  'pred_agg_rf'=ifelse(is.na(preds_agg_rf[[i]]), NA , preds_agg_rf[[i]]$predicted),
+                  'pred_seg_glm_ALL'=ifelse(is.na(preds_seg_glm_ALL[[i]]), NA , preds_seg_glm_ALL[[i]]$predicted),
+                  'pred_seg_rf_ALL' = ifelse(is.na(preds_seg_rf_ALL[[i]]), NA , preds_seg_rf_ALL[[i]]$predicted),
+                  'pred_seg2_glm_ALL'=ifelse(is.na(preds_seg2_glm_ALL[[i]]), NA , preds_seg2_glm_ALL[[i]]$predicted),
+                  'pred_seg2_rf_ALL'=ifelse(is.na(preds_seg2_rf_ALL[[i]]), NA , preds_seg2_rf_ALL[[i]]$predicted))
+
+            preds_list[[tld_reseller_str]] <- preds_list[[tld_reseller_str]] %>% select(-contains(".actual"))
+            names(preds_list[[tld_reseller_str]]) <- c(names(test_list[[tld_reseller_str]]),
+                                                       c('pred_agg_glm_ALL', 'pred_agg_rf_ALL', 
+                                                       'pred_agg_glm','pred_agg_rf',
+                                                       'pred_seg_glm_ALL', 'pred_seg_rf_ALL',
+                                                       'pred_seg2_glm_ALL','pred_seg2_rf_ALL'))
+        i=i+1
+    }
+
+    na.omit.list <- function(y) { return(y[!sapply(y, function(x) all(is.na(x)))]) }
+    preds_list <- na.omit.list(preds_list)
+    preds_df <- rbindlist(preds_list,use.names=TRUE,fill=TRUE)
+                                                       
+    # add in excluded tld-res -- not needed since we're predicting on ALL
+#     excl_df = rbindlist(test_list[tld_registrar_excl_list], use.names=TRUE)
+#     preds_df = rbind(preds_df, excl_df, use.names=TRUE, fill=TRUE)                               
+                                                   
+    return(preds_df)
+
+}
