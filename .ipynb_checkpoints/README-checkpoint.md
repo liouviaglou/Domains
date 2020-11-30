@@ -25,10 +25,19 @@ PHASE 1
 1. Go Back and retrain the RF models (agg_rf especially) with correct implementation of case.weights to see if it improves perf metrics [https://stats.stackexchange.com/questions/171380/implementing-balanced-random-forest-brf-in-r-using-randomforests](https://stats.stackexchange.com/questions/171380/implementing-balanced-random-forest-brf-in-r-using-randomforests).
 2. Clean up training_metalearning code (esp. perf metrics and meta-feature eng. sections, model training section (function-ize it with depedent variable being the input))
 3. Incorporate sld_length and sld_type and other categorical variables into metalearning? We can do something like count of unique or count of a specific (potentially malicious/algorithmic flag) type
+4. clean uo l10_dplyr and auc_dplyr functions. For starters, l10_dplyr doesn't need to calculate lift for all values of P, just 0.1
 
 
 
 ## Lab Notebook 
+
+## 20201129
+
+scripted model training based on assignment. need to test
+
+## 20201128
+
+4% of new data observations have misisng computed variables like gibb_score -- asked client but for now removing from analysis.
 
 ## 20201127
 

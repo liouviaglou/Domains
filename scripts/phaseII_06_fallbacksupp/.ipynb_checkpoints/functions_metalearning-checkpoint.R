@@ -764,18 +764,70 @@ pred_all <- function (tld_reseller_list,
 
 }
 
+                                                   ########################################################################################################
+#
+# V. METALEARNING TRAINING/TESTING 
+#
+########################################################################################################
+                                             
+l10_dplyr <- function (pred_df,
+                              pred_var = "first_renewal_prediction") {
+  N <- 10  # total number of rows to preallocate--possibly an overestimate
+  lift_df <- data.frame(P =rep(NA, N), 
+                        actu_renwd2=rep(NA, N), 
+                        gain=rep(NA, N), 
+                        lift=rep(NA, N), 
+                        stringsAsFactors=FALSE)          # you don't know levels yet
+  actu_renwd <- sum(pred_df[["renewal_status"]]=='Renewed')
+  
+  i = 1
+  for(P in seq(.1,1,length=10)){
+    temp_df <- data.frame(pred_df)[c("renewal_status",pred_var)]
+    ttmp_df <- temp_df[order(temp_df[pred_var],decreasing = TRUE),][1:round(dim(temp_df)[1]*P),]
+    actu_renwd2 <-  sum(ttmp_df[["renewal_status"]] == 'Renewed')
+    gain = actu_renwd2/actu_renwd
+    lift = gain/(P)
+    
+    lift_df[i, ] <- list(P, actu_renwd2, gain, lift)
+    i = i+1
+  }
+  return(lift_df %>% filter(P==0.1) %>% pull(lift))
+}
+
+auc_dplyr <- function (pred_df,
+                              pred_var = "first_renewal_prediction") {
+  N <- 10  # total number of rows to preallocate--possibly an overestimate
+  lift_df <- data.frame(P =rep(NA, N), 
+                        actu_renwd2=rep(NA, N), 
+                        gain=rep(NA, N), 
+                        lift=rep(NA, N), 
+                        stringsAsFactors=FALSE)          # you don't know levels yet
+  actu_renwd <- sum(pred_df[["renewal_status"]]=='Renewed')
+  
+  i = 1
+  for(P in seq(.1,1,length=10)){
+    temp_df <- data.frame(pred_df)[c("renewal_status",pred_var)]
+    ttmp_df <- temp_df[order(temp_df[pred_var],decreasing = TRUE),][1:round(dim(temp_df)[1]*P),]
+    actu_renwd2 <-  sum(ttmp_df[["renewal_status"]] == 'Renewed')
+    gain = actu_renwd2/actu_renwd
+    lift = gain/(P)
+    
+    lift_df[i, ] <- list(P, actu_renwd2, gain, lift)
+    i = i+1
+  }
+  return(calc_auc(lift_df))
+}
+
+
 # takes a dataframe of model assignment & feature data
 # and generates predictions based on models in fullDir
-pred_select <- function (
+pred_select <- function (expiry_df_test_preds_assign,
                       fullDir='../../data/output/models_20201104' # dir of models
                       ){   
     
-    predDir = file.path(fullDir, 'preds')
+    predDir = file.path(fullDir, 'preds_select')
     
-    tld_reseller_list_ALL = tld_reseller_list
-    
-    # exclude low-volume tld-re's      
-    tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_excl_list)]
+
    
     cat("\n\nPredicting model_agg_glm_ALL\n")
     load(file.path(fullDir, 'model_agg_glm_ALL.Rdata'))    

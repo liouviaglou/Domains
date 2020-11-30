@@ -19,6 +19,8 @@ source('../phaseII_03_forest/functions_eval.R')
 
 
 dataDir='/home/jupyter/Domains_202003/data/output/datapull_20201116'
+modelDir='/home/jupyter/Domains_202003/data/output/datapull_20201104'
+outputDir='/home/jupyter/Domains_202003/data/output/datapull_20201127'
 
 ########################################################################################################
 #
@@ -100,54 +102,6 @@ expiry_df_test_preds_g <- fallback_app_1(test_data_op=expiry_df_test_preds_g,
 # GENERATE Meta-(performance)Metrics at tld-reseller level
 #
 ########################################################################################################
-
-l10_dplyr <- function (pred_df,
-                              pred_var = "first_renewal_prediction") {
-  N <- 10  # total number of rows to preallocate--possibly an overestimate
-  lift_df <- data.frame(P =rep(NA, N), 
-                        actu_renwd2=rep(NA, N), 
-                        gain=rep(NA, N), 
-                        lift=rep(NA, N), 
-                        stringsAsFactors=FALSE)          # you don't know levels yet
-  actu_renwd <- sum(pred_df[["renewal_status"]]=='Renewed')
-  
-  i = 1
-  for(P in seq(.1,1,length=10)){
-    temp_df <- data.frame(pred_df)[c("renewal_status",pred_var)]
-    ttmp_df <- temp_df[order(temp_df[pred_var],decreasing = TRUE),][1:round(dim(temp_df)[1]*P),]
-    actu_renwd2 <-  sum(ttmp_df[["renewal_status"]] == 'Renewed')
-    gain = actu_renwd2/actu_renwd
-    lift = gain/(P)
-    
-    lift_df[i, ] <- list(P, actu_renwd2, gain, lift)
-    i = i+1
-  }
-  return(lift_df %>% filter(P==0.1) %>% pull(lift))
-}
-
-auc_dplyr <- function (pred_df,
-                              pred_var = "first_renewal_prediction") {
-  N <- 10  # total number of rows to preallocate--possibly an overestimate
-  lift_df <- data.frame(P =rep(NA, N), 
-                        actu_renwd2=rep(NA, N), 
-                        gain=rep(NA, N), 
-                        lift=rep(NA, N), 
-                        stringsAsFactors=FALSE)          # you don't know levels yet
-  actu_renwd <- sum(pred_df[["renewal_status"]]=='Renewed')
-  
-  i = 1
-  for(P in seq(.1,1,length=10)){
-    temp_df <- data.frame(pred_df)[c("renewal_status",pred_var)]
-    ttmp_df <- temp_df[order(temp_df[pred_var],decreasing = TRUE),][1:round(dim(temp_df)[1]*P),]
-    actu_renwd2 <-  sum(ttmp_df[["renewal_status"]] == 'Renewed')
-    gain = actu_renwd2/actu_renwd
-    lift = gain/(P)
-    
-    lift_df[i, ] <- list(P, actu_renwd2, gain, lift)
-    i = i+1
-  }
-  return(calc_auc(lift_df))
-}
 
 
 metrics_df <- expiry_df_test_preds_g %>%
@@ -247,6 +201,45 @@ meta_df = expiry_df_test_preds_g %>%
             regarpt_skew = skewness(reg_arpt, na.rm = TRUE), 
             regarpt_kurt = kurtosis(reg_arpt, na.rm = TRUE))
 
+# add a handful more vars 
+country_maj = expiry_df_test_preds_g %>%
+  add_count(tld_registrar_index, reseller_country) %>%
+  group_by(tld_registrar_index) %>%
+  mutate(reseller_country_maj = reseller_country[n == max(n)][1]) %>%
+  select(-n) %>% 
+  group_by(tld_registrar_index,reseller_country_maj) %>%
+    summarise(n = n()) %>% 
+    arrange(desc(n)) %>%
+    pull(reseller_country_maj)
+
+country_cnt = expiry_df_test_preds_g %>%
+  add_count(tld_registrar_index, reseller_country) %>%
+  group_by(tld_registrar_index) %>%
+  summarise(reseller_country_cnt = n_distinct(reseller_country)) %>%
+  pull(reseller_country_cnt)  
+
+region_maj = expiry_df_test_preds_g %>%
+  add_count(tld_registrar_index, region) %>%
+  group_by(tld_registrar_index) %>%
+  mutate(region_maj = region[n == max(n)][1]) %>%
+  select(-n) %>% 
+  group_by(tld_registrar_index,region_maj) %>%
+    summarise(n = n()) %>% 
+    arrange(desc(n)) %>%
+    pull(region_maj)
+
+region_cnt = expiry_df_test_preds_g %>%
+  add_count(tld_registrar_index, region) %>%
+  group_by(tld_registrar_index) %>%
+  summarise(reseller_region_cnt = n_distinct(reseller_country)) %>%
+  pull(reseller_region_cnt)  
+
+meta_df = meta_df %>% 
+    mutate(country_maj = country_maj,
+            region_maj = region_maj,
+            country_cnt = country_cnt,
+            region_cnt = region_cnt,
+            )
 
 ########################################################################################################
 #
@@ -273,13 +266,17 @@ metametrics_df <- metametrics_df %>%
          1, function(x) names(x)[which.max(x)]), function(s) if (length(s) == 0) NA else paste(s, collapse = " ")) 
             ) 
              
-
+metametrics_df <- metametrics_df %>% mutate_if(is.list,as.numeric) 
+             
 ########################################################################################################
 #
 # IMPUTE missing values
 #
 ########################################################################################################
 
+# but first, remove observations with missing wins -- we don't want to impute these dependent variables 
+metametrics_df <- metametrics_df %>% filter(!is.na(auc_win_04))
+             
 library(missRanger)
 metametrics_imp_df <- missRanger(metametrics_df, num.trees = 100)
  
@@ -299,7 +296,7 @@ metametrics_imp_df <- missRanger(metametrics_df, num.trees = 100)
 
 ########################################################################################################
 #
-# TRAIN models, GENERATE predictions
+# TRAIN models
 #
 ########################################################################################################
 
@@ -332,13 +329,7 @@ model_l10 <- ranger(formula         = l10_win_04 ~ .,
                 respect.unordered.factors=TRUE,
                case.weights=weights)
 
-# pred_l10 <- as.data.frame(predict(model_l10, 
-#                 data = test,
-#                 type="response")$predictions) %>%
-#     mutate (l10_win_04_pred_model=sapply(apply(., 
-#                           1, function(x) names(x)[which.max(x)]) , 
-#                                     function(s) if (length(s) == 0) NA else paste(s, collapse = " ")) 
-#             ) 
+
                                         
 # auc
                                         
@@ -369,18 +360,7 @@ model_auc <- ranger(formula         = auc_win_04 ~ .,
                 respect.unordered.factors=TRUE,
                case.weights=weights)
 
-# pred_auc <- as.data.frame(predict(model_auc, 
-#                 data = test,
-#                 type="response")$predictions) %>%
-                                               
-#     mutate (auc_win_04_pred_model=sapply(apply(., 
-#                           1, function(x) names(x)[which.max(x)]) , 
-#                                     function(s) if (length(s) == 0) NA else paste(s, collapse = " ")) 
-#             ) 
-                                                                 
-# metametrics_imp_pred_df <- cbind(metametrics_imp_df,pred_l10$l10_win_04_pred_model,pred_auc$auc_win_04_pred_model)
-
-                                               
+                                    
 ########################################################################################################
 #
 # ASSIGN model to data based on predictions results
@@ -406,8 +386,151 @@ expiry_df_test_preds_assign <- expiry_df_test_preds_assign %>%
 #        radix2020.expiry.expiry_20200902_20201102_20201127 (last date is date of pull)
 # 2. use notebook 03_* to pull the data into an RDS/csv (.94 million rows)
                                                
-# expiry_new_df <- readRDS("/home/jupyter/Domains_202003/data/output/datapull_20201127/expiry_20200902_20201102_20201127")
+# expiry_new_df <- readRDS("/home/jupyter/Domains_202003/data/output/datapull_20201127/expiry_20200902_20201102_20201127"                                            
+# strip out data that is within 50 days of data pull -- incomplete
+# from Parag: "... are stil in agp so we don’t know their final renewal status 
+#             So you cannot use those domains to check the actual renewal status"
+expiry_new_df <- expiry_new_df %>% filter(expiry_date < "2020-10-08")
+                                    
+#remove missing gibb_score, etc.
+expiry_new_df <- expiry_new_df %>% filter(!is.na(gibb_score))
 
+# add necessary columns
+expiry_new_df <- expiry_new_df %>% mutate (reg_arpt = ifelse(reg_arpt <= 0, 0.0001,reg_arpt),
+                                   log_reg_arpt = log(reg_arpt),
+                                   tld_registrar_index = tolower(paste(tld, reseller,sep="")))
+expiry_new_df <- geo_suppl(expiry_new_df, geoLookupDF = geoLookupDF)
+
+# engineer metadata
+new_meta_df = expiry_new_df %>%
+  add_count(tld_registrar_index, reseller_geo) %>%
+  group_by(tld_registrar_index) %>%
+  summarise(
+            geo_maj = reseller_geo[n == max(n)][1],
+            geo_cnt = n_distinct(reseller_geo),
+            n = n(),
+            ren_prp = sum(renewal_status=='Renewed')/sum(n),
+            tld_cnt = n_distinct(tld), tld_rat = tld_cnt/n,
+              
+            daydom_min = min(day_domains), 
+            daydom_max = max(day_domains), 
+            daydom_mean = mean(day_domains, na.rm = TRUE), 
+            daydom_rng = daydom_max - daydom_min, 
+            daydom_std = sd(day_domains, na.rm = TRUE), 
+            daydom_skew = skewness(day_domains, na.rm = TRUE), 
+            daydom_kurt = kurtosis(day_domains, na.rm = TRUE),
+
+            sldlen_min = min(sld_length), 
+            sldlen_max = max(sld_length), 
+            sldlen_mean = mean(sld_length, na.rm = TRUE), 
+            sldlen_rng = sldlen_max - sldlen_min, 
+            sldlen_std = sd(sld_length, na.rm = TRUE), 
+            sldlen_skew = skewness(sld_length, na.rm = TRUE), 
+            sldlen_kurt = kurtosis(sld_length, na.rm = TRUE),
+  
+            gibbs_min = min(gibb_score), 
+            gibbs_max = max(gibb_score), 
+            gibbs_mean = mean(gibb_score, na.rm = TRUE), 
+            gibbs_rng = gibbs_max - gibbs_min, 
+            gibbs_std = sd(gibb_score, na.rm = TRUE), 
+            gibbs_skew = skewness(gibb_score, na.rm = TRUE), 
+            gibbs_kurt = kurtosis(gibb_score, na.rm = TRUE),
+  
+            pdcnt_min = min(pattern_domain_count), 
+            pdcnt_max = max(pattern_domain_count), 
+            pdcnt_mean = mean(pattern_domain_count, na.rm = TRUE), 
+            pdcnt_rng = pdcnt_max - pdcnt_min, 
+            pdcnt_std = sd(pattern_domain_count, na.rm = TRUE), 
+            pdcnt_skew = skewness(pattern_domain_count, na.rm = TRUE), 
+            pdcnt_kurt = kurtosis(pattern_domain_count, na.rm = TRUE),
+  
+            regarpt_min = min(reg_arpt), 
+            regarpt_max = max(reg_arpt), 
+            regarpt_mean = mean(reg_arpt, na.rm = TRUE), 
+            regarpt_rng = regarpt_max - regarpt_min, 
+            regarpt_std = sd(reg_arpt, na.rm = TRUE), 
+            regarpt_skew = skewness(reg_arpt, na.rm = TRUE), 
+            regarpt_kurt = kurtosis(reg_arpt, na.rm = TRUE))
+
+# add a handful more vars 
+country_maj = expiry_new_df %>%
+  add_count(tld_registrar_index, reseller_country) %>%
+  group_by(tld_registrar_index) %>%
+  mutate(reseller_country_maj = reseller_country[n == max(n)][1]) %>%
+  select(-n) %>% 
+  group_by(tld_registrar_index,reseller_country_maj) %>%
+    summarise(n = n()) %>% 
+    arrange(desc(n)) %>%
+    pull(reseller_country_maj)
+
+country_cnt = expiry_new_df %>%
+  add_count(tld_registrar_index, reseller_country) %>%
+  group_by(tld_registrar_index) %>%
+  summarise(reseller_country_cnt = n_distinct(reseller_country)) %>%
+  pull(reseller_country_cnt)  
+
+region_maj = expiry_new_df %>%
+  add_count(tld_registrar_index, region) %>%
+  group_by(tld_registrar_index) %>%
+  mutate(region_maj = region[n == max(n)][1]) %>%
+  select(-n) %>% 
+  group_by(tld_registrar_index,region_maj) %>%
+    summarise(n = n()) %>% 
+    arrange(desc(n)) %>%
+    pull(region_maj)
+
+region_cnt = expiry_new_df %>%
+  add_count(tld_registrar_index, region) %>%
+  group_by(tld_registrar_index) %>%
+  summarise(reseller_region_cnt = n_distinct(reseller_country)) %>%
+  pull(reseller_region_cnt)  
+
+new_meta_df = new_meta_df %>% 
+    mutate(country_maj = country_maj,
+            region_maj = region_maj,
+            country_cnt = country_cnt,
+            region_cnt = region_cnt,
+            )                                    
+                                    
+# impute missing values
+new_meta_imp_df <- missRanger(new_meta_df, num.trees = 100
+
+                              
+# predict model based on meta features
+
+# l10
+
+new_pred_l10 <- as.data.frame(predict(model_l10, 
+                data = new_meta_imp_df,
+                type="response")$predictions) %>%
+    mutate (l10_win_04_pred_model=sapply(apply(., 
+                          1, function(x) names(x)[which.max(x)]) , 
+                                    function(s) if (length(s) == 0) NA else paste(s, collapse = " ")) 
+            ) 
+                                        
+# auc
+
+
+new_pred_auc <- as.data.frame(predict(model_auc, 
+                data = new_meta_imp_df,
+                type="response")$predictions) %>%
+                                               
+    mutate (auc_win_04_pred_model=sapply(apply(., 
+                          1, function(x) names(x)[which.max(x)]) , 
+                                    function(s) if (length(s) == 0) NA else paste(s, collapse = " ")) 
+            ) 
+
+                                                                 
+new_metametrics_imp_pred_df <- cbind(new_meta_df,new_pred_l10$l10_win_04_pred_model,new_pred_auc$auc_win_04_pred_model)
+new_metametrics_imp_pred_df <- new_metametrics_imp_pred_df %>% rename(l10_win_04_pred_model = length(new_metametrics_imp_pred_df)-1,
+                                                                     auc_win_04_pred_model = length(new_metametrics_imp_pred_df))
+
+new_metametrics_imp_pred_df <- new_metametrics_imp_pred_df %>% head() %>% 
+   mutate_at(vars(l10_win_04_pred_model), list(~(gsub("l10_", "", .)))) %>% 
+   mutate_at(vars(auc_win_04_pred_model), list(~(gsub("auc_", "", .))))
+                              
+                              
+                              
 # expiry_df_test_preds_assign <- merge(expiry_new_df, 
 #                                      metametrics_imp_pred_df %>% 
 #                                         select(tld_registrar_index, length(test_pred)-1, length(test_pred)), 
