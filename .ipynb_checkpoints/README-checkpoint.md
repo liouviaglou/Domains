@@ -31,6 +31,24 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201203
+
+Pulled predictions for 4% subset of 20190601-20200901 data
+need to incorporate into script a backfilling for where assigned model fails to generate opredictions. I think we should prioritize to use aggregate random forest and backfill with fallback table values only as a last resort but I'd like to hear your thoughts on this...
+
+## 20201202
+
+- changed lookup tld-re variable from factor to character 
+- Modified functins_metalearning.R script such that if model does not exist, then an entire dataframe of NA predictions gets generated (for all models). Issue arose for tld-re's in test data but not in training data when new data pull wasused to test
+
+## 20201201
+
+running script 
+
+## 20201130
+
+tested and finalized script
+
 ## 20201129
 
 scripted model training based on assignment. need to test

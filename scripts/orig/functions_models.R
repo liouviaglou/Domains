@@ -197,9 +197,11 @@ build_model_first_renewal_agg_plus <-function(train_data){
 predict_first_renewal<-function(test_data, model){
   
 
-  if (is.na(model) | is.null(test_data)){
+  if (is.na(model)){
       test_data$probabilities<- rep(NA, dim(test_data)[1])
-  }else{
+  } else if (is.null(test_data)) {
+      test_data$probabilities<- rep(NA, dim(test_data)[1])
+  }  else{
       test_data$sld_type[!(test_data$sld_type %in% model$xlevels$sld_type)]<-NA
       test_data$probabilities<-predict(model,
                                    newdata=subset(test_data,
@@ -227,7 +229,9 @@ predict_first_renewal<-function(test_data, model){
 # LVG added for registrar level predictions (with tld as a predictor)
 predict_first_renewal_reg<-function(test_data, model){
   
-  if (is.na(model) | is.null(test_data)){
+  if (is.na(model)){
+      test_data$probabilities<- rep(NA, dim(test_data)[1])
+  }else if (is.null(test_data)){
       test_data$probabilities<- rep(NA, dim(test_data)[1])
   }else{
   test_data$sld_type[!(test_data$sld_type %in% model$xlevels$sld_type)]<-NA
