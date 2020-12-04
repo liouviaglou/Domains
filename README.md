@@ -31,6 +31,15 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201204
+
+For 12/10/2020:
+(1) for most recent generation: add to bucket the predicted renewal rates by model. DONE, SENT.
+(2) prepare output for the September pull (new data) 12/04
+(3) Q4_2020-Q2_2021... performance metrics 12/05-7
+(4) generate the performance metrics (include thresholds) 12/08-9
+(5) send over code for metalearning 
+
 ## 20201203
 
 Pulled predictions for 4% subset of 20190601-20200901 data

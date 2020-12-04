@@ -856,6 +856,7 @@ pred_select <- function (expiry_new_df,
             gc() 
 
             save(preds_agg_rf_ALL, file=file.path(outputDir, 'meta_preds', 'preds_agg_rf_ALL.RData'))
+#             load(file.path(outputDir, 'meta_preds', 'preds_agg_rf_ALL.RData'))
             preds_agg_rf_ALL_df <- cbind(rbindlist(test_list[tld_registrar_list], use.names=TRUE), 
                                          rbindlist(preds_agg_rf_ALL, use.names=TRUE))
             preds_agg_rf_ALL_df$model <- 'preds_agg_rf_ALL'
@@ -872,47 +873,55 @@ pred_select <- function (expiry_new_df,
                        tld_reseller_str)
                    )
             rm(list=ls(pattern='^model_seg2_glm_'))    
-            save(preds_seg2_glm_ALL, file=file.path(outputDir, 'meta_preds', 'preds_seg2_glm_ALL.RData'))          
+            save(preds_seg2_glm_ALL, file=file.path(outputDir, 'meta_preds', 'preds_seg2_glm_ALL.RData')) 
+#             load(file.path(outputDir, 'meta_preds', 'preds_seg2_glm_ALL.RData'))  
             preds_seg2_glm_ALL_df <- cbind(rbindlist(test_list[tld_registrar_list], use.names=TRUE), 
                                          rbindlist(preds_seg2_glm_ALL, use.names=TRUE))
             preds_seg2_glm_ALL_df$model <- 'preds_seg2_glm_ALL'
         }
 
         if (model == 'seg2_glm_fb'){
+
             cat("\n\nPredicting model_seg2_glm_fb for",length(tld_registrar_list),"tld-re's\n")
             # generate list of fallback tables
             npv_fallback_list = fallback_gen( npv_historic_renewal_data = expiry_df_train_g, 
                                          reseller_am_geo_map = geoLookupDF)
 
             # return list members to in-memory objects of the same name
-            for(i in 1:length(npv_fallback_list)) assign(names(npv_fallback_list)[i], npv_fallback_list[[i]])
+            #             for(i in 1:length(npv_fallback_list)) assign(names(npv_fallback_list)[i], npv_fallback_list[[i]]) # doesn't work in script
+            list2env(npv_fallback_list, envir = .GlobalEnv)
+
+            # subset expiry_new_df to only include tld-re's for fallback
+            tld_registrar_excl_list = tld_registrar_list
+            expiry_new_df_sample <- expiry_new_df %>% filter(tld_registrar_index %in% tld_registrar_excl_list)
+
+            # geo suppl for fallback app
+            preds_seg2_glm_fb <- geo_suppl(expiry_new_df_sample, geoLookupDF = geoLookupDF)
 
             # generate placeholder (*_fb) columns in preds df where predictions for low-volume tld-registrars get set to NA
-            tld_registrar_excl_list = tld_registrar_list
-            expiry_df_test_preds_g <- expiry_df_test_preds_g %>%
-                 mutate( pred_seg2_glm_fb = NA)
+            preds_seg2_glm_fb <- preds_seg2_glm_fb %>% mutate( pred_seg2_glm_fb = NA)
 
             # apply fallback tables (creating cols *_fb2)
-            expiry_df_test_preds_g <- fallback_app_1(test_data_op=expiry_df_test_preds_g,
+            preds_seg2_glm_fb <- fallback_app_1(test_data_op=preds_seg2_glm_fb,
                            in_col='pred_seg2_glm_fb',
                            out_col='pred_seg2_glm_fb2')
 
-            preds_seg2_glm_fb <- expiry_df_test_preds_g %>% 
-                filter(tld_registrar_index %in% tld_registrar_excl_list) %>% 
-                select(renewal_status,pred_seg2_glm_fb2) 
+
+            preds_seg2_glm_fb <- preds_seg2_glm_fb %>% select(renewal_status,pred_seg2_glm_fb2) 
             names(preds_seg2_glm_fb) = c('actual','predicted')
 
 
             save(preds_seg2_glm_fb, file=file.path(outputDir, 'meta_preds', 'preds_seg2_glm_fb.RData'))         
-            preds_seg2_glm_fb_df <- cbind(rbindlist(test_list[tld_registrar_list], use.names=TRUE), 
+            preds_seg2_glm_fb_df <- cbind(expiry_new_df_sample, 
                                           preds_seg2_glm_fb)
 
             preds_seg2_glm_fb_df$model <- 'preds_seg2_glm_fb'
+            
         }
         }
 
-    preds_meta <- rbind(preds_agg_rf_ALL_df, preds_seg2_glm_ALL_df, preds_seg2_glm_fb_df)     
-    write.csv(preds_meta, file.path(outputDir, 'preds_select','preds.csv'))
+    preds_meta <- rbind(preds_agg_rf_ALL_df, preds_seg2_glm_ALL_df, preds_seg2_glm_fb_df)
+    write.csv(preds_meta, file.path(outputDir, 'meta_preds','meta_preds.csv'))
     return(preds_meta)
 
 }
