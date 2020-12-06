@@ -40,6 +40,7 @@ tld_registrar_excl_list = tld_registrar_excl(train_list = expiry_train_list)
 # predict based on saved models
 preds_df <- pred_all(tld_reseller_list, tld_registrar_excl_list,
                      test_list = expiry_test_list,
-                     fullDir)
+                     modelDir=fullDir,
+                     fullDir=fullDir)
 
 write.csv(preds_df, file=file.path(fullDir,'preds','preds.csv'),row.names = FALSE)

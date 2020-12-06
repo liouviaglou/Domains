@@ -31,6 +31,14 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201206
+
+Rerunning predictions for agg_rf. seg2_glm_fb, seg2_glm for all observaations
+added modelDir argument to pred_all() of functions_metalearning.R script (updated predictions_metalearning call)
+
+## 20201205
+
+Need to verify data integrity -- first of all, obs per tld-re is diff b/w original data & predictions
 ## 20201204
 
 For 12/10/2020:

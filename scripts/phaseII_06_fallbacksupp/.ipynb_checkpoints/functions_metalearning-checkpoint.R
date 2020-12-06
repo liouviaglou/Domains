@@ -637,7 +637,8 @@ train_all <- function (tld_reseller_list,
 pred_all <- function (tld_reseller_list, 
                       tld_registrar_excl_list,
                       test_list = expiry_test_prepped_2_1,
-                      fullDir='../../data/output/models_20201015' # dir of models
+                      modelDir='../../data/output/models_20201015' # dir of models
+                      fullDir='../../data/output/models_20201015' # dir of output
                       ){   
     
     predDir = file.path(fullDir, 'preds')
@@ -648,7 +649,7 @@ pred_all <- function (tld_reseller_list,
     tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_excl_list)]
    
     cat("\n\nPredicting model_agg_glm_ALL\n")
-    load(file.path(fullDir, 'model_agg_glm_ALL.Rdata'))    
+    load(file.path(modelDir, 'model_agg_glm_ALL.Rdata'))    
     preds_agg_glm_ALL = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_agg_glm(model_agg_glm_ALL, test_list, tld_reseller_str)
            )
@@ -658,7 +659,7 @@ pred_all <- function (tld_reseller_list,
     save(preds_agg_glm_ALL, file=file.path(predDir, 'preds_agg_glm_ALL.Rdata'))
     
     cat("\n\nPredicting model_agg_glm\n")
-    load(file.path(fullDir, 'model_agg_glm.Rdata'))    
+    load(file.path(modelDir, 'model_agg_glm.Rdata'))    
     preds_agg_glm = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_agg_glm(model_agg_glm, test_list, tld_reseller_str)
            )
@@ -668,7 +669,7 @@ pred_all <- function (tld_reseller_list,
     save(preds_agg_glm, file=file.path(predDir, 'preds_agg_glm.RData'))
     
     cat("\n\nPredicting model_agg_rf_ALL\n")
-    load(file.path(fullDir, 'model_agg_rf_ALL.Rdata'))
+    load(file.path(modelDir, 'model_agg_rf_ALL.Rdata'))
     preds_agg_rf_ALL = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_agg_rf(model_agg_rf_ALL, test_list, tld_reseller_str)
            )
@@ -678,7 +679,7 @@ pred_all <- function (tld_reseller_list,
     save(preds_agg_rf_ALL, file=file.path(predDir, 'preds_agg_rf_ALL.RData'))
     
     cat("\n\nPredicting model_agg_rf\n")
-    load(file.path(fullDir, 'model_agg_rf.Rdata'))
+    load(file.path(modelDir, 'model_agg_rf.Rdata'))
     preds_agg_rf = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_agg_rf(model_agg_rf, test_list, tld_reseller_str)
            )
@@ -688,7 +689,7 @@ pred_all <- function (tld_reseller_list,
     save(preds_agg_rf, file=file.path(predDir, 'preds_agg_rf.RData'))
 
     cat("\n\nPredicting model_seg_glm_ALL\n")   
-    lapply(Sys.glob(file.path(fullDir,'model_seg_glm_*')),load,.GlobalEnv)
+    lapply(Sys.glob(file.path(modelDir,'model_seg_glm_*')),load,.GlobalEnv)
     preds_seg_glm_ALL = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_seg_glm(
                test_list, 
@@ -699,7 +700,7 @@ pred_all <- function (tld_reseller_list,
     save(preds_seg_glm_ALL, file=file.path(predDir, 'preds_seg_glm_ALL.RData'))
     
     cat("\n\nPredicting model_seg_rf_ALL\n")  
-    lapply(Sys.glob(file.path(fullDir,'model_seg_rf_*')),load,.GlobalEnv)
+    lapply(Sys.glob(file.path(modelDir,'model_seg_rf_*')),load,.GlobalEnv)
     preds_seg_rf_ALL = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_seg_rf(
                test_list, 
@@ -711,7 +712,7 @@ pred_all <- function (tld_reseller_list,
 
     
     cat("\n\nPredicting model_seg2_glm_ALL\n")
-    lapply(Sys.glob(file.path(fullDir,'model_seg2_glm_*')),load,.GlobalEnv)
+    lapply(Sys.glob(file.path(modelDir,'model_seg2_glm_*')),load,.GlobalEnv)
     preds_seg2_glm_ALL = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_seg2_glm(
                test_list, 
@@ -722,7 +723,7 @@ pred_all <- function (tld_reseller_list,
     save(preds_seg2_glm_ALL, file=file.path(predDir, 'preds_seg2_glm_ALL.RData'))    
 
     cat("\n\nPredicting model_seg2_rf_ALL\n")     
-    lapply(Sys.glob(file.path(fullDir,'model_seg2_rf_*')),load,.GlobalEnv)
+    lapply(Sys.glob(file.path(modelDir,'model_seg2_rf_*')),load,.GlobalEnv)
     preds_seg2_rf_ALL = lapply(tld_reseller_list_ALL, 
            function(tld_reseller_str) pred_seg2_rf(
                test_list, 

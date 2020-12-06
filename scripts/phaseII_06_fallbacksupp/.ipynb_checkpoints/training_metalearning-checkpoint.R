@@ -535,14 +535,36 @@ expiry_df_test_preds_g <- geo_suppl(expiry_df_test_preds, geoLookupDF = geoLooku
 #
 ########################################################################################################
 
-load(file.path(outputDir, 'meta_preds','expiry_new_df.RData'))
-load(file.path(outputDir, 'meta_preds','new_metametrics_imp_pred_df.RData'))
+# load(file.path(outputDir, 'meta_preds','expiry_new_df.RData'))
+# load(file.path(outputDir, 'meta_preds','new_metametrics_imp_pred_df.RData'))
 
 
 
-pred_select(expiry_new_df,
-                         new_metametrics_imp_pred_df,
-                         dataDir=dataDir,
-                         modelDir=modelDir,
-                         outputDir=outputDir
-                      )
+# pred_select(expiry_new_df,
+#                          new_metametrics_imp_pred_df,
+#                          dataDir=dataDir,
+#                          modelDir=modelDir,
+#                          outputDir=outputDir
+#                       )
+
+########################################################################################################
+#
+# Aside: CALC probability for all models for all observations, using model objects
+#
+########################################################################################################
+
+load(file.path(outputDir, 'meta_preds','expiry_new_df.RData')) # new data
+expiry_test_list = split(expiry_df_train, expiry_df_train$tld_registrar_index) # old data (loaded above)
+
+# define tld-re's for testing
+tld_reseller_list = expiry_new_df %>%  distinct(tld_registrar_index) %>% pull(tld_registrar_index) # tested on new data
+tld_registrar_excl_list = tld_registrar_excl_df(train_df = expiry_df_train) # trained on old data, exclusion base don old data
+
+# predict based on saved models
+preds_df <- pred_all(tld_reseller_list, tld_registrar_excl_list,
+                     test_list = expiry_test_list,
+                     modelDir=modelDir,
+                     fullDir=outputDir)
+
+
+write.csv(preds_df, file=file.path(outputDir,'preds','preds.csv'),row.names = FALSE)
