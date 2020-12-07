@@ -19,6 +19,18 @@ library(ggplot2)
 #            Cumlift=Gain/(bucket*(100/groups)))
 #   return(gaintable)
 # }
+
+calc_lift <- function (pred_df,
+                       P=0.1,
+                        dep_var = "renewal_status",
+                        pred_var = "first_renewal_prediction"){
+    actu_renwd <- sum(pred_df[[dep_var]]=='Renewed')
+    ttmp_df <- pred_df[order(pred_df[pred_var],decreasing = TRUE),][1:round(dim(pred_df)[1]*P),]
+    actu_renwd2 <-  sum(ttmp_df[[dep_var]] == 'Renewed')
+    gain = actu_renwd2/actu_renwd
+    lift = gain/(P)
+    return(lift)
+}
                                                
 chart_lift <- function (pred_df=first_renewal_model_test_predict,
                         dep_var = "renewal_status",

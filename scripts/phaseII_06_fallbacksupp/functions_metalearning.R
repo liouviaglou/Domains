@@ -637,7 +637,7 @@ train_all <- function (tld_reseller_list,
 pred_all <- function (tld_reseller_list, 
                       tld_registrar_excl_list,
                       test_list = expiry_test_prepped_2_1,
-                      modelDir='../../data/output/models_20201015' # dir of models
+                      modelDir='../../data/output/models_20201015', # dir of models
                       fullDir='../../data/output/models_20201015' # dir of output
                       ){   
     

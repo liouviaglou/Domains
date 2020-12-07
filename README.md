@@ -23,13 +23,46 @@ PHASE 1
 ## For subcontractor:
 
 1. Go Back and retrain the RF models (agg_rf especially) with correct implementation of case.weights to see if it improves perf metrics [https://stats.stackexchange.com/questions/171380/implementing-balanced-random-forest-brf-in-r-using-randomforests](https://stats.stackexchange.com/questions/171380/implementing-balanced-random-forest-brf-in-r-using-randomforests).
-2. Clean up training_metalearning code (esp. perf metrics and meta-feature eng. sections, model training section (function-ize it with depedent variable being the input))
+2. Clean up training_metalearning code (esp. perf metrics and meta-feature eng. sections, model training section (function-ize it with depedent variable being the input)) -- replace chart_lift with calc_lift where approp.  (more lightweight function)
 3. Incorporate sld_length and sld_type and other categorical variables into metalearning? We can do something like count of unique or count of a specific (potentially malicious/algorithmic flag) type
 4. clean uo l10_dplyr and auc_dplyr functions. For starters, l10_dplyr doesn't need to calculate lift for all values of P, just 0.1
+5. Fix NA predictions in meta learning application by backfilling with approporiate model results (i.e. if seg2_glm results in NA, try agg_rf else try seg2_glm_fb)
 
 
 
 ## Lab Notebook 
+
+## 20201208
+
+Need to think about meaning of inverse lift
+
+
+TODO: for Sandeep:
+a couple for slides on methods... 
+a couple for slides on metrics
+a couple of slides on the visualizations
+accuracy metrics -- split by priority... by tld. tld priority 2x2 matrix
+
+
+## 20201207
+
+Old metalearning model on new data:
+
+Need to examine why so many missing predictions
+Computing performance metrics
+
+lift@10% is 3.611502, AUC is 0.79456664701347
+
+model assignment & resulting predictions for Parag in gs://output_shared/deliv_20201210 bucket
+
+performance metrics on 3 diff levels (poss 4) - not in order of priority
+- aggregate probabilities at the tld-reseller level... over day or month
+- lift metric. what does the lift mean?
+- inverse of the lift. below which probability level can we be sure that these domains be dropped (not renewed) the other end of the lift. from the bottom up. will help formulate retention strategy
+- thresh-hold false positive or false negatives - determine what threshold will be good for which tld-registrar. kaybe at a tld-registrar level (MORE TIME, MORE THAN ANOTHER WEEK)
+top 10 registrars - understanding of one 
+accuracy - false positive, false negatives... across all tld-re... big tld-re's overpower the general metrics. how do we address this? we look at it at the tld=reseller level. small and large separately? at the priority level... high priority is high, volume is high
+goal: to be accurate at the tld-reseller level. 
 
 ## 20201206
 

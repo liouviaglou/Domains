@@ -566,5 +566,5 @@ preds_df <- pred_all(tld_reseller_list, tld_registrar_excl_list,
                      modelDir=modelDir,
                      fullDir=outputDir)
 
-
+dir.create(file.path(outputDir,'preds'))
 write.csv(preds_df, file=file.path(outputDir,'preds','preds.csv'),row.names = FALSE)
