@@ -33,6 +33,10 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201211
+
+More rows in meta preds than in new data because of differing l10 and auc preds -- separate these out... go back to pred_sekct output 
+
 ## 20201210
 
 backfilling meta-based preds
