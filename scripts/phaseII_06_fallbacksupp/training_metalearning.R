@@ -554,6 +554,7 @@ expiry_df_test_preds_g <- geo_suppl(expiry_df_test_preds, geoLookupDF = geoLooku
 ########################################################################################################
 
 load(file.path(outputDir, 'meta_preds','expiry_new_df.RData')) # new data
+expiry_test_list_new = split(expiry_new_df, expiry_new_df$tld_registrar_index) # new data
 expiry_test_list = split(expiry_df_train, expiry_df_train$tld_registrar_index) # old data (loaded above)
 
 # define tld-re's for testing
@@ -562,7 +563,7 @@ tld_registrar_excl_list = tld_registrar_excl_df(train_df = expiry_df_train) # tr
 
 # predict based on saved models
 preds_df <- pred_all(tld_reseller_list, tld_registrar_excl_list,
-                     test_list = expiry_test_list,
+                     test_list = expiry_test_list_new,
                      modelDir=modelDir,
                      fullDir=outputDir)
 

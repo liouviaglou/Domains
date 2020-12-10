@@ -26,11 +26,74 @@ PHASE 1
 2. Clean up training_metalearning code (esp. perf metrics and meta-feature eng. sections, model training section (function-ize it with depedent variable being the input)) -- replace chart_lift with calc_lift where approp.  (more lightweight function)
 3. Incorporate sld_length and sld_type and other categorical variables into metalearning? We can do something like count of unique or count of a specific (potentially malicious/algorithmic flag) type
 4. clean uo l10_dplyr and auc_dplyr functions. For starters, l10_dplyr doesn't need to calculate lift for all values of P, just 0.1
-5. Fix NA predictions in meta learning application by backfilling with approporiate model results (i.e. if seg2_glm results in NA, try agg_rf else try seg2_glm_fb)
+5. Fix NA predictions in meta learning application by backfilling with approporiate model results (i.e. if seg2_glm results in NA, try agg_rf else try seg2_glm_fb).. see notebook phase_06.../15_ for initial workings of code
+6. write a script to, given a df of training data, apply fallback tables to a given dataframe column of predictions
 
 
 
 ## Lab Notebook 
+
+## 20201210
+
+backfilling meta-based preds
+fallback suppl seg2_glm
+
+59112 extra rows in meta-based preds than model-based preds -- why? did we forget to exclude certain observations
+when preds are joined, 59689 missing values for renew_type, renew_date, 
+examine domain_ids of these two datasets and hteir resulting join
+
+
+3.36% improvement in performance of meta based predictions NAs backfilled with agg_rf over backfilled seg2_glm
+|                model |      l10 |
+|---------------------:|---------:|
+|     pred_agg_glm_ALL | 3.754139 |
+|    pred_seg2_glm_ALL | 3.752551 |
+|      pred_agg_rf_ALL | 3.679532 |
+|         pred_meta_bf | 3.631911 |
+|        pred_meta_fb1 | 3.627829 |
+|         pred_agg_glm | 3.596081 |
+|      pred_seg_rf_ALL | 3.566602 |
+|          pred_agg_rf | 3.555037 |
+|     pred_seg_glm_ALL | 3.517166 |
+| pred_seg2_glm_ALL_fb | 3.513765 |
+|      pred_agg_glm_fb | 3.502653 |
+|     pred_seg2_rf_ALL | 3.484965 |
+|  pred_agg_glm_ALL_fb | 3.483378 |
+|   pred_agg_rf_ALL_fb | 3.384054 |
+|       pred_agg_rf_fb | 3.378158 |
+|        pred_meta_fb2 | 3.377704 |
+|   pred_seg_rf_ALL_fb | 3.294027 |
+|  pred_seg_glm_ALL_fb | 3.281781 |
+|  pred_seg2_rf_ALL_fb | 3.221008 |
+
+1% improvement in performance of meta based predictions NAs backfilled with agg_rf over backfilled seg2_glm
+|                model |       auc |
+|---------------------:|----------:|
+|      pred_agg_rf_ALL | 0.8046351 |
+|      pred_seg_rf_ALL | 0.8030500 |
+|     pred_agg_glm_ALL | 0.8028913 |
+|          pred_agg_rf | 0.8022654 |
+|     pred_seg_glm_ALL | 0.7995283 |
+|         pred_meta_bf | 0.7990453 |
+|        pred_meta_fb1 | 0.7988662 |
+|   pred_seg_rf_ALL_fb | 0.7959907 |
+|           meta.based | 0.7945666 |
+|       pred_agg_rf_fb | 0.7937616 |
+|   pred_agg_rf_ALL_fb | 0.7932038 |
+|  pred_agg_glm_ALL_fb | 0.7920677 |
+|      pred_agg_glm_fb | 0.7919316 |
+|        pred_meta_fb2 | 0.7917479 |
+|    pred_seg2_glm_ALL | 0.7917411 |
+|  pred_seg_glm_ALL_fb | 0.7913171 |
+| pred_seg2_glm_ALL_fb | 0.7912762 |
+|  pred_seg2_rf_ALL_fb | 0.7845526 |
+|     pred_seg2_rf_ALL | 0.7821420 |
+|         pred_agg_glm | 0.7527620 |
+
+Using agg_rf over seg2_glm_fb would improve l10 and auc by 4.7% and 1.7%, respectively
+
+
+
 
 ## 20201208
 
