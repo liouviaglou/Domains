@@ -28,6 +28,7 @@ PHASE 1
 4. clean uo l10_dplyr and auc_dplyr functions. For starters, l10_dplyr doesn't need to calculate lift for all values of P, just 0.1
 5. Fix NA predictions in meta learning application by backfilling with approporiate model results (i.e. if seg2_glm results in NA, try agg_rf else try seg2_glm_fb).. see notebook phase_06.../15_ for initial workings of code
 6. write a script to, given a df of training data, apply fallback tables to a given dataframe column of predictions
+7. compute instance: figure out how to add additional memory while keeping cores the same
 
 
 
