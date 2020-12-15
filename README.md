@@ -34,9 +34,15 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20201215
+
+Removed Second & Subsequent renewals from new data pull & predictions in notebook 16_
+Regenerated meta_preds folder contents with only First Time renewal new data, saved previous as meta_preds_mistake
+Regenerated output
+
 ## 20201211
 
-More rows in meta preds than in new data because of differing l10 and auc preds -- separate these out... go back to pred_sekct output 
+More rows in meta preds than in new data because of differing l10 and auc preds -- separated these out... go back to pred_sekct output 
 
 ## 20201210
 

@@ -846,7 +846,6 @@ auc_dplyr <- function (pred_df,
 # and generates predictions based on models in outputDir/preds_meta
 pred_select <- function (expiry_new_df,
                          new_metametrics_imp_pred_df,
-                         dataDir='/home/jupyter/Domains_202003/data/output/datapull_20201116',
                          modelDir='/home/jupyter/Domains_202003/data/output/models_20201104',
                          outputDir='/home/jupyter/Domains_202003/data/output/datapull_20201127'
                       ){  

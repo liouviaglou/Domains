@@ -1,4 +1,4 @@
-# Rscript training_metalearning.R > /home/jupyter/Domains_202003/data/output/training_metalearning.log 2>&1
+# Rscript training_metalearning.R > /home/jupyter/Domains_202003/data/output/training_metalearning5.log 2>&1
 
 # Takes as input preds_df output from predictions_metalearning.R
 # Supplements with fallback
@@ -13,6 +13,7 @@ suppressMessages(library(ranger))
 suppressMessages(library(pbapply))
 suppressMessages(library(stringr))
 suppressMessages(library(e1071))
+suppressMessages(library(missRanger))
 
 source('functions_fallback.R')
 source('functions_metalearning.R')
@@ -23,39 +24,39 @@ dataDir='/home/jupyter/Domains_202003/data/output/datapull_20201116'
 modelDir='/home/jupyter/Domains_202003/data/output/models_20201104'
 outputDir='/home/jupyter/Domains_202003/data/output/datapull_20201127'
 
-########################################################################################################
-#
-# LOAD DATA
-#
-########################################################################################################
-# Load preds output from predictions_metalearning.R
-#   Notes: 1. Script writes a preds.csv file to fullDir/preds 
-#             (/home/jupyter/Domains_202003/data/output/models_2020****/preds)
-#          2. Script reads in RData & preprocesses (creating train & test subsets at the end) 
-#             via load_prep_data_expiry_2.R
-#          ... but in this case, we had some data pull issues (variables tld & geo excluded)
-#              that required me to hack together train & test and subsequent predictions
-#              instead of rerunning the entire pipeline
-expiry_df_test_preds <- read.csv(file.path(dataDir,"expiry_df_test_preds.csv"))
+# ########################################################################################################
+# #
+# # LOAD DATA
+# #
+# ########################################################################################################
+# # Load preds output from predictions_metalearning.R
+# #   Notes: 1. Script writes a preds.csv file to fullDir/preds 
+# #             (/home/jupyter/Domains_202003/data/output/models_2020****/preds)
+# #          2. Script reads in RData & preprocesses (creating train & test subsets at the end) 
+# #             via load_prep_data_expiry_2.R
+# #          ... but in this case, we had some data pull issues (variables tld & geo excluded)
+# #              that required me to hack together train & test and subsequent predictions
+# #              instead of rerunning the entire pipeline
+# expiry_df_test_preds <- read.csv(file.path(dataDir,"expiry_df_test_preds.csv"))
 
-# Load training data used for predictions_metalearning.R to assign fallback values
-expiry_df_train <- read.csv(file.path(dataDir,"expiry_df_train.csv"))
+# # Load training data used for predictions_metalearning.R to assign fallback values
+# expiry_df_train <- read.csv(file.path(dataDir,"expiry_df_train.csv"))
 
-# Load geo_suppl for train and test-pred data
-geoLookupDF <- read.csv("/home/jupyter/Domains_202003/data/input/PredictiveModelAnalysis_ResellerGeoMap.csv")
+# # Load geo_suppl for train and test-pred data
+# geoLookupDF <- read.csv("/home/jupyter/Domains_202003/data/input/PredictiveModelAnalysis_ResellerGeoMap.csv")
 
-# Supplement both train and test_preds with geo information
-expiry_df_train_g <- geo_suppl(expiry_df_train, geoLookupDF = geoLookupDF)
-expiry_df_test_preds_g <- geo_suppl(expiry_df_test_preds, geoLookupDF = geoLookupDF)
+# # Supplement both train and test_preds with geo information
+# expiry_df_train_g <- geo_suppl(expiry_df_train, geoLookupDF = geoLookupDF)
+# expiry_df_test_preds_g <- geo_suppl(expiry_df_test_preds, geoLookupDF = geoLookupDF)
 
 
-########################################################################################################
-#
-# SUPPLEMENT predictions w/ FALLBACK
-#
-########################################################################################################
+# ########################################################################################################
+# #
+# # SUPPLEMENT predictions w/ FALLBACK
+# #
+# ########################################################################################################
 
-# generate list of fallback tables
+# # generate list of fallback tables
 # npv_fallback_list = fallback_gen( npv_historic_renewal_data = expiry_df_train_g, 
 #                                  reseller_am_geo_map = geoLookupDF)
 
@@ -269,37 +270,36 @@ expiry_df_test_preds_g <- geo_suppl(expiry_df_test_preds, geoLookupDF = geoLooku
              
 # metametrics_df <- metametrics_df %>% mutate_if(is.list,as.numeric) 
              
-# ########################################################################################################
-# #
-# # IMPUTE missing values
-# #
-# ########################################################################################################
+# # ########################################################################################################
+# # #
+# # # IMPUTE missing values
+# # #
+# # ########################################################################################################
 
-# # but first, remove observations with missing wins -- we don't want to impute these dependent variables 
+# # # but first, remove observations with missing wins -- we don't want to impute these dependent variables 
 # metametrics_df <- metametrics_df %>% filter(!is.na(auc_win_04))
              
-# library(missRanger)
 # metametrics_imp_df <- missRanger(metametrics_df, num.trees = 100)
  
-# ########################################################################################################
-# #
-# # TRAIN/TEST split
-# # No need: Metalearning model trained on entire 20% test subset of expiry & tested on subsequent data pull
-# #
-# ########################################################################################################
+# # ########################################################################################################
+# # #
+# # # TRAIN/TEST split
+# # # No need: Metalearning model trained on entire 20% test subset of expiry & tested on subsequent data pull
+# # #
+# # ########################################################################################################
 
-# # set.seed(123) 
-# # smp_siz = floor(0.8*nrow(metametrics_imp_df))
-# # train_ind = sample(seq_len(nrow(metametrics_imp_df)),size = smp_siz) 
-# # train = metametrics_imp_df[train_ind,] 
-# # test = metametrics_imp_df[-train_ind,]  
+# set.seed(123) 
+# smp_siz = floor(0.8*nrow(metametrics_imp_df))
+# train_ind = sample(seq_len(nrow(metametrics_imp_df)),size = smp_siz) 
+# train = metametrics_imp_df[train_ind,] 
+# test = metametrics_imp_df[-train_ind,]  
 
 
-# ########################################################################################################
-# #
-# # TRAIN models
-# #
-# ########################################################################################################
+# # ########################################################################################################
+# # #
+# # # TRAIN models
+# # #
+# # ########################################################################################################
 
 # # l10
 
@@ -362,29 +362,30 @@ expiry_df_test_preds_g <- geo_suppl(expiry_df_test_preds, geoLookupDF = geoLooku
 #                case.weights=weights)
 
                                     
-# ########################################################################################################
-# #
-# # ASSIGN model to data based on predictions results
-# #  need to modify this so it takes in new data pull
-# #
-# ########################################################################################################                  
+# # ########################################################################################################
+# # #
+# # # ASSIGN model to data based on predictions results
+# # #  need to modify this so it takes in new data pull
+# # #
+# # ########################################################################################################                  
 
-# # MODIFICATION TO TEST ON NEW DATA PULL
-# # 1. create new big query table (do this from within R?) using data coming after training data
-# #    models trained on expiry 20190601-20200901 data pulled on 11/16 
-# #    so new data pull should be 20200902-20201102 (assuming 3-4 week lag in assigning renewal_status flag)
-# #    ... use saved query get_expiry_data_20201127 but change the 2 separate date windows accordingly
-# #    ... then choose "SAVE RESULTS" & save to bigquery table named like 
-# #        radix2020.expiry.expiry_20200902_20201102_20201127 (last date is date of pull)
-# # 2. use notebook 03_* to pull the data into an RDS/csv (.94 million rows)
+# # # MODIFICATION TO TEST ON NEW DATA PULL
+# # # 1. create new big query table (do this from within R?) using data coming after training data
+# # #    models trained on expiry 20190601-20200901 data pulled on 11/16 
+# # #    so new data pull should be 20200902-20201102 (assuming 3-4 week lag in assigning renewal_status flag)
+# # #    ... use saved query get_expiry_data_20201127 but change the 2 separate date windows accordingly
+# # #    ... then choose "SAVE RESULTS" & save to bigquery table named like 
+# # #        radix2020.expiry.expiry_20200902_20201102_20201127 (last date is date of pull)
+# # # 2. use notebook 03_* to pull the data into an RDS/csv (.94 million rows)
                                                
 # expiry_new_df <- readRDS(file.path(outputDir,"expiry_20200902_20201102_20201127")) %>% 
-#                                                filter(expiry_date < "2020-10-08") %>% 
-#                                                filter(!is.na(gibb_score)) %>% 
-#                                                mutate (reg_arpt = ifelse(reg_arpt <= 0, 0.0001,reg_arpt),
-#                                                        log_reg_arpt = log(reg_arpt),
-#                                                        tld_registrar_index = tolower(paste(tld, reseller,sep="")))
-                                               
+#   filter(expiry_date < "2020-10-08") %>% 
+#   filter(!is.na(gibb_score)) %>% 
+#    mutate (reg_arpt = ifelse(reg_arpt <= 0, 0.0001,reg_arpt),
+#           log_reg_arpt = log(reg_arpt),
+#           tld_registrar_index = tolower(paste(tld, reseller,sep="")))  %>% 
+#   filter(renewal_type=='FirstTime')
+                                              
 # expiry_new_df <- geo_suppl(expiry_new_df, geoLookupDF = geoLookupDF)
 
 # # engineer metadata
@@ -517,16 +518,7 @@ expiry_df_test_preds_g <- geo_suppl(expiry_df_test_preds, geoLookupDF = geoLooku
                               
                               
 # save(expiry_new_df, file=file.path(outputDir, 'meta_preds','expiry_new_df.RData'))
-# save(new_metametrics_imp_pred_df, file=file.path(outputDir, 'meta_preds','new_metametrics_imp_pred_df.RData'))
-
-# expiry_df_test_preds_assign <- merge(expiry_new_df, 
-#                                      metametrics_imp_pred_df %>% 
-#                                         select(tld_registrar_index, length(test_pred)-1, length(test_pred)), 
-#                                      by="tld_registrar_index", all.y=TRUE) 
-# expiry_df_test_preds_assign <- expiry_df_test_preds_assign %>% 
-#                                 rename(l10_win_04_pred_model = length(expiry_df_test_preds_assign)-1,
-#                                       auc_win_04_pred_model = length(expiry_df_test_preds_assign))
-                      
+# save(new_metametrics_imp_pred_df, file=file.path(outputDir, 'meta_preds','new_metametrics_imp_pred_df.RData'))                     
                                                
                                                
 ########################################################################################################
@@ -535,17 +527,16 @@ expiry_df_test_preds_g <- geo_suppl(expiry_df_test_preds, geoLookupDF = geoLooku
 #
 ########################################################################################################
 
-# load(file.path(outputDir, 'meta_preds','expiry_new_df.RData'))
-# load(file.path(outputDir, 'meta_preds','new_metametrics_imp_pred_df.RData'))
+load(file.path(outputDir, 'meta_preds','expiry_new_df.RData'))
+load(file.path(outputDir, 'meta_preds','new_metametrics_imp_pred_df.RData'))
 
 
 
-# pred_select(expiry_new_df,
-#                          new_metametrics_imp_pred_df,
-#                          dataDir=dataDir,
-#                          modelDir=modelDir,
-#                          outputDir=outputDir
-#                       )
+pred_select(expiry_new_df,
+                         new_metametrics_imp_pred_df,
+                         modelDir=modelDir,
+                         outputDir=outputDir
+                      )
 
 ########################################################################################################
 #
@@ -553,19 +544,19 @@ expiry_df_test_preds_g <- geo_suppl(expiry_df_test_preds, geoLookupDF = geoLooku
 #
 ########################################################################################################
 
-load(file.path(outputDir, 'meta_preds','expiry_new_df.RData')) # new data
-expiry_test_list_new = split(expiry_new_df, expiry_new_df$tld_registrar_index) # new data
-expiry_test_list = split(expiry_df_train, expiry_df_train$tld_registrar_index) # old data (loaded above)
+# load(file.path(outputDir, 'meta_preds','expiry_new_df.RData')) # new data
+# expiry_test_list_new = split(expiry_new_df, expiry_new_df$tld_registrar_index) # new data
+# expiry_test_list = split(expiry_df_train, expiry_df_train$tld_registrar_index) # old data (loaded above)
 
-# define tld-re's for testing
-tld_reseller_list = expiry_new_df %>%  distinct(tld_registrar_index) %>% pull(tld_registrar_index) # tested on new data
-tld_registrar_excl_list = tld_registrar_excl_df(train_df = expiry_df_train) # trained on old data, exclusion base don old data
+# # define tld-re's for testing
+# tld_reseller_list = expiry_new_df %>%  distinct(tld_registrar_index) %>% pull(tld_registrar_index) # tested on new data
+# tld_registrar_excl_list = tld_registrar_excl_df(train_df = expiry_df_train) # trained on old data, exclusion base don old data
 
-# predict based on saved models
-preds_df <- pred_all(tld_reseller_list, tld_registrar_excl_list,
-                     test_list = expiry_test_list_new,
-                     modelDir=modelDir,
-                     fullDir=outputDir)
+# # predict based on saved models
+# preds_df <- pred_all(tld_reseller_list, tld_registrar_excl_list,
+#                      test_list = expiry_test_list_new,
+#                      modelDir=modelDir,
+#                      fullDir=outputDir)
 
-dir.create(file.path(outputDir,'preds'))
-write.csv(preds_df, file=file.path(outputDir,'preds','preds.csv'),row.names = FALSE)
+# dir.create(file.path(outputDir,'preds'))
+# write.csv(preds_df, file=file.path(outputDir,'preds','preds.csv'),row.names = FALSE)
