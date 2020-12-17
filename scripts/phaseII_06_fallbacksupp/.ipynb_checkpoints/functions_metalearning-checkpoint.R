@@ -846,6 +846,8 @@ auc_dplyr <- function (pred_df,
 # and generates predictions based on models in outputDir/preds_meta
 pred_select <- function (expiry_new_df,
                          new_metametrics_imp_pred_df,
+                         expiry_df_train, # training data suppl w/ geo
+                         geoLookupDF, # geo map
                          modelDir='/home/jupyter/Domains_202003/data/output/models_20201104',
                          outputDir='/home/jupyter/Domains_202003/data/output/datapull_20201127'
                       ){  
@@ -862,17 +864,17 @@ pred_select <- function (expiry_new_df,
 
         if (model == 'agg_rf_ALL'){
             cat("\n\nPredicting model_agg_rf_ALL for",length(tld_registrar_list),"tld-re's \n")
-            load(file.path(modelDir, 'model_agg_rf_ALL.Rdata'))
-            preds_agg_rf_ALL = lapply(tld_registrar_list, 
-                   function(tld_reseller_str) pred_agg_rf(model_agg_rf_ALL, 
-                                                          test_list, 
-                                                          tld_reseller_str)
-                   )
-            rm(model_agg_rf_ALL)
-            gc() 
+#             load(file.path(modelDir, 'model_agg_rf_ALL.Rdata'))
+#             preds_agg_rf_ALL = lapply(tld_registrar_list, 
+#                    function(tld_reseller_str) pred_agg_rf(model_agg_rf_ALL, 
+#                                                           test_list, 
+#                                                           tld_reseller_str)
+#                    )
+#             rm(model_agg_rf_ALL)
+#             gc() 
 
-            save(preds_agg_rf_ALL, file=file.path(outputDir, 'meta_preds', 'preds_agg_rf_ALL.RData'))
-#             load(file.path(outputDir, 'meta_preds', 'preds_agg_rf_ALL.RData'))
+#             save(preds_agg_rf_ALL, file=file.path(outputDir, 'meta_preds', 'preds_agg_rf_ALL.RData'))
+            load(file.path(outputDir, 'meta_preds', 'preds_agg_rf_ALL.RData'))
             preds_agg_rf_ALL_df <- cbind(rbindlist(test_list[tld_registrar_list], use.names=TRUE), 
                                          rbindlist(preds_agg_rf_ALL, use.names=TRUE))
             preds_agg_rf_ALL_df$model <- 'preds_agg_rf_ALL'
@@ -882,15 +884,15 @@ pred_select <- function (expiry_new_df,
 
         if (model == 'seg2_glm'){
             cat("\n\nPredicting model_seg2_glm_ALL for",length(tld_registrar_list),"tld-re's\n")
-            lapply(Sys.glob(file.path(modelDir,'model_seg2_glm_*')),load,.GlobalEnv)
-            preds_seg2_glm_ALL = lapply(tld_registrar_list, 
-                   function(tld_reseller_str) pred_seg2_glm(
-                       test_list, 
-                       tld_reseller_str)
-                   )
-            rm(list=ls(pattern='^model_seg2_glm_'))    
-            save(preds_seg2_glm_ALL, file=file.path(outputDir, 'meta_preds', 'preds_seg2_glm_ALL.RData')) 
-#             load(file.path(outputDir, 'meta_preds', 'preds_seg2_glm_ALL.RData'))  
+#             lapply(Sys.glob(file.path(modelDir,'model_seg2_glm_*')),load,.GlobalEnv)
+#             preds_seg2_glm_ALL = lapply(tld_registrar_list, 
+#                    function(tld_reseller_str) pred_seg2_glm(
+#                        test_list, 
+#                        tld_reseller_str)
+#                    )
+#             rm(list=ls(pattern='^model_seg2_glm_'))    
+#             save(preds_seg2_glm_ALL, file=file.path(outputDir, 'meta_preds', 'preds_seg2_glm_ALL.RData')) 
+            load(file.path(outputDir, 'meta_preds', 'preds_seg2_glm_ALL.RData'))  
             preds_seg2_glm_ALL_df <- cbind(rbindlist(test_list[tld_registrar_list], use.names=TRUE), 
                                          rbindlist(preds_seg2_glm_ALL, use.names=TRUE))
             preds_seg2_glm_ALL_df$model <- 'preds_seg2_glm_ALL'
@@ -899,6 +901,10 @@ pred_select <- function (expiry_new_df,
         if (model == 'seg2_glm_fb'){
 
             cat("\n\nPredicting model_seg2_glm_fb for",length(tld_registrar_list),"tld-re's\n")
+            
+            # supplement trasining data with geo
+            expiry_df_train_g <- geo_suppl(expiry_df_train, geoLookupDF = geoLookupDF)
+            
             # generate list of fallback tables
             npv_fallback_list = fallback_gen( npv_historic_renewal_data = expiry_df_train_g, 
                                          reseller_am_geo_map = geoLookupDF)

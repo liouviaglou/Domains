@@ -1,4 +1,4 @@
-# Rscript training_metalearning.R > /home/jupyter/Domains_202003/data/output/training_metalearning5.log 2>&1
+# Rscript training_metalearning.R > /home/jupyter/Domains_202003/data/output/training_metalearning7.log 2>&1
 
 # Takes as input preds_df output from predictions_metalearning.R
 # Supplements with fallback
@@ -530,12 +530,17 @@ outputDir='/home/jupyter/Domains_202003/data/output/datapull_20201127'
 load(file.path(outputDir, 'meta_preds','expiry_new_df.RData'))
 load(file.path(outputDir, 'meta_preds','new_metametrics_imp_pred_df.RData'))
 
+expiry_df_train <- read.csv(file.path(dataDir,"expiry_df_train.csv"))
+geoLookupDF <- read.csv("/home/jupyter/Domains_202003/data/input/PredictiveModelAnalysis_ResellerGeoMap.csv")
+
 
 
 pred_select(expiry_new_df,
-                         new_metametrics_imp_pred_df,
-                         modelDir=modelDir,
-                         outputDir=outputDir
+            new_metametrics_imp_pred_df,
+             expiry_df_train, 
+            geoLookupDF, 
+            modelDir=modelDir,
+            outputDir=outputDir
                       )
 
 ########################################################################################################
