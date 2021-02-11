@@ -39,13 +39,16 @@ PHASE 1
 Started 2021 predictions
 
 Testing out BQ command line interface -- failed at moving file form notebook to local on cloud shell (pemrission errors)
+Move from loal to instance seemingly worked when not using an existing user name but I can't find the file. chmod 777 on existing username (jupyer) didn't work
+`gcloud compute scp --recurse qq.txt jupyter@r-3-20200619-150635:/tmp --zone=us-west1-b`
 Move file from instance to local
-gcloud projects list 
-gcloud compute project-info describe --project radix2020
-gcloud compute scp qq.txt lubagoukhova@r-3-20200619-150635:/tmp/qq.txt --zone=us-west1-b
-gcloud compute scp lubagoukhova@r-3-20200619-150635:/home/jupyter/Domains_202003/scripts/phaseII_07_/expiry_prepped_data_limit100.sql / --zone=us-west1-b
-Execute query in file 
+`gcloud projects list `
+`gcloud compute project-info describe --project radix2020`
+`gcloud compute scp qq.txt lubagoukhova@r-3-20200619-150635:/tmp/qq.txt --zone=us-west1-b`
+`gcloud compute scp lubagoukhova@r-3-20200619-150635:/home/jupyter/Domains_202003/scripts/phaseII_07_/expiry_prepped_data_limit100.sql / --zone=us-west1-b`
+Execute query in file-- first need the file to exist on local
 `bq query --flagfile="/Domains_202003/scripts/phaseII_07_/expiry_prepped_data_limit100.sql" --destination_table="radix2020:expiry.new_test2"`
+Next, try to move file from cloud storage to local? may be easier
 
 ## 20201215
 
