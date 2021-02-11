@@ -34,6 +34,19 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20210211
+
+Started 2021 predictions
+
+Testing out BQ command line interface -- failed at moving file form notebook to local on cloud shell (pemrission errors)
+Move file from instance to local
+gcloud projects list 
+gcloud compute project-info describe --project radix2020
+gcloud compute scp qq.txt lubagoukhova@r-3-20200619-150635:/tmp/qq.txt --zone=us-west1-b
+gcloud compute scp lubagoukhova@r-3-20200619-150635:/home/jupyter/Domains_202003/scripts/phaseII_07_/expiry_prepped_data_limit100.sql / --zone=us-west1-b
+Execute query in file 
+`bq query --flagfile="/Domains_202003/scripts/phaseII_07_/expiry_prepped_data_limit100.sql" --destination_table="radix2020:expiry.new_test2"`
+
 ## 20201215
 
 Removed Second & Subsequent renewals from new data pull & predictions in notebook 16_
