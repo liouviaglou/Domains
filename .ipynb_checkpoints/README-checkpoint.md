@@ -38,17 +38,15 @@ PHASE 1
 
 Started 2021 predictions
 
-Testing out BQ command line interface -- failed at moving file form notebook to local on cloud shell (pemrission errors)
-Move from loal to instance seemingly worked when not using an existing user name but I can't find the file. chmod 777 on existing username (jupyer) didn't work
-`gcloud compute scp --recurse qq.txt jupyter@r-3-20200619-150635:/tmp --zone=us-west1-b`
-Move file from instance to local
-`gcloud projects list `
-`gcloud compute project-info describe --project radix2020`
-`gcloud compute scp qq.txt lubagoukhova@r-3-20200619-150635:/tmp/qq.txt --zone=us-west1-b`
-`gcloud compute scp lubagoukhova@r-3-20200619-150635:/home/jupyter/Domains_202003/scripts/phaseII_07_/expiry_prepped_data_limit100.sql / --zone=us-west1-b`
-Execute query in file-- first need the file to exist on local
-`bq query --flagfile="/Domains_202003/scripts/phaseII_07_/expiry_prepped_data_limit100.sql" --destination_table="radix2020:expiry.new_test2"`
-Next, try to move file from cloud storage to local? may be easier
+1. Create BQ Table of Expiry Data in my project by executing BQ from command line.
+    1.1 Transfer .sql query file to cloud shell local (from vm instance)
+        1.1.0 note: transfering directly from instance to cloud shell local fails due to permission issues
+        1.1.1 step1: transfering from instance to storage: `gsutil cp ~/Domains_202003/scripts/phaseII_07_/expiry_prepped_data.sql gs://bqqueries/` executed from command line of instance
+        1.1.2 step 2: transfering from storage to local: `gsutil cp gs://bqqueries/expiry_prepped_data.sql .` executed from cloud shell
+    1.1 Execute query in file on cloud shell local `bq query --use_legacy_sql=false --destination_table="radix2020:expiry.new_test2" --flagfile="expiry_prepped_data.sql"` (note `--max_rows=100` flag does not work as LIMIT statement.)
+2. Query table from within R using bigRquery (see *Domains_202003/scripts/phaseII_07_/01_newexpirydataQA.ipynb* file)
+    
+
 
 ## 20201215
 
