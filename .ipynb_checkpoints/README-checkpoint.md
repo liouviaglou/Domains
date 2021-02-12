@@ -39,11 +39,11 @@ PHASE 1
 Started 2021 predictions
 
 1. Create BQ Table of Expiry Data in my project by executing BQ from command line.
-    1.1 Transfer .sql query file to cloud shell local (from vm instance)
-        1.1.0 note: transfering directly from instance to cloud shell local fails due to permission issues
-        1.1.1 step1: transfering from instance to storage: `gsutil cp ~/Domains_202003/scripts/phaseII_07_/expiry_prepped_data.sql gs://bqqueries/` executed from command line of instance
-        1.1.2 step 2: transfering from storage to local: `gsutil cp gs://bqqueries/expiry_prepped_data.sql .` executed from cloud shell
-    1.1 Execute query in file on cloud shell local `bq query --use_legacy_sql=false --destination_table="radix2020:expiry.new_test2" --flagfile="expiry_prepped_data.sql"` (note `--max_rows=100` flag does not work as LIMIT statement.)
+    1. Transfer .sql query file to cloud shell local (from vm instance)
+        1. note: transfering directly from instance to cloud shell local fails due to permission issues
+        2. step1: transfering from instance to storage: `gsutil cp ~/Domains_202003/scripts/phaseII_07_/expiry_prepped_data.sql gs://bqqueries/` executed from command line of instance
+        3. step 2: transfering from storage to local: `gsutil cp gs://bqqueries/expiry_prepped_data.sql .` executed from cloud shell
+    2. Execute query in file on cloud shell local `bq query --use_legacy_sql=false --destination_table="radix2020:expiry.new_test2" --flagfile="expiry_prepped_data.sql"` (note `--max_rows=100` flag does not work as LIMIT statement.)
 2. Query table from within R using bigRquery (see *Domains_202003/scripts/phaseII_07_/01_newexpirydataQA.ipynb* file)
     
 
