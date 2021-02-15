@@ -34,6 +34,10 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20210215
+
+Confirmed that bq command line statements can be run from w/in Notebook Instance (via Terminal) and from an R Notebook (via `system()` function). Tested via the following command, which worked for both situations `bq query --use_legacy_sql=false --destination_table="radix2020:expiry.new_test2" --flagfile="expiry_prepped_data_limit100.sql"`
+
 ## 20210211
 
 Started 2021 predictions
