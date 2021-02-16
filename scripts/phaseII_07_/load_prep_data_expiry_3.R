@@ -1,9 +1,21 @@
+# Rscript --vanilla load_prep_data_expiry_3.R radix2020 expiry expiry_prepped_data.sql
+
 library(data.table)
 
 # TODO:
 # 1. make pulldate an arguments to pass to script 
 #    (pulldate should be current date, so could just get this programmatically)
 
+args = commandArgs(trailingOnly=TRUE)
+
+# test if there is at least one argument: if not, return an error
+if (length(args)<3) {
+  stop("Two arguments must be supplied for BQ table creation: project name, database name, query file loc", call.=FALSE)
+}
+
+projname_str <- args[1]
+dbname_str <- args[2]
+query_file <- args[3] 
 
 
 ########################################################################################################################
@@ -14,20 +26,29 @@ library(data.table)
 #                                                                                                                      #
 ########################################################################################################################
 
-command_str <-  "bq query --use_legacy_sql=false --destination_table='radix2020:expiry.expiry_20180101_20211231_20210215' --flagfile='expiry_prepped_data.sql' "
+today <- Sys.Date()
+
+tblname_str <- paste0('expiry_20180101_20211231_',format(today, format="%Y%m%d"))
+tablename_str <- paste0(projname_str,':',dbname_str,'.',tblname_str)
+
+command_str <-  paste0("bq query --use_legacy_sql=false --destination_table='",
+                       tablename_str,"' --flagfile='",query_file,"' ")
 
 system(command_str)
 
-cat("Created BQ table in my project")
+cat("Created BQ table", tablename_str ,"\n")
 
 ########################################################################################################################
 #                                                                                                                      #
-# PULL 5Q subset, generate 10/45/45% test/train/train split
+# PULL 5Q (456 day) subset, generate 10/45/45% test/train/train split
 # https://www.oreilly.com/content/repeatable-sampling-of-data-sets-in-bigquery-for-machine-learning/
 #                                                                                                                      #
 ########################################################################################################################
 
-
+maxdate <- today - 50
+mindate <- maxdate - 456
+mindate
+maxdatex
 
 # copy from gcp
 # system("gsutil cp gs://data_outputt/output/expiry_train_prepped_1list/home/jupyter/local/Domains_202003/data/expiry_train_prepped_1list")
