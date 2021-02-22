@@ -2,9 +2,13 @@
 
 library(data.table)
 
+# Script automatically pulls most recently available, accurate 5Q worth of data 
+# & splits it into a 10/45/45 test/train/train split
+# output are 3 BQ tables pertaining to the split, in the current project
+# intermediate 
+
 # TODO:
-# 1. make pulldate an arguments to pass to script 
-#    (pulldate should be current date, so could just get this programmatically)
+
 
 args = commandArgs(trailingOnly=TRUE)
 
