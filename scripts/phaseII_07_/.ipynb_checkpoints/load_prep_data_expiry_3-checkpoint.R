@@ -137,7 +137,7 @@ saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'),
 
 cat("Created RDS table", paste0(directory,'/',tblname_str_2,'.RDS') ,"\n")
 
-
+expiry_train_df = get(tblname_str_2)
 
 ########################################################################################################################
 # CREATE train2 table                                                                                                  #
@@ -165,7 +165,24 @@ saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'),
 
 cat("Created RDS table", paste0(directory,'/',tblname_str_2,'.RDS') ,"\n")
 
-# WRITE to GCP cloud
+expiry_test_df = get(tblname_str_2)
+
+########################################################################################################################
+# WRITE to GCP cloud                                                                                                   #
+########################################################################################################################
+
 system(paste0("gsutil cp -r ",directory," ", bucket))
 
 cat("Transfered RDS tables to GCP ", paste0(bucket,'datapull_', format(today, format="%Y%m%d")) ,"\n")
+
+
+########################################################################################################################
+# GENERATE DATAFRAMES FOR SUBSEQUENT SCRIPTS                                                                           #
+########################################################################################################################
+
+# see last lines of train1 and train2 CREATE sections
+
+# split into lists
+# expiry_list <- split(expiry_df, expiry_df$tld_registrar_index) # I don't think we'll need this 
+expiry_train_list <- split(expiry_train_df, expiry_train_df$tld_registrar_index)
+expiry_test_list <- split(expiry_test_df, expiry_test_df$tld_registrar_index)
