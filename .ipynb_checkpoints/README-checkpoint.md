@@ -34,16 +34,27 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20210223
+
+tested oad_prep_expiry_3.R script
+
+takes 43min to run 
+
+Added some stdout prints to load_prep_expiry_3.R
+
+Added '--max_rows=0' argument as per: [link](https://stackoverflow.com/questions/15390791/prevent-output-for-query-destination-table-command)
+
 ## 20210222
 
-Finished load_prep_expiry_2.R script
-takes ?? to run 
-need to test
+Finished load_prep_expiry_3.R script
+
 
 ## 20210216
 
 Working on data poull & train/test split script (nearly done)
+
 test, train1, train2 tables created in big query
+
 currently, actual select statements in bq query command line reference tabled without projects (assumes project is the the default one, so this may have to be set explicitly)
 
 

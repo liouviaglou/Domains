@@ -7,12 +7,14 @@ options(scipen = 20)
 # Script automatically pulls most recently available, accurate 5Q worth of data 
 # & splits it into a 10/45/45 test/train/train split
 # outputs are 
-#    - 3 BQ tables, in the current project (may not be needed?)
-#    - 3 RDS files, in local directory
-#    - 3 RDS files, in google cloud storage
+#    1. 3 BQ tables, in the current project (may not be needed?)
+#    2. 3 RDS files, in local directory
+#    3. 3 RDS files, in google cloud storage
 # intermediary big query table containing entire pull from .sql file
 # .... is set to auto-delete within 1 hour of being created (enough time for script to run
-# Note: Naming convention for expiry data pulls: expiry_mindate_maxdate_pulldate
+# Notes:  - Naming convention for expiry data pulls: expiry_mindate_maxdate_pulldate
+#         - Generatiion of 2 is most time & resource intensive, can be moved to subsequent scripts
+#           3 depends on 2 (writing directly to GCP without loading into memory is not implemented here)
 
 # TODO:
 # Change the directory var & bucket var definitions to suit your folder/bucket structure
@@ -57,7 +59,7 @@ tblname_str_1 <- paste0('expiry_20180101_20211231_',format(today, format="%Y%m%d
 tblloc_str_1 <- paste0(projname_str,':',dbname_str,'.',tblname_str_1)
 
 # CREATE intermediary big query table containing entire pull from .sql file
-command_str <-  paste0("bq query --use_legacy_sql=false --destination_table='",
+command_str <-  paste0("bq query --max_rows=0 --use_legacy_sql=false --destination_table='",
                        tblloc_str_1,"' --flagfile='",query_file,"' ")
 cat("Executing command:\n\t", command_str,"\n")
 system(command_str)
@@ -76,11 +78,14 @@ cat("Updated BQ table", tblloc_str_1 ," to be automatically deleted in 1 hour ("
 #                                                                                                                      #
 ########################################################################################################################
 
-# DEFINE date ranges given contrains 
+# DEFINE date ranges given contraints 
 maxdate <- today - 50
 mindate <- maxdate - 456
 
-# CREATE test table
+########################################################################################################################
+# CREATE test table                                                                                                    #
+########################################################################################################################
+
 tblname_str_2 <- paste0('expiry_',format(mindate, format="%Y%m%d"),'_',format(maxdate, format="%Y%m%d") ,'_test')
 tblloc_str_2 <- paste0(projname_str,':',dbname_str,'.',tblname_str_2)
 
@@ -88,7 +93,7 @@ query_str <- gsub("[\r\n]", " ", paste0("SELECT * FROM  ",dbname_str,'.',tblname
   DATE(expiry_date) BETWEEN \"",mindate,"\" AND \"",maxdate,"\" AND renewed_count=1 AND  
   ABS(HASH(expiry_date)) % 100 < 10"))
 
-command_str <- paste0("bq query --destination_table='", tblloc_str_2,"' '", query_str ,"'")
+command_str <- paste0("bq query --max_rows=0 --destination_table='", tblloc_str_2,"' '", query_str ,"'")
 cat("Executing command:\n\t", command_str,"\n")
 system(command_str)
 
@@ -102,7 +107,13 @@ saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'),
         compress=TRUE)
 
 
-# CREATE train1 table
+cat("Created RDS table", paste0(directory,'/',tblname_str_2,'.RDS') ,"\n")
+
+
+########################################################################################################################
+# CREATE train1 table                                                                                                  #
+########################################################################################################################
+
 tblname_str_2 <- paste0('expiry_',format(mindate, format="%Y%m%d"),'_',format(maxdate, format="%Y%m%d") ,'_train1')
 tblloc_str_2 <- paste0(projname_str,':',dbname_str,'.',tblname_str_2)
 
@@ -111,7 +122,7 @@ query_str <- gsub("[\r\n]", " ", paste0("SELECT * FROM  ",dbname_str,'.',tblname
   ABS(HASH(expiry_date)) % 100 >= 10 AND  
   ABS(HASH(expiry_date)) % 100 < 55"))
 
-command_str <- paste0("bq query --destination_table='", tblloc_str_2,"' '", query_str ,"'")
+command_str <- paste0("bq query --max_rows=0 --destination_table='", tblloc_str_2,"' '", query_str ,"'")
 cat("Executing command:\n\t", command_str,"\n")
 system(command_str)
 
@@ -124,8 +135,14 @@ eval(call("<-", as.name(tblname_str_2),
 saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'), 
         compress=TRUE)
 
+cat("Created RDS table", paste0(directory,'/',tblname_str_2,'.RDS') ,"\n")
 
-# CREATE train2 table
+
+
+########################################################################################################################
+# CREATE train2 table                                                                                                  #
+########################################################################################################################
+
 tblname_str_2 <- paste0('expiry_',format(mindate, format="%Y%m%d"),'_',format(maxdate, format="%Y%m%d") ,'_train2')
 tblloc_str_2 <- paste0(projname_str,':',dbname_str,'.',tblname_str_2)
 
@@ -133,7 +150,7 @@ query_str <- gsub("[\r\n]", " ", paste0("SELECT* FROM ",dbname_str,'.',tblname_s
   DATE(expiry_date) BETWEEN \"",mindate,"\" AND \"",maxdate,"\" AND renewed_count=1 AND  
   ABS(HASH(expiry_date)) % 100 >= 55 "))
 
-command_str <- paste0("bq query --destination_table='", tblloc_str_2,"' '", query_str ,"'")
+command_str <- paste0("bq query --max_rows=0 --destination_table='", tblloc_str_2,"' '", query_str ,"'")
 cat("Executing command:\n\t", command_str,"\n")
 system(command_str)
 
@@ -146,5 +163,9 @@ eval(call("<-", as.name(tblname_str_2),
 saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'), 
         compress=TRUE)
 
+cat("Created RDS table", paste0(directory,'/',tblname_str_2,'.RDS') ,"\n")
+
 # WRITE to GCP cloud
 system(paste0("gsutil cp -r ",directory," ", bucket))
+
+cat("Transfered RDS tables to GCP ", paste0(bucket,'datapull_', format(today, format="%Y%m%d")) ,"\n")
