@@ -1,21 +1,47 @@
 # Rscript --vanilla load_prep_data_expiry_3.R radix2020 expiry expiry_prepped_data.sql
 
 library(data.table)
+library(bigrquery)
+options(scipen = 20)
+
+# Script automatically pulls most recently available, accurate 5Q worth of data 
+# & splits it into a 10/45/45 test/train/train split
+# outputs are 
+#    - 3 BQ tables, in the current project (may not be needed?)
+#    - 3 RDS files, in local directory
+#    - 3 RDS files, in google cloud storage
+# intermediary big query table containing entire pull from .sql file
+# .... is set to auto-delete within 1 hour of being created (enough time for script to run
+# Note: Naming convention for expiry data pulls: expiry_mindate_maxdate_pulldate
 
 # TODO:
-# 1. make pulldate an arguments to pass to script 
-#    (pulldate should be current date, so could just get this programmatically)
+# Change the directory var & bucket var definitions to suit your folder/bucket structure
+# Make the  database (using bq mk expiry)
+
 
 args = commandArgs(trailingOnly=TRUE)
 
 # test if there is at least one argument: if not, return an error
 if (length(args)<3) {
-  stop("Two arguments must be supplied for BQ table creation: project name, database name, query file loc", call.=FALSE)
+  stop("Three arguments must be supplied for BQ table creation: project name, database name, query file loc", call.=FALSE)
 }
 
 projname_str <- args[1]
 dbname_str <- args[2]
 query_file <- args[3] 
+
+# projname_str <- 'radix2020'
+# dbname_str <- 'expiry'
+# query_file <- 'expiry_prepped_data.sql'
+
+today <- Sys.Date()
+
+# CREATE local dir for data (to be pushed in its entirety to GCP storage)
+directory <- paste0('../../data/output/datapull_', format(today, format="%Y%m%d"))
+dir.create(directory, showWarnings = FALSE)
+
+# DEFINE GCP Storage bucket for wiritng tables
+bucket <- "gs://data_outputt/output/"
 
 
 ########################################################################################################################
@@ -26,17 +52,22 @@ query_file <- args[3]
 #                                                                                                                      #
 ########################################################################################################################
 
-today <- Sys.Date()
 
-tblname_str <- paste0('expiry_20180101_20211231_',format(today, format="%Y%m%d"))
-tablename_str <- paste0(projname_str,':',dbname_str,'.',tblname_str)
+tblname_str_1 <- paste0('expiry_20180101_20211231_',format(today, format="%Y%m%d"))
+tblloc_str_1 <- paste0(projname_str,':',dbname_str,'.',tblname_str_1)
 
+# CREATE intermediary big query table containing entire pull from .sql file
 command_str <-  paste0("bq query --use_legacy_sql=false --destination_table='",
-                       tablename_str,"' --flagfile='",query_file,"' ")
-
+                       tblloc_str_1,"' --flagfile='",query_file,"' ")
+cat("Executing command:\n\t", command_str,"\n")
 system(command_str)
+cat("Created BQ table", tblloc_str_1 ,"\n")
 
-cat("Created BQ table", tablename_str ,"\n")
+# AUTODELETE intermediary big query table containing entire pull from .sql file
+command_str <- paste0("bq update --expiration 3600 '", tblloc_str_1,"'")
+cat("Executing command:\n\t", command_str,"\n")
+system(command_str)
+cat("Updated BQ table", tblloc_str_1 ," to be automatically deleted in 1 hour (",format(Sys.time()+ 1*60*60, tz="America/Los_Angeles",usetz=TRUE),")\n")
 
 ########################################################################################################################
 #                                                                                                                      #
@@ -45,50 +76,75 @@ cat("Created BQ table", tablename_str ,"\n")
 #                                                                                                                      #
 ########################################################################################################################
 
+# DEFINE date ranges given contrains 
 maxdate <- today - 50
 mindate <- maxdate - 456
-mindate
-maxdate
+
+# CREATE test table
+tblname_str_2 <- paste0('expiry_',format(mindate, format="%Y%m%d"),'_',format(maxdate, format="%Y%m%d") ,'_test')
+tblloc_str_2 <- paste0(projname_str,':',dbname_str,'.',tblname_str_2)
+
+query_str <- gsub("[\r\n]", " ", paste0("SELECT * FROM  ",dbname_str,'.',tblname_str_1," t WHERE
+  DATE(expiry_date) BETWEEN \"",mindate,"\" AND \"",maxdate,"\" AND renewed_count=1 AND  
+  ABS(HASH(expiry_date)) % 100 < 10"))
+
+command_str <- paste0("bq query --destination_table='", tblloc_str_2,"' '", query_str ,"'")
+cat("Executing command:\n\t", command_str,"\n")
+system(command_str)
+
+cat("Created BQ table", tblloc_str_2 ,"\n")
+
+eval(call("<-", as.name(tblname_str_2), 
+          bq_table_download(bq_project_query(projname_str, 
+                                             paste0("SELECT * FROM  ",dbname_str,'.',tblname_str_2)
+                                            ))))
+saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'), 
+        compress=TRUE)
 
 
+# CREATE train1 table
+tblname_str_2 <- paste0('expiry_',format(mindate, format="%Y%m%d"),'_',format(maxdate, format="%Y%m%d") ,'_train1')
+tblloc_str_2 <- paste0(projname_str,':',dbname_str,'.',tblname_str_2)
 
-########################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################
+query_str <- gsub("[\r\n]", " ", paste0("SELECT * FROM  ",dbname_str,'.',tblname_str_1," t WHERE
+  DATE(expiry_date) BETWEEN \"",mindate,"\" AND \"",maxdate,"\" AND renewed_count=1 AND  
+  ABS(HASH(expiry_date)) % 100 >= 10 AND  
+  ABS(HASH(expiry_date)) % 100 < 55"))
 
-# copy from gcp
-# system("gsutil cp gs://data_outputt/output/expiry_train_prepped_1list/home/jupyter/local/Domains_202003/data/expiry_train_prepped_1list")
+command_str <- paste0("bq query --destination_table='", tblloc_str_2,"' '", query_str ,"'")
+cat("Executing command:\n\t", command_str,"\n")
+system(command_str)
 
-# load data
-cat("Loading data...")
-expiry_df <- readRDS("/home/jupyter/Domains_202003/data/output/expiry_20190601_20200901_20201116_excl")
-cat("Loaded", expiry_df %>% nrow(),"rows\n")
+cat("Created BQ table", tblloc_str_2 ,"\n")
 
-# select most recent 5Q [1 quarter = 90 days, 5 quarters = 450 days ]
-# 450 days before 20200901 is 20190609 ... round off to 20190601
-cat("Removing", expiry_df %>%filter(expiry_date < as.Date("2019-06-01") | expiry_date > as.Date("2020-09-01")) %>% tally() %>% pull(n) ,"rows due to expiry_date constraints\n")
-expiry_df <- expiry_df %>% filter(expiry_date >= as.Date("2019-06-01") & expiry_date <= as.Date("2020-09-01"))
+eval(call("<-", as.name(tblname_str_2), 
+          bq_table_download(bq_project_query(projname_str, 
+                                             paste0("SELECT * FROM  ",dbname_str,'.',tblname_str_2)
+                                            ))))
+saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'), 
+        compress=TRUE)
 
-# remove renewed_count>1
-cat("Removing", expiry_df %>% filter(renewed_count>1) %>% tally() %>% pull(n) ,"rows due to renewed_count constraints\n")
-expiry_df <- expiry_df %>% filter(renewed_count==1)
 
-# remove where gibb_score, etc. are NA
-cat("Removing", expiry_df %>% filter(is.na(gibb_score)) %>% tally() %>% pull(n) ,"rows due to missing gibb_score\n")
-expiry_df <- expiry_df %>% filter(!is.na(gibb_score))
-cat("... now dataset min(creation_date) is ", expiry_df %>% summarise(min(creation_date)) %>% pull(1) %>% as.character(),".\n")
+# CREATE train2 table
+tblname_str_2 <- paste0('expiry_',format(mindate, format="%Y%m%d"),'_',format(maxdate, format="%Y%m%d") ,'_train2')
+tblloc_str_2 <- paste0(projname_str,':',dbname_str,'.',tblname_str_2)
 
-# add necessary columns
-expiry_df <- expiry_df %>% mutate (reg_arpt = ifelse(reg_arpt <= 0, 0.0001,reg_arpt),
-                                   log_reg_arpt = log(reg_arpt),
-                                   tld_registrar_index = tolower(paste(tld, reseller,sep="")))
+query_str <- gsub("[\r\n]", " ", paste0("SELECT* FROM ",dbname_str,'.',tblname_str_1," t WHERE
+  DATE(expiry_date) BETWEEN \"",mindate,"\" AND \"",maxdate,"\" AND renewed_count=1 AND  
+  ABS(HASH(expiry_date)) % 100 >= 55 "))
 
-# test/train split 
-set.seed(123) 
-smp_siz = floor(0.8*nrow(expiry_df))
-train_ind = sample(seq_len(nrow(expiry_df)),size = smp_siz) 
-expiry_train_df = expiry_df[train_ind,] 
-expiry_test_df = expiry_df[-train_ind,]
+command_str <- paste0("bq query --destination_table='", tblloc_str_2,"' '", query_str ,"'")
+cat("Executing command:\n\t", command_str,"\n")
+system(command_str)
 
-# split into lists
-expiry_list <- split(expiry_df, expiry_df$tld_registrar_index)
-expiry_train_list <- split(expiry_train_df, expiry_train_df$tld_registrar_index)
-expiry_test_list <- split(expiry_test_df, expiry_test_df$tld_registrar_index)
+cat("Created BQ table", tblloc_str_2 ,"\n")
+
+eval(call("<-", as.name(tblname_str_2), 
+          bq_table_download(bq_project_query(projname_str, 
+                                             paste0("SELECT * FROM  ",dbname_str,'.',tblname_str_2)
+                                            ))))
+saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'), 
+        compress=TRUE)
+
+# WRITE to GCP cloud
+system(paste0("gsutil cp -r ",directory," ", bucket))

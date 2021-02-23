@@ -34,6 +34,12 @@ PHASE 1
 
 ## Lab Notebook 
 
+## 20210222
+
+Finished load_prep_expiry_2.R script
+takes ?? to run 
+need to test
+
 ## 20210216
 
 Working on data poull & train/test split script (nearly done)
