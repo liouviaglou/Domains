@@ -2,6 +2,7 @@
 
 library(data.table)
 library(bigrquery)
+library(dplyr)
 options(scipen = 20)
 
 # Script automatically pulls most recently available, accurate 5Q worth of data 
