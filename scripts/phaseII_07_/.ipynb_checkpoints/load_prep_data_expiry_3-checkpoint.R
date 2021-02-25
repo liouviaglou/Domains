@@ -14,9 +14,11 @@ options(scipen = 20)
 # .... is set to auto-delete within 1 hour of being created (enough time for script to run
 # Notes:  - Naming convention for expiry data pulls: expiry_mindate_maxdate_pulldate
 #         - Generatiion of 2 is most time & resource intensive, can be moved to subsequent scripts
-#           3 depends on 2 (writing directly to GCP without loading into memory is not implemented here)
+#           ... 3 depends on 2 (writing directly to GCP without loading into memory is not implemented here)
+#         - Dataframes/Lists generated for inputs to predictions_metalearning.R, which doesn't use the 10% test subset (expiry_valid_df)
+#           ... we'll need to modify training_metalearning.R to train on expiry_test_* and test on expiry_valid*
 
-# TODO:
+# TODO before running:
 # Change the directory var & bucket var definitions to suit your folder/bucket structure
 # Make the  database (using bq mk expiry)
 
@@ -109,6 +111,14 @@ saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'),
 
 cat("Created RDS table", paste0(directory,'/',tblname_str_2,'.RDS') ,"\n")
 
+expiry_valid_df <- get(tblname_str_2)
+expiry_valid_df <- expiry_valid_df %>% 
+                filter(!is.na(gibb_score)) %>% # remove where gibb_score, etc. are NA
+                mutate (reg_arpt = ifelse(reg_arpt <= 0, 0.0001,reg_arpt), # add necessary columns
+                                   log_reg_arpt = log(reg_arpt),
+                                   tld_registrar_index = tolower(paste(tld, reseller,sep="")))
+expiry_valid_list <- split(expiry_valid_df, expiry_valid_df$tld_registrar_index)
+
 
 ########################################################################################################################
 # CREATE train1 table                                                                                                  #
@@ -137,7 +147,14 @@ saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'),
 
 cat("Created RDS table", paste0(directory,'/',tblname_str_2,'.RDS') ,"\n")
 
-expiry_train_df = get(tblname_str_2)
+expiry_train_df <- get(tblname_str_2)
+expiry_train_df <- expiry_train_df %>% 
+                filter(!is.na(gibb_score)) %>% # remove where gibb_score, etc. are NA
+                mutate (reg_arpt = ifelse(reg_arpt <= 0, 0.0001,reg_arpt), # add necessary columns
+                                   log_reg_arpt = log(reg_arpt),
+                                   tld_registrar_index = tolower(paste(tld, reseller,sep="")))
+expiry_train_list <- split(expiry_train_df, expiry_train_df$tld_registrar_index)
+
 
 ########################################################################################################################
 # CREATE train2 table                                                                                                  #
@@ -165,7 +182,14 @@ saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'),
 
 cat("Created RDS table", paste0(directory,'/',tblname_str_2,'.RDS') ,"\n")
 
-expiry_test_df = get(tblname_str_2)
+expiry_test_df <- get(tblname_str_2)
+expiry_test_df <- expiry_test_df %>% 
+                filter(!is.na(gibb_score)) %>% # remove where gibb_score, etc. are NA
+                mutate (reg_arpt = ifelse(reg_arpt <= 0, 0.0001,reg_arpt), # add necessary columns
+                                   log_reg_arpt = log(reg_arpt),
+                                   tld_registrar_index = tolower(paste(tld, reseller,sep="")))
+expiry_test_list <- split(expiry_test_df, expiry_test_df$tld_registrar_index)
+
 
 ########################################################################################################################
 # WRITE to GCP cloud                                                                                                   #
@@ -175,14 +199,3 @@ system(paste0("gsutil cp -r ",directory," ", bucket))
 
 cat("Transfered RDS tables to GCP ", paste0(bucket,'datapull_', format(today, format="%Y%m%d")) ,"\n")
 
-
-########################################################################################################################
-# GENERATE DATAFRAMES FOR SUBSEQUENT SCRIPTS                                                                           #
-########################################################################################################################
-
-# see last lines of train1 and train2 CREATE sections
-
-# split into lists
-# expiry_list <- split(expiry_df, expiry_df$tld_registrar_index) # I don't think we'll need this 
-expiry_train_list <- split(expiry_train_df, expiry_train_df$tld_registrar_index)
-expiry_test_list <- split(expiry_test_df, expiry_test_df$tld_registrar_index)
