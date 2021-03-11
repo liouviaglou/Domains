@@ -37,7 +37,7 @@ outputDir='/home/jupyter/Domains_202003/data/output/datapull_20201127'
 #          ... but in this case, we had some data pull issues (variables tld & geo excluded)
 #              that required me to hack together train & test and subsequent predictions
 #              instead of rerunning the entire pipeline
-expiry_df_test_preds <- read.csv(file.path(dataDir,"expiry_df_test_preds.csv"))
+expiry_df_test_preds <- read.csv(file.path(dataDir, "expiry_df_test_preds.csv"))
 
 # Load training data used for predictions_metalearning.R to assign fallback values
 expiry_df_train <- read.csv(file.path(dataDir,"expiry_df_train.csv"))
@@ -254,7 +254,7 @@ metametrics_df <- merge(meta_df, metrics_df, on = 'tld_registrar_index', all = T
 
 ########################################################################################################
 #
-# ADD win flags for seg2_glm vs. seg2_gm_fb vs. agg_rf_ALL
+# ADD win flags for seg2_glm vs. seg2_glm_fb vs. agg_rf_ALL
 #
 ########################################################################################################
 

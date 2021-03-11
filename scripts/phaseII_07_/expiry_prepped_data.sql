@@ -29,6 +29,7 @@ SELECT
   npv_prepped_data.sld_type,
   npv_prepped_data.sld_type2,
   prediction_data.predicted_renewal_rate,
+  sub.region,
 FROM (
   SELECT
     * EXCEPT (renewal_status,
