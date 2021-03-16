@@ -2,8 +2,8 @@
 
 # This is a modified version of load_prep_data_expiry_3.R for the Elder team. 
 # It retrieves the BQ tables in the radix2020 project that Luba creates by 
-# running the load_prep_data_expiry_3.R script, and saves them locally to 
-# the Elder GCP project.
+# running the load_prep_data_expiry_3.R script, merges in the region information,
+# and saves them locally to the Elder GCP project.
 
 # Rscript --vanilla load_prep_data_expiry_3.R radix2020 expiry expiry_prepped_data.sql
 
@@ -57,6 +57,10 @@ dir.create(directory, showWarnings = FALSE)
 # DEFINE GCP Storage bucket for wiritng tables
 bucket <- "gs://data_outputt/output/"
 
+# Read in regional lookup
+reg_lookup <- bq_table_download(bq_project_query("radix2020", 
+                                paste0("SELECT * FROM  expiry.regionlookup_20180101_20211231_20210311")))
+reg_lookup <- unique(reg_lookup)
 
 ########################################################################################################################
 #                                                                                                                      #
@@ -98,36 +102,38 @@ mindate <- maxdate - 456
 # # CREATE test table                                                                                                    #
 # ########################################################################################################################
 
-# tblname_str_2 <- paste0('expiry_',format(mindate, format="%Y%m%d"),'_',format(maxdate, format="%Y%m%d") ,'_test')
-# tblloc_str_2 <- paste0(projname_str,':',dbname_str,'.',tblname_str_2)
+tblname_str_2 <- paste0('expiry_',format(mindate, format="%Y%m%d"),'_',format(maxdate, format="%Y%m%d") ,'_test')
+tblloc_str_2 <- paste0(projname_str,':',dbname_str,'.',tblname_str_2)
 
-# # query_str <- gsub("[\r\n]", " ", paste0("SELECT * FROM  ",dbname_str,'.',tblname_str_1," t WHERE
-# #   DATE(expiry_date) BETWEEN \"",mindate,"\" AND \"",maxdate,"\" AND renewed_count=1 AND  
-# #   ABS(HASH(expiry_date)) % 100 < 10"))
+# query_str <- gsub("[\r\n]", " ", paste0("SELECT * FROM  ",dbname_str,'.',tblname_str_1," t WHERE
+#   DATE(expiry_date) BETWEEN \"",mindate,"\" AND \"",maxdate,"\" AND renewed_count=1 AND  
+#   ABS(HASH(expiry_date)) % 100 < 10"))
 
-# # command_str <- paste0("bq query --max_rows=0 --destination_table='", tblloc_str_2,"' '", query_str ,"'")
-# # cat("Executing command:\n\t", command_str,"\n")
-# # system(command_str)
+# command_str <- paste0("bq query --max_rows=0 --destination_table='", tblloc_str_2,"' '", query_str ,"'")
+# cat("Executing command:\n\t", command_str,"\n")
+# system(command_str)
 
-# # cat("Created BQ table", tblloc_str_2 ,"\n")
+# cat("Created BQ table", tblloc_str_2 ,"\n")
 
-# eval(call("<-", as.name(tblname_str_2), 
-#           bq_table_download(bq_project_query(projname_str, 
-#                                              paste0("SELECT * FROM  ",dbname_str,'.',tblname_str_2)
-#                                             ))))
-# saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'), 
-#         compress=TRUE)
+eval(call("<-", as.name(tblname_str_2), 
+          bq_table_download(bq_project_query(projname_str, 
+                                             paste0("SELECT * FROM  ",dbname_str,'.',tblname_str_2)
+                                            ))))
+saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'), 
+        compress=TRUE)
 
 
-# cat("Created RDS table", paste0(directory,'/',tblname_str_2,'.RDS') ,"\n")
+cat("Created RDS table", paste0(directory,'/',tblname_str_2,'.RDS') ,"\n")
 
-# expiry_valid_df <- get(tblname_str_2)
-# expiry_valid_df <- expiry_valid_df %>% 
-#                 filter(!is.na(gibb_score)) %>% # remove where gibb_score, etc. are NA
-#                 mutate (reg_arpt = ifelse(reg_arpt <= 0, 0.0001,reg_arpt), # add necessary columns
-#                                    log_reg_arpt = log(reg_arpt),
-#                                    tld_registrar_index = tolower(paste(tld, reseller,sep="")))
+expiry_valid_df <- get(tblname_str_2)
+expiry_valid_df <- expiry_valid_df %>% 
+                filter(!is.na(gibb_score)) %>% # remove where gibb_score, etc. are NA
+                mutate (reg_arpt = ifelse(reg_arpt <= 0, 0.0001,reg_arpt), # add necessary columns
+                                   log_reg_arpt = log(reg_arpt),
+                                   tld_registrar_index = tolower(paste(tld, reseller,sep="")))
 # expiry_valid_list <- split(expiry_valid_df, expiry_valid_df$tld_registrar_index)
+expiry_valid_df <- merge(expiry_valid_df, reg_lookup, on="domain_id", all.x=TRUE)
+write.csv(expiry_valid_df, file = paste0(directory,'/',tblname_str_2,'.csv'), row.names = FALSE)
 
 
 # ########################################################################################################################
@@ -157,13 +163,15 @@ saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'),
 
 cat("Created RDS table", paste0(directory,'/',tblname_str_2,'.RDS') ,"\n")
 
-# expiry_train_df <- get(tblname_str_2)
-# expiry_train_df <- expiry_train_df %>% 
-#                 filter(!is.na(gibb_score)) %>% # remove where gibb_score, etc. are NA
-#                 mutate (reg_arpt = ifelse(reg_arpt <= 0, 0.0001,reg_arpt), # add necessary columns
-#                                    log_reg_arpt = log(reg_arpt),
-#                                    tld_registrar_index = tolower(paste(tld, reseller,sep="")))
+expiry_train_df <- get(tblname_str_2)
+expiry_train_df <- expiry_train_df %>% 
+                filter(!is.na(gibb_score)) %>% # remove where gibb_score, etc. are NA
+                mutate (reg_arpt = ifelse(reg_arpt <= 0, 0.0001,reg_arpt), # add necessary columns
+                                   log_reg_arpt = log(reg_arpt),
+                                   tld_registrar_index = tolower(paste(tld, reseller,sep="")))
 # expiry_train_list <- split(expiry_train_df, expiry_train_df$tld_registrar_index)
+expiry_train_df <- merge(expiry_train_df, reg_lookup, on="domain_id", all.x=TRUE)
+write.csv(expiry_train_df, file = paste0(directory,'/',tblname_str_2,'.csv'), row.names = FALSE)
 
 
 ########################################################################################################################
@@ -192,13 +200,15 @@ saveRDS(get(tblname_str_2),file = paste0(directory,'/',tblname_str_2,'.RDS'),
 
 cat("Created RDS table", paste0(directory,'/',tblname_str_2,'.RDS') ,"\n")
 
-# expiry_test_df <- get(tblname_str_2)
-# expiry_test_df <- expiry_test_df %>% 
-#                 filter(!is.na(gibb_score)) %>% # remove where gibb_score, etc. are NA
-#                 mutate (reg_arpt = ifelse(reg_arpt <= 0, 0.0001,reg_arpt), # add necessary columns
-#                                    log_reg_arpt = log(reg_arpt),
-#                                    tld_registrar_index = tolower(paste(tld, reseller,sep="")))
+expiry_test_df <- get(tblname_str_2)
+expiry_test_df <- expiry_test_df %>% 
+                filter(!is.na(gibb_score)) %>% # remove where gibb_score, etc. are NA
+                mutate (reg_arpt = ifelse(reg_arpt <= 0, 0.0001,reg_arpt), # add necessary columns
+                                   log_reg_arpt = log(reg_arpt),
+                                   tld_registrar_index = tolower(paste(tld, reseller,sep="")))
 # expiry_test_list <- split(expiry_test_df, expiry_test_df$tld_registrar_index)
+expiry_test_df <- merge(expiry_test_df, reg_lookup, on="domain_id", all.x=TRUE)
+write.csv(expiry_test_df, file = paste0(directory,'/',tblname_str_2,'.csv'), row.names = FALSE)
 
 
 ########################################################################################################################
