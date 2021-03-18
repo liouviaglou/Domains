@@ -424,7 +424,7 @@ tld_registrar_excl <- function(train_list = expiry_train_prepped_2_1,
     
     # remove where tld is .pw and .in.net (added 20201103)
     
-    tld_registrar_excl_list_2 = train_df %>% filter(tld=="pw" | tld=="in.net") %>% distinct(tld_registrar_index)  %>% pull(tld_registrar_index) 
+    tld_registrar_excl_list_2 = train_df %>% filter(tld=="pw" | tld=="in.net" | tld=="uno") %>% distinct(tld_registrar_index)  %>% pull(tld_registrar_index) 
         
     N_perc_2 = as.double(round(100*length(tld_registrar_excl_list_2)/(train_df %>% 
                         summarise(n_distinct(tld_registrar_index)) %>% pull(1) ),2))
@@ -433,6 +433,9 @@ tld_registrar_excl <- function(train_list = expiry_train_prepped_2_1,
                 
                 N_perc_2,"%) associated with tld's 'pw' and 'in.net' \n"))
     
+    # Combine two lists
+    tld_registrar_excl_list <- union(tld_registrar_excl_list, tld_registrar_excl_list_2)
+        
     return(tld_registrar_excl_list)
     
 }
@@ -462,7 +465,7 @@ tld_registrar_excl_df <- function(train_df,
     
     # remove where tld is .pw and .in.net (added 20201103)
     
-    tld_registrar_excl_list_2 = train_df %>% filter(tld=="pw" | tld=="in.net") %>% distinct(tld_registrar_index)  %>% pull(tld_registrar_index) 
+    tld_registrar_excl_list_2 = train_df %>% filter(tld=="pw" | tld=="in.net" | tld=="uno") %>% distinct(tld_registrar_index)  %>% pull(tld_registrar_index) 
         
     N_perc_2 = as.double(round(100*length(tld_registrar_excl_list_2)/(train_df %>% 
                         summarise(n_distinct(tld_registrar_index)) %>% pull(1) ),2))
@@ -470,6 +473,9 @@ tld_registrar_excl_df <- function(train_df,
     cat(paste0("Excluding ",length(tld_registrar_excl_list_2)," tld-re's (",
                 
                 N_perc_2,"%) associated with tld's 'pw' and 'in.net' \n"))
+    
+    # Combine two lists
+    tld_registrar_excl_list <- union(tld_registrar_excl_list, tld_registrar_excl_list_2)
     
     return(tld_registrar_excl_list)
     
@@ -864,16 +870,16 @@ pred_select <- function (expiry_new_df,
 
         if (model == 'agg_rf_ALL'){
             cat("\n\nPredicting model_agg_rf_ALL for",length(tld_registrar_list),"tld-re's \n")
-#             load(file.path(modelDir, 'model_agg_rf_ALL.Rdata'))
-#             preds_agg_rf_ALL = lapply(tld_registrar_list, 
-#                    function(tld_reseller_str) pred_agg_rf(model_agg_rf_ALL, 
-#                                                           test_list, 
-#                                                           tld_reseller_str)
-#                    )
-#             rm(model_agg_rf_ALL)
-#             gc() 
+            load(file.path(modelDir, 'model_agg_rf_ALL.Rdata'))
+            preds_agg_rf_ALL = lapply(tld_registrar_list, 
+                   function(tld_reseller_str) pred_agg_rf(model_agg_rf_ALL, 
+                                                          test_list, 
+                                                          tld_reseller_str)
+                   )
+            rm(model_agg_rf_ALL)
+            gc() 
 
-#             save(preds_agg_rf_ALL, file=file.path(outputDir, 'meta_preds', 'preds_agg_rf_ALL.RData'))
+            save(preds_agg_rf_ALL, file=file.path(outputDir, 'meta_preds', 'preds_agg_rf_ALL.RData'))
             load(file.path(outputDir, 'meta_preds', 'preds_agg_rf_ALL.RData'))
             preds_agg_rf_ALL_df <- cbind(rbindlist(test_list[tld_registrar_list], use.names=TRUE), 
                                          rbindlist(preds_agg_rf_ALL, use.names=TRUE))
@@ -884,14 +890,14 @@ pred_select <- function (expiry_new_df,
 
         if (model == 'seg2_glm'){
             cat("\n\nPredicting model_seg2_glm_ALL for",length(tld_registrar_list),"tld-re's\n")
-#             lapply(Sys.glob(file.path(modelDir,'model_seg2_glm_*')),load,.GlobalEnv)
-#             preds_seg2_glm_ALL = lapply(tld_registrar_list, 
-#                    function(tld_reseller_str) pred_seg2_glm(
-#                        test_list, 
-#                        tld_reseller_str)
-#                    )
-#             rm(list=ls(pattern='^model_seg2_glm_'))    
-#             save(preds_seg2_glm_ALL, file=file.path(outputDir, 'meta_preds', 'preds_seg2_glm_ALL.RData')) 
+            lapply(Sys.glob(file.path(modelDir,'model_seg2_glm_*')),load,.GlobalEnv)
+            preds_seg2_glm_ALL = lapply(tld_registrar_list, 
+                   function(tld_reseller_str) pred_seg2_glm(
+                       test_list, 
+                       tld_reseller_str)
+                   )
+            rm(list=ls(pattern='^model_seg2_glm_'))    
+            save(preds_seg2_glm_ALL, file=file.path(outputDir, 'meta_preds', 'preds_seg2_glm_ALL.RData')) 
             load(file.path(outputDir, 'meta_preds', 'preds_seg2_glm_ALL.RData'))  
             preds_seg2_glm_ALL_df <- cbind(rbindlist(test_list[tld_registrar_list], use.names=TRUE), 
                                          rbindlist(preds_seg2_glm_ALL, use.names=TRUE))
