@@ -2,9 +2,58 @@
 ###############################Build Models###################################
 ##########first renewal model###########
 
-mass_build_model_first_renewal<-function(prepared_data){
+debug_contr_error <- function (dat, subset_vec = NULL) {
+  # Credit: https://stackoverflow.com/a/44201384
+  if (!is.null(subset_vec)) {
+    ## step 0
+    if (mode(subset_vec) == "logical") {
+      if (length(subset_vec) != nrow(dat)) {
+        stop("'logical' `subset_vec` provided but length does not match `nrow(dat)`")
+        }
+      subset_log_vec <- subset_vec
+      } else if (mode(subset_vec) == "numeric") {
+      ## check range
+      ran <- range(subset_vec)
+      if (ran[1] < 1 || ran[2] > nrow(dat)) {
+        stop("'numeric' `subset_vec` provided but values are out of bound")
+        } else {
+        subset_log_vec <- logical(nrow(dat))
+        subset_log_vec[as.integer(subset_vec)] <- TRUE
+        } 
+      } else {
+      stop("`subset_vec` must be either 'logical' or 'numeric'")
+      }
+    dat <- base::subset(dat, subset = subset_log_vec)
+    } else {
+    ## step 1
+    dat <- stats::na.omit(dat)
+    }
+  if (nrow(dat) == 0L) warning("no complete cases")
+  ## step 2
+  var_mode <- sapply(dat, mode)
+  if (any(var_mode %in% c("complex", "raw"))) stop("complex or raw not allowed!")
+  var_class <- sapply(dat, class)
+  if (any(var_mode[var_class == "AsIs"] %in% c("logical", "character"))) {
+    stop("matrix variables with 'AsIs' class must be 'numeric'")
+    }
+  ind1 <- which(var_mode %in% c("logical", "character"))
+  dat[ind1] <- lapply(dat[ind1], as.factor)
+  ## step 3
+  fctr <- which(sapply(dat, is.factor))
+  if (length(fctr) == 0L) warning("no factor variables to summary")
+  ind2 <- if (length(ind1) > 0L) fctr[-ind1] else fctr
+  dat[ind2] <- lapply(dat[ind2], base::droplevels.factor)
+  ## step 4
+  lev <- lapply(dat[fctr], base::levels.default)
+  nl <- lengths(lev)
+  ## return
+  list(nlevels = nl, levels = lev)
+  }
+
+
+mass_build_model_first_renewal<-function(prepared_data,f){
   data_models<-lapply(prepared_data, 
-                      function(i) build_model_first_renewal(as.data.frame(i)))
+                      function(i) build_model_first_renewal(as.data.frame(i),f))
   return(data_models)
 }
 
@@ -16,7 +65,7 @@ mass_build_model_first_renewal<-function(prepared_data){
 # }
 
 
-build_model_first_renewal<-function(train_data){
+build_model_first_renewal<-function(train_data,f){
 #   print(paste("TLD-Registrar",
 #               train_data$tld_registrar_index[1]))
 #   print(paste("Renewal Levels",
@@ -29,31 +78,38 @@ build_model_first_renewal<-function(train_data){
     return(NA)
   }
 #   print(paste("SLD Type Levels",nlevels(train_data$sld_type)))
-  ifelse(nlevels(train_data$sld_type) < 2, 
-         build_data<-subset(train_data,
-                            select=c(renewal_status,
-                                     pattern_domain_count, 
-                                     log_reg_arpt, 
-                                     sld_length, 
-                                     day_domains,
-                                     gibb_score,
-                                     reg_period)),  
-         build_data<-subset(train_data,
-                            select=c(renewal_status,
-                                     pattern_domain_count, 
-                                     log_reg_arpt, 
-                                     sld_length, 
-                                     sld_type, 
-                                     day_domains, 
-                                     gibb_score,
-                                     reg_period))) 
+#   ifelse(nlevels(train_data$sld_type) < 2, 
+#          build_data<-subset(train_data,
+#                             select=c(renewal_status,
+#                                      pattern_domain_count, 
+#                                      log_reg_arpt, 
+#                                      sld_length, 
+#                                      day_domains,
+#                                      gibb_score,
+#                                      reg_period)),  
+#          build_data<-subset(train_data,
+#                             select=c(renewal_status,
+#                                      pattern_domain_count, 
+#                                      log_reg_arpt, 
+#                                      sld_length, 
+#                                      sld_type, 
+#                                      day_domains, 
+#                                      gibb_score,
+#                                      reg_period))) 
   ########################reduced model##########################################
   #ifelse(nlevels(train.data$SLD.Type) < 2, build.data<-subset(train.data,select=c(Renewal.Status,Coeff.Variation, SLD.Length, Day.Domains)),  build.data<-subset(train.data,select=c(Renewal.Status,Coeff.Variation, SLD.Length, SLD.Type, Day.Domains))) 
   ###############################reduced model#####################################
   #build.data<-subset(train.data,select=c(Renewal.Status,logarpt))
-  model<-glm(renewal_status ~.,
+  l <- sapply(train_data, function(x) length(unique(x)))
+  for (i in seq(length(l))) {
+      cat(paste0(names(l)[i], ": ", l[i], "\n"))
+  }
+  t <- as.data.frame(train_data)
+  print(debug_contr_error(t))            
+  
+  model<-glm(f,
              family=binomial(link='logit'),
-             data=build_data, 
+             data=train_data, 
              y = FALSE, model = FALSE)
   return(model)
 }

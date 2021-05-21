@@ -18,6 +18,7 @@ source('/home/jupyter/Domains_202003/scripts/phaseII_06_fallbacksupp/functions_m
 today <- as.Date("2021-02-23")
 maxdate <- today - 50
 mindate <- maxdate - 456
+dp <- TRUE
 
 # Local directory
 directory <- paste0('/home/jupyter/Domains_202003/data/output/dp_datapull_', format(today, format="%Y%m%d"), '/')
@@ -51,7 +52,8 @@ tld_reseller_list = train_all(  tld_reseller_list,
                                 test_list = expiry_test_list,
                                 model_agg_glm = "Skip", 
                                 model_agg_rf = "Skip",
-                                fullDir)   
+                                fullDir,
+                                dp)   
 
 # define tld-re's for testing
 mask <- (!expiry_test_df$tld %in% exclude_tlds) & (expiry_test_df$reseller %in% include_reg)

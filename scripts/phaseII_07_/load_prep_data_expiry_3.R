@@ -1,4 +1,4 @@
-# Rscript --vanilla load_prep_data_expiry_3.R radix2020 expiry expiry_prepped_data.sql
+# Rscript --vanilla load_prep_data_expiry_4_elder.R radix2020 expiry expiry_prepped_data.sql
 
 library(data.table)
 library(bigrquery)
@@ -43,10 +43,10 @@ today <- Sys.Date()
 
 # CREATE local dir for data (to be pushed in its entirety to GCP storage)
 directory <- paste0('../../data/output/datapull_', format(today, format="%Y%m%d"))
-dir.create(directory, showWarnings = FALSE)
+dir.create(directory, showWarnings = FALSE, recursive = TRUE)
 
-# DEFINE GCP Storage bucket for wiritng tables
-bucket <- "gs://data_outputt/output/"
+# # DEFINE GCP Storage bucket for wiritng tables
+# bucket <- "gs://data_outputt/output/"
 
 
 ########################################################################################################################
