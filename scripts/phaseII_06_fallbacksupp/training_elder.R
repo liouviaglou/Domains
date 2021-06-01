@@ -24,21 +24,25 @@ dp <- TRUE
 directory <- paste0('/home/jupyter/Domains_202003/data/output/dp_datapull_', format(today, format="%Y%m%d"), '/')
 
 # Read in train data
+cat("reading in training data\n")
 train_str <- paste0('expiry_',format(mindate, format="%Y%m%d"),'_',format(maxdate, format="%Y%m%d") ,'_train2.csv')
 expiry_train_df <- read.csv(paste0(directory, train_str))
 expiry_train_list <- split(expiry_train_df, expiry_train_df$tld_registrar_index)
 
 # Read in test data
+cat("reading in testing data\n")
 test_str <- paste0('expiry_',format(mindate, format="%Y%m%d"),'_',format(maxdate, format="%Y%m%d") ,'_test.csv')
 expiry_test_df <- read.csv(paste0(directory, test_str))
 expiry_test_list <- split(expiry_test_df, expiry_test_df$tld_registrar_index)
 
 
 # define oputput folder
+cat("creating folder\n")
 fullDir='/home/jupyter/Domains_202003/data/output/dp_models_20201104'
 dir.create(file.path(fullDir,'preds'), recursive = TRUE)
 
 # define tld-re's for training
+cat("defining tld-re's\n")
 exclude_tlds <- c('pw', 'in.net', 'uno')
 include_reg <- c('Go Daddy', 'Namecheap', 'GMO', 'Google')
 mask <- (!expiry_train_df$tld %in% exclude_tlds) & (expiry_train_df$reseller %in% include_reg)
@@ -46,6 +50,7 @@ tld_reseller_list <- expiry_train_df[mask, ] %>% distinct(tld_registrar_index) %
 tld_registrar_excl_list = c()
 
 # train & save models
+cat("starting training\n")
 tld_reseller_list = train_all(  tld_reseller_list,
                                 tld_registrar_excl_list,
                                 train_list = expiry_train_list,

@@ -31,16 +31,35 @@ get_formula <- function(df,dp,scope) {
     else if (scope == "seg2") { }
     else { print(paste("Unrecognized scope", scope)) }
     
+    # Character to factor
+    df <- as.data.frame(df)
+    var_mode <- sapply(df, mode)
+    ind1 <- which(var_mode %in% c("logical", "character"))
+    cat(ind1,"\n")
+    df[ind1] <- lapply(df[ind1], as.factor)
+    cat("a\n")
+    
     # Less than 2 unique values
-    drop_vars <- which(sapply(df[,..vars], function(x) length(unique(x)) < 2))
+    fctr <- which(sapply(df, is.factor))
+    cat(fctr,"\n")
+    df[fctr] <- lapply(df[fctr], base::droplevels.factor)
+    cat("b\n")
+    
+    drop_vars <- which(sapply(df[,vars], function(x) length(unique(x)) < 2))
     cat(paste0("Drop vars: ", paste(names(drop_vars), collapse=","), "\n"))
     vars <- vars[!vars %in% names(drop_vars)]                          
     cat(paste0("Remaining vars: ", paste(vars, collapse=","), "\n"))
     
-    l <- sapply(df[,..vars], function(x) length(unique(x)))
-    for (i in seq(length(l))) {
-        cat(paste0(names(l)[i], ": ", l[i], "\n"))
-    }
+
+#     l <- sapply(df[,vars], function(x) length(unique(x)))
+#     for (i in seq(length(l))) {
+#         cat(paste0(names(l)[i], ": ", l[i], "\n"))
+#         if (l[i] < 10) {
+# #             cat(df[,names(l)[i]])
+# #             cat(unique(df[,names(l)[i]]))
+#             cat(paste(as.vector(unique(df[,get(names(l)[i])])), collapse=","), "\n\n")
+#         }
+#     }
     right_side <- paste(vars, collapse="+")
     f <- as.formula(paste0("renewal_status ~ ", right_side))
     f
@@ -587,16 +606,18 @@ train_all <- function (tld_reseller_list,
                        dp = FALSE){
     
     # keep list of all tld-re's
+    cat("keep list\n")
     tld_reseller_list_ALL = tld_reseller_list
     reseller_list_ALL = rbindlist(test_list, ,use.names=TRUE) %>% 
       filter(tld_registrar_index %in% tld_reseller_list_ALL) %>% 
       distinct(reseller)  %>%  pull(reseller)
     
-    # exclude low-volume tld-re's 
-    tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_excl_list)]
-    reseller_list = rbindlist(test_list, ,use.names=TRUE) %>% 
-      filter(tld_registrar_index %in% tld_reseller_list) %>% 
-      distinct(reseller)  %>%  pull(reseller)
+#     # exclude low-volume tld-re's 
+    cat("low volume\n")
+#     tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_excl_list)]
+#     reseller_list = rbindlist(test_list, ,use.names=TRUE) %>% 
+#       filter(tld_registrar_index %in% tld_reseller_list) %>% 
+#       distinct(reseller)  %>%  pull(reseller)
 
     
     if(is.null(model_agg_glm)) {

@@ -2,6 +2,8 @@
 ###############################Build Models###################################
 ##########first renewal model###########
 
+# Helper functions
+
 debug_contr_error <- function (dat, subset_vec = NULL) {
   # Credit: https://stackoverflow.com/a/44201384
   if (!is.null(subset_vec)) {
@@ -31,18 +33,30 @@ debug_contr_error <- function (dat, subset_vec = NULL) {
   if (nrow(dat) == 0L) warning("no complete cases")
   ## step 2
   var_mode <- sapply(dat, mode)
+  cat(var_mode, "\n")
   if (any(var_mode %in% c("complex", "raw"))) stop("complex or raw not allowed!")
   var_class <- sapply(dat, class)
   if (any(var_mode[var_class == "AsIs"] %in% c("logical", "character"))) {
     stop("matrix variables with 'AsIs' class must be 'numeric'")
     }
   ind1 <- which(var_mode %in% c("logical", "character"))
+  cat(ind1, "\n")
   dat[ind1] <- lapply(dat[ind1], as.factor)
   ## step 3
   fctr <- which(sapply(dat, is.factor))
   if (length(fctr) == 0L) warning("no factor variables to summary")
   ind2 <- if (length(ind1) > 0L) fctr[-ind1] else fctr
+  cat(ind2, "\n")
+  l <- sapply(dat, function(x) length(unique(x)))
+  for (i in seq(length(l))) {
+      cat(paste0(names(l)[i], ": ", l[i], "\n"))
+  }
   dat[ind2] <- lapply(dat[ind2], base::droplevels.factor)
+    
+  l <- sapply(dat, function(x) length(unique(x)))
+  for (i in seq(length(l))) {
+      cat(paste0(names(l)[i], ": ", l[i], "\n"))
+  }
   ## step 4
   lev <- lapply(dat[fctr], base::levels.default)
   nl <- lengths(lev)
@@ -70,13 +84,13 @@ build_model_first_renewal<-function(train_data,f){
 #               train_data$tld_registrar_index[1]))
 #   print(paste("Renewal Levels",
 #               nlevels(train_data$renewal_status)))
-  train_data$renewal_status<-factor(train_data$renewal_status)
-  train_data$sld_type<-factor(train_data$sld_type)
-  if(nlevels(train_data$renewal_status) < 2 ) {
-#     print(paste("Less Renewal Status Levels",train_data$tld_registrar_index[1]))
-#     print(paste("Total Levels Returning NA",nlevels(train_data$renewal_status)))
-    return(NA)
-  }
+#   train_data$renewal_status<-factor(train_data$renewal_status)
+#   train_data$sld_type<-factor(train_data$sld_type)
+#   if(nlevels(train_data$renewal_status) < 2 ) {
+# #     print(paste("Less Renewal Status Levels",train_data$tld_registrar_index[1]))
+# #     print(paste("Total Levels Returning NA",nlevels(train_data$renewal_status)))
+#     return(NA)
+#   }
 #   print(paste("SLD Type Levels",nlevels(train_data$sld_type)))
 #   ifelse(nlevels(train_data$sld_type) < 2, 
 #          build_data<-subset(train_data,
@@ -101,12 +115,15 @@ build_model_first_renewal<-function(train_data,f){
   ###############################reduced model#####################################
   #build.data<-subset(train.data,select=c(Renewal.Status,logarpt))
   l <- sapply(train_data, function(x) length(unique(x)))
+  fctr <- lapply(train_data, as.factor)
+  var_mode <- sapply(train_data, mode)
   for (i in seq(length(l))) {
-      cat(paste0(names(l)[i], ": ", l[i], "\n"))
+      nl <- nlevels(fctr[[i]])
+      cat(paste0(names(l)[i], ": ", l[i], ", mode = ", var_mode[i], ", nlevels = ", nl, "\n"))
   }
   t <- as.data.frame(train_data)
-  print(debug_contr_error(t))            
-  
+  print(debug_contr_error(t))
+                
   model<-glm(f,
              family=binomial(link='logit'),
              data=train_data, 
