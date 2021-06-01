@@ -33,6 +33,7 @@ get_formula <- function(df,dp,scope) {
     
     # Character to factor
     df <- as.data.frame(df)
+    df <- stats::na.omit(df)
     var_mode <- sapply(df, mode)
     ind1 <- which(var_mode %in% c("logical", "character"))
     cat(ind1,"\n")
@@ -45,7 +46,7 @@ get_formula <- function(df,dp,scope) {
     df[fctr] <- lapply(df[fctr], base::droplevels.factor)
     cat("b\n")
     
-    drop_vars <- which(sapply(df[,vars], function(x) length(unique(x)) < 2))
+    drop_vars <- which(sapply(df, function(x) length(unique(x)) < 2))
     cat(paste0("Drop vars: ", paste(names(drop_vars), collapse=","), "\n"))
     vars <- vars[!vars %in% names(drop_vars)]                          
     cat(paste0("Remaining vars: ", paste(vars, collapse=","), "\n"))

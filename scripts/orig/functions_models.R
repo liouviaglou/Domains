@@ -33,24 +33,17 @@ debug_contr_error <- function (dat, subset_vec = NULL) {
   if (nrow(dat) == 0L) warning("no complete cases")
   ## step 2
   var_mode <- sapply(dat, mode)
-  cat(var_mode, "\n")
   if (any(var_mode %in% c("complex", "raw"))) stop("complex or raw not allowed!")
   var_class <- sapply(dat, class)
   if (any(var_mode[var_class == "AsIs"] %in% c("logical", "character"))) {
     stop("matrix variables with 'AsIs' class must be 'numeric'")
     }
   ind1 <- which(var_mode %in% c("logical", "character"))
-  cat(ind1, "\n")
   dat[ind1] <- lapply(dat[ind1], as.factor)
   ## step 3
   fctr <- which(sapply(dat, is.factor))
   if (length(fctr) == 0L) warning("no factor variables to summary")
   ind2 <- if (length(ind1) > 0L) fctr[-ind1] else fctr
-  cat(ind2, "\n")
-  l <- sapply(dat, function(x) length(unique(x)))
-  for (i in seq(length(l))) {
-      cat(paste0(names(l)[i], ": ", l[i], "\n"))
-  }
   dat[ind2] <- lapply(dat[ind2], base::droplevels.factor)
     
   l <- sapply(dat, function(x) length(unique(x)))
@@ -114,14 +107,14 @@ build_model_first_renewal<-function(train_data,f){
   #ifelse(nlevels(train.data$SLD.Type) < 2, build.data<-subset(train.data,select=c(Renewal.Status,Coeff.Variation, SLD.Length, Day.Domains)),  build.data<-subset(train.data,select=c(Renewal.Status,Coeff.Variation, SLD.Length, SLD.Type, Day.Domains))) 
   ###############################reduced model#####################################
   #build.data<-subset(train.data,select=c(Renewal.Status,logarpt))
-  l <- sapply(train_data, function(x) length(unique(x)))
-  fctr <- lapply(train_data, as.factor)
-  var_mode <- sapply(train_data, mode)
-  for (i in seq(length(l))) {
-      nl <- nlevels(fctr[[i]])
-      cat(paste0(names(l)[i], ": ", l[i], ", mode = ", var_mode[i], ", nlevels = ", nl, "\n"))
-  }
-  t <- as.data.frame(train_data)
+#   l <- sapply(train_data, function(x) length(unique(x)))
+#   fctr <- lapply(train_data, as.factor)
+#   var_mode <- sapply(train_data, mode)
+#   for (i in seq(length(l))) {
+#       nl <- nlevels(fctr[[i]])
+#       cat(paste0(names(l)[i], ": ", l[i], ", mode = ", var_mode[i], ", nlevels = ", nl, "\n"))
+#   }
+  t <- as.data.frame(train_data)           
   print(debug_contr_error(t))
                 
   model<-glm(f,
