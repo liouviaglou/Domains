@@ -18,12 +18,77 @@ source('/home/jupyter/Domains_202003/scripts/phaseII_06_fallbacksupp/functions_f
 
 # Helper functions
 
-get_formula <- function(df,dp,scope) {
+impute_zero <- function(vec) {
+    # For use in feature_creation--imputes zeros
+    vec[is.na(vec)] <- 0
+    vec
+}
+
+feature_creation <- function(dat, drop_rare=TRUE, xlevels=NULL) {
+    # Create features and imputes missing values
+    dat <- as.data.frame(dat)
+    
+    # mxdomain isn't null or domain name
+    dat[,'mxdomain_diff'] <- as.integer((as.character(dat$domain) != as.character(dat$mxdomain)) & (!is.na(dat$mxdomain)) & (dat$mxdomain != ""))
+    dat[,'nameserver_diff'] <- as.integer((as.character(dat$domain) != as.character(dat$mxdomain)) & (!is.na(dat$mxdomain)) & (dat$mxdomain != ""))
+    
+    # Fix missing values--adds factor or imputes zero
+    var_mode <- sapply(dat, mode)
+    ind1 <- which(var_mode %in% c("logical", "character"))
+    dat[ind1] <- lapply(dat[ind1], as.factor)
+    fctr <- which(sapply(dat, is.factor))
+    num <- which(sapply(dat, is.numeric))
+    dat[num] <- lapply(dat[num], impute_zero)
+    
+    # Remove infrequent factor levels
+    if (drop_rare) {
+        min_rate = 0.01
+#         min_num = 10
+        for (i in fctr) {
+            name <- names(dat)[i]
+#             print(name)
+            mask <- dat %>% 
+                       group_by(get(name)) %>% 
+                       mutate(n=n()) %>% 
+                       pull(n) < min_rate * nrow(dat)
+#                        pull(n) < min_num
+            drop_levels <- unique(dat[mask,i])
+            dat[,i] <- droplevels(dat[,i], exclude=drop_levels)
+            
+            # Replace least frequent factor with NA if no NA
+            if (sum(is.na(dat[,i])) == 0) {
+                print(name)
+                print(sum(is.na(dat[,i])))
+                rarest_val <- dat %>% 
+                                group_by(get(name)) %>%
+                                mutate(n=n()) %>% 
+                                ungroup() %>%
+                                slice(which.min(n)) %>%
+                                pull(get(name))
+                dat[dat[[name]] == rarest_val, name] = NA
+                print(sum(is.na(dat[,i])))
+            }
+        }        
+    } 
+    if (!is.null(xlevels)) {
+        for (i in fctr) {
+            name <- names(dat)[i]
+            dat[[name]] <- factor(dat[[name]], levels=xlevels[[name]])
+            if (NA %in% xlevels[[name]]) {
+                dat[[name]] <- addNA(dat[[name]])
+            }
+        }
+    }
+    dat[fctr] <- lapply(dat[fctr], addNA)
+    dat
+}
+
+get_formula <- function(df,dp,scope,rf) {
     vars <- c('pattern_domain_count','log_reg_arpt','sld_length','gibb_score','sld_type','day_domains','reg_period')
     if (dp) {
         dp_vars <- c('response','websitetype','economy_footprint','online','ecommerce','ecommercequality','country',
-                      'hosting_country','mxdomain','nameserver','renewalprobability','siccode','sicdivision','sicmajorgroup',
-                      'ssl','renewed_count')
+                      'hosting_country','renewalprobability','siccode','sicdivision','sicmajorgroup',#'mxdomain','nameserver',
+                      'ssl','renewed_count', 'mxdomain_diff')
         vars <- c(vars, dp_vars)
     }
     if (scope == "agg") { vars <- c(vars, c("tld", "reseller")) }
@@ -36,32 +101,20 @@ get_formula <- function(df,dp,scope) {
     df <- stats::na.omit(df)
     var_mode <- sapply(df, mode)
     ind1 <- which(var_mode %in% c("logical", "character"))
-    cat(ind1,"\n")
     df[ind1] <- lapply(df[ind1], as.factor)
-    cat("a\n")
     
     # Less than 2 unique values
     fctr <- which(sapply(df, is.factor))
-    cat(fctr,"\n")
     df[fctr] <- lapply(df[fctr], base::droplevels.factor)
-    cat("b\n")
     
     drop_vars <- which(sapply(df, function(x) length(unique(x)) < 2))
     cat(paste0("Drop vars: ", paste(names(drop_vars), collapse=","), "\n"))
     vars <- vars[!vars %in% names(drop_vars)]                          
     cat(paste0("Remaining vars: ", paste(vars, collapse=","), "\n"))
+                              
+    if (rf & (length(vars) == 0)) vars <- c('response')
     
-
-#     l <- sapply(df[,vars], function(x) length(unique(x)))
-#     for (i in seq(length(l))) {
-#         cat(paste0(names(l)[i], ": ", l[i], "\n"))
-#         if (l[i] < 10) {
-# #             cat(df[,names(l)[i]])
-# #             cat(unique(df[,names(l)[i]]))
-#             cat(paste(as.vector(unique(df[,get(names(l)[i])])), collapse=","), "\n\n")
-#         }
-#     }
-    right_side <- paste(vars, collapse="+")
+    right_side <- paste(c("1", vars), collapse="+")
     f <- as.formula(paste0("renewal_status ~ ", right_side))
     f
 }
@@ -75,7 +128,9 @@ train_agg_glm <- function(train_list,tld_reseller_list,dp) {
     train_list = train_list[tld_reseller_list]
     train_df =  rbindlist(train_list,use.names=TRUE)
     
-    f <- get_formula(train_df,dp, "agg")
+    train_df <- feature_creation(train_df, drop_rare=TRUE)
+    
+    f <- get_formula(train_df, dp, "agg", FALSE)
     
     model = build_model_first_renewal(train_df,f)
 
@@ -89,7 +144,10 @@ train_agg_glm_ALL <- function(train_list,tld_reseller_list,dp) {
     train_list = train_list[tld_reseller_list]
     train_df =  rbindlist(train_list,use.names=TRUE)
     
-    f <- get_formula(train_df,dp, "agg")
+    
+    train_df <- feature_creation(train_df, drop_rare=TRUE)
+    
+    f <- get_formula(train_df,dp, "agg", FALSE)
     
     model = build_model_first_renewal(train_df,f)
 
@@ -102,6 +160,8 @@ train_agg_rf <- function(train_list,tld_reseller_list,dp) {
     train_list = train_list[tld_reseller_list]
     train_df =  rbindlist(train_list, use.names=TRUE)
     
+    train_df <- feature_creation(train_df, drop_rare=FALSE)
+
     if(dim(train_df)[1]==1){
     # if train data only has one observation, 
     # ... sample_fraction must be 1 (cant sample fraction of 1 observation)
@@ -110,8 +170,8 @@ train_agg_rf <- function(train_list,tld_reseller_list,dp) {
         sample_fraction=.8
     }
     
-    f <- get_formula(train_df, dp,"agg")
-
+    f <- get_formula(train_df, dp,"agg",TRUE)
+    
     suppressMessages(model <- ranger(
         formula         = f, 
         data            = train_df, 
@@ -137,15 +197,17 @@ train_seg_glm <- function(train_list, reseller_str, dp) {
     train_list_reseller = train_list[tld_registrars]
     train_df_reseller =  rbindlist(train_list_reseller,use.names=TRUE)
 
+    train_df_reseller <- feature_creation(train_df_reseller, drop_rare=TRUE)
+
     if((nlevels(train_df_reseller$tld) < 2)){
         # if there are not enough tlds to segment-on, 
         # ... do not include tld as predictor
         # ... i.e. build standard Radix model
-        f <- get_formula(train_df_reseller, dp, "seg2")
+        f <- get_formula(train_df_reseller, dp, "seg2",FALSE)
     }else{
-        f <- get_formula(train_df_reseller, dp, "seg")
+        f <- get_formula(train_df_reseller, dp, "seg",FALSE)
     }
-
+        
     model = build_model_first_renewal(train_df_reseller, f)
 
     return(model)
@@ -158,7 +220,9 @@ train_seg_rf <- function(train_list, reseller_str, dp) {
     tld_registrars = names(train_list)[endsWith(names(train_list),tolower(reseller_str))]
     train_list_reseller = train_list[tld_registrars]
     train_df_reseller =  rbindlist(train_list_reseller,use.names=TRUE)
-    
+     
+    train_df_reseller <- feature_creation(train_df_reseller, drop_rare=FALSE)
+   
     if(dim(train_df_reseller)[1]==1){
         # if train data only has one observation, 
         # ... sample_fraction must be 1 (cant sample fraction of 1 observation)
@@ -167,8 +231,8 @@ train_seg_rf <- function(train_list, reseller_str, dp) {
         sample_fraction=.8
     }
     
-    f <- get_formula(train_df_reseller, dp,"seg")
-    
+    f <- get_formula(train_df_reseller, dp,"seg",TRUE)
+
     suppressMessages(model <- ranger(
         formula         = f, 
         data            = train_df_reseller, 
@@ -193,9 +257,12 @@ train_seg2_glm <- function(train_list, tld_reseller_str, dp) {
     train_list_tld_reseller = train_list[tld_reseller_str]
     train_df_tld_reseller =  rbindlist(train_list_tld_reseller,use.names=TRUE)   
     
-    f <- get_formula(train_df_tld_reseller, dp, "seg2")
+    train_df_tld_reseller <- feature_creation(train_df_tld_reseller, drop_rare=TRUE)
+
+    f <- get_formula(train_df_tld_reseller, dp, "seg2",FALSE)
     
 #     model = mass_build_model_first_renewal(train_list_tld_reseller, f)
+
     model = build_model_first_renewal(train_df_tld_reseller, f)
     return(model)
     
@@ -208,6 +275,8 @@ train_seg2_rf <- function(train_list, tld_reseller_str, dp) {
     train_list_tld_reseller = train_list[tld_reseller_str]
     train_df_tld_reseller =  rbindlist(train_list_tld_reseller,use.names=TRUE)   
     
+    train_df_tld_reseller <- feature_creation(train_df_tld_reseller, drop_rare=FALSE)
+    
     if(dim(train_df_tld_reseller)[1]==1){
         # if train data only has one observation, 
         # ... sample_fraction must be 1 (cant sample fraction of 1 observation)
@@ -216,8 +285,8 @@ train_seg2_rf <- function(train_list, tld_reseller_str, dp) {
         sample_fraction=.8
     }    
     
-    f <- get_formula(train_df_tld_reseller, dp,"seg2")
-    
+    f <- get_formula(train_df_tld_reseller, dp,"seg2",TRUE)
+
     suppressMessages(model <- ranger(
         formula         = f, 
                         data            = train_df_tld_reseller, 
@@ -247,13 +316,14 @@ pred_agg_glm <- function(model, test_list, tld_reseller_str) {
     
     test_list_tld_reseller = test_list[tld_reseller_str]
     test_df_tld_reseller =  rbindlist(test_list_tld_reseller,use.names=TRUE)
-  
+    test_df_tld_reseller = feature_creation(test_df_tld_reseller, drop_rare=FALSE, xlevels=model$xlevels)
+
     # if test data contains no observations, skip!
     if ( (dim(test_df_tld_reseller)[1]==0)|(!exists("model")) ){
         pred_df_agg_glm =  data.frame("actual" = rep(NA, nrow(test_df_tld_reseller)),
                               "predicted" = rep(NA, nrow(test_df_tld_reseller)))
     } else {
-        pred = predict_first_renewal_agg(test_df_tld_reseller, model)
+        pred = predict_first_renewal(test_df_tld_reseller, model)
     
         pred_df_agg_glm = data.frame("actual" = pred$renewal_status,
                                       "predicted" = pred$first_renewal_prediction)
@@ -262,6 +332,7 @@ pred_agg_glm <- function(model, test_list, tld_reseller_str) {
     return(pred_df_agg_glm)
 }
 
+# pred_agg_rf <- function(model, test_list, tld_reseller_str) {
 pred_agg_rf <- function(model, test_list, tld_reseller_str) {
     
     print(tld_reseller_str)
@@ -269,7 +340,10 @@ pred_agg_rf <- function(model, test_list, tld_reseller_str) {
     
     test_list_tld_reseller = test_list[tld_reseller_str]
     test_df_tld_reseller =  rbindlist(test_list_tld_reseller,use.names=TRUE)
+#     test_df_tld_reseller =  rbindlist(test_list,use.names=TRUE)
     
+    test_df_tld_reseller = feature_creation(test_df_tld_reseller, drop_rare=FALSE)
+
     # if test data contains no observations, skip!
      if ((dim(test_df_tld_reseller)[1]==0) |(!exists("model")) ){
         pred_df_agg_rf =  data.frame("actual" = rep(NA, nrow(test_df_tld_reseller)),
@@ -318,7 +392,8 @@ pred_seg_glm <- function(test_list, tld_reseller_str) {
             pred_df_seg_glm = NA
         } else {
             model <- get(model_name)
-            pred = predict_first_renewal_reg(test_df_tld_reseller, model)
+            test_df_tld_reseller = feature_creation(test_df_tld_reseller, drop_rare=FALSE, xlevels=model$xlevels)
+            pred = predict_first_renewal(test_df_tld_reseller, model)
 
             pred_df_seg_glm = data.frame("actual" = pred$renewal_status,
                                       "predicted" = pred$first_renewal_prediction)
@@ -337,6 +412,7 @@ pred_seg_rf <- function(test_list, tld_reseller_str) {
     
     test_list_tld_reseller = test_list[tld_reseller_str]
     test_df_tld_reseller =  rbindlist(test_list_tld_reseller,use.names=TRUE)
+    test_df_tld_reseller = feature_creation(test_df_tld_reseller, drop_rare=FALSE)
     
      # if test data contains no observations, skip!
     if ((dim(test_df_tld_reseller)[1]==0)) {
@@ -398,7 +474,9 @@ pred_seg2_glm <- function(test_list, tld_reseller_str) {
                               "predicted" = rep(NA, nrow(test_df_tld_reseller)))
         } else{
             model <- get(model_name)
-            pred = mass_predict_first_renewal(test_list_tld_reseller, model)
+#             pred = mass_predict_first_renewal(test_list_tld_reseller, model)
+            test_df_tld_reseller = feature_creation(test_df_tld_reseller, drop_rare=FALSE, xlevels=model$xlevels)
+            pred = predict_first_renewal(test_df_tld_reseller, model)
     
             pred_df_seg2_glm = data.frame("actual" = pred$renewal_status,
                                       "predicted" = pred$first_renewal_prediction)
@@ -418,6 +496,7 @@ pred_seg2_rf <- function(test_list, tld_reseller_str) {
     
     test_list_tld_reseller = test_list[tld_reseller_str]
     test_df_tld_reseller =  rbindlist(test_list_tld_reseller,use.names=TRUE)
+    test_df_tld_reseller = feature_creation(test_df_tld_reseller, drop_rare=FALSE)
     
     if ((dim(test_df_tld_reseller)[1]==0)){
         pred_df_seg2_rf = NA
@@ -601,8 +680,9 @@ train_all <- function (tld_reseller_list,
                        tld_registrar_excl_list,
                        train_list = expiry_train_prepped_2_1,
                        test_list = expiry_test_prepped_2_1,
-                       model_agg_glm = NULL,
-                       model_agg_rf = NULL,
+#                        model_agg_glm = NULL,
+#                        model_agg_rf = NULL,
+                       skipModels=c(),
                        fullDir='../../data/output/models_20201015',
                        dp = FALSE){
     
@@ -619,9 +699,13 @@ train_all <- function (tld_reseller_list,
 #     reseller_list = rbindlist(test_list, ,use.names=TRUE) %>% 
 #       filter(tld_registrar_index %in% tld_reseller_list) %>% 
 #       distinct(reseller)  %>%  pull(reseller)
+    
+    allModels <-c("model_agg_rf_ALL", "model_agg_glm_ALL", "model_seg2_glm_ALL", "model_agg_glm",
+                  "model_agg_rf", "model_seg_glm_ALL", "model_seg_rf_ALL", "model_seg2_rf_ALL")
+    useModels <- allModels[(!allModels %in% skipModels)]
 
     
-    if(is.null(model_agg_glm)) {
+    if ("model_agg_glm_ALL" %in%  useModels) {
         
         cat("\n\nTraining model_agg_glm_ALL\n")
         model_agg_glm_ALL = train_agg_glm(train_list,tld_reseller_list_ALL,dp)
@@ -630,7 +714,7 @@ train_all <- function (tld_reseller_list,
         
         }    
     
-    if(is.null(model_agg_glm)) {
+    if("model_agg_glm" %in%  useModels) {
         
         cat("\n\nTraining model_agg_glm\n")
         model_agg_glm = train_agg_glm(train_list,tld_reseller_list,dp)
@@ -639,7 +723,7 @@ train_all <- function (tld_reseller_list,
         
         }    
     
-    if(is.null(model_agg_rf)) {
+    if("model_agg_rf_ALL" %in% useModels) {
         cat("\n\nTraining model_agg_rf_ALL\n")
         model_agg_rf_ALL = train_agg_rf(train_list,tld_reseller_list_ALL,dp)   
         save(model_agg_rf_ALL, 
@@ -648,7 +732,7 @@ train_all <- function (tld_reseller_list,
         
     } 
     
-    if(is.null(model_agg_rf)) {
+    if("model_agg_rf" %in% useModels) {
         cat("\n\nTraining model_agg_rf\n")
         model_agg_rf = train_agg_rf(train_list,tld_reseller_list,dp)   
         save(model_agg_rf, 
@@ -660,44 +744,50 @@ train_all <- function (tld_reseller_list,
     
     cat("\n\nTraining model_seg_glm & model_seg_rf\n")
     for (reseller_str in reseller_list_ALL) {
-        
-        model_name <- paste0('model_seg_glm_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
-        print(model_name)
-        
-        assign(model_name,train_seg_glm(train_list, reseller_str,dp) )
-        save(list=model_name, 
-             file=file.path(fullDir, paste0(model_name,'.Rdata'))
-            )
-        
-        model_name <- paste0('model_seg_rf_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
-        print(model_name)
-        
-        assign(model_name,train_seg_rf(train_list, reseller_str,dp)  )
-        save(list=model_name, 
-             file=file.path(fullDir, paste0(model_name,'.Rdata'))
-            )
-        
+               
+        if ("model_seg_glm_ALL" %in% useModels) {
+            model_name <- paste0('model_seg_glm_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
+            print(model_name)
+            assign(model_name,train_seg_glm(train_list, reseller_str,dp) )
+            save(list=model_name, 
+                 file=file.path(fullDir, paste0(model_name,'.Rdata'))
+                )            
+        }
+
+        if ("model_seg_rf_ALL" %in% useModels) {        
+            model_name <- paste0('model_seg_rf_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
+            print(model_name)
+
+            assign(model_name,train_seg_rf(train_list, reseller_str,dp)  )
+            save(list=model_name, 
+                 file=file.path(fullDir, paste0(model_name,'.Rdata'))
+                )
+        }
     } 
     
     
     cat("\n\nTraining model_seg2_glm & model_seg2_rf\n")
     for (tld_reseller_str in tld_reseller_list_ALL) {
 
-        model_name <- paste0('model_seg2_glm_',str_replace_all(tld_reseller_str, "[^[:alnum:]]", ""))
-        print(model_name)
+        if ("model_seg2_glm_ALL" %in% useModels) {
+            model_name <- paste0('model_seg2_glm_',str_replace_all(tld_reseller_str, "[^[:alnum:]]", ""))
+            print(model_name)
 
-        assign(model_name,train_seg2_glm(train_list, tld_reseller_str,dp) )
-        save(list=model_name, 
-             file=file.path(fullDir, paste0(model_name,'.Rdata'))
-            )
+            assign(model_name,train_seg2_glm(train_list, tld_reseller_str,dp) )
+            save(list=model_name, 
+                 file=file.path(fullDir, paste0(model_name,'.Rdata'))
+                )
+        }
 
-        model_name <- paste0('model_seg2_rf_',str_replace_all(tld_reseller_str, "[^[:alnum:]]", ""))
-        print(model_name)
+        if ("model_seg2_rf_ALL" %in% useModels) {
+            model_name <- paste0('model_seg2_rf_',str_replace_all(tld_reseller_str, "[^[:alnum:]]", ""))
+            print(model_name)
 
-        assign(model_name,train_seg2_rf(train_list, tld_reseller_str,dp)  )
-        save(list=model_name, 
-             file=file.path(fullDir, paste0(model_name,'.Rdata'))
-            )
+            assign(model_name,train_seg2_rf(train_list, tld_reseller_str,dp)  )
+            save(list=model_name, 
+                 file=file.path(fullDir, paste0(model_name,'.Rdata'))
+                )
+        }
     }
     
     return(tld_reseller_list_ALL) # return all, predict for all and then exclude
@@ -710,14 +800,18 @@ pred_all <- function (tld_reseller_list,
                       test_list = expiry_test_prepped_2_1,
                       modelDir='../../data/output/models_20201015', # dir of models
                       fullDir='../../data/output/models_20201015', # dir of output
-                      skipModels=c() # Models to skip 
+                      pred_folder='preds',
+                      skipPred=c(), # Models to skip predicting 
+                      skipReturn=c()  # Models to not return
                       ){   
     # Get useModels
     allModels <-c("model_agg_rf_ALL", "model_agg_glm_ALL", "model_seg2_glm_ALL", "model_agg_glm",
                   "model_agg_rf", "model_seg_glm_ALL", "model_seg_rf_ALL", "model_seg2_rf_ALL")
-    useModels <- allModels[(!allModels %in% skipModels)]
-    
-    predDir = file.path(fullDir, 'preds')
+    useModels <- allModels[(!allModels %in% skipPred)]
+    returnModels <- allModels[(!allModels %in% skipReturn)]
+
+    predDir = file.path(fullDir, pred_folder)
+    dir.create(predDir, recursive=TRUE)
     
     tld_reseller_list_ALL = tld_reseller_list
     
@@ -743,6 +837,7 @@ pred_all <- function (tld_reseller_list,
         preds_agg_rf_ALL = lapply(tld_reseller_list_ALL, 
                function(tld_reseller_str) pred_agg_rf(model_agg_rf_ALL, test_list, tld_reseller_str)
                )
+#         preds_agg_rf_ALL = pred_agg_rf(model_agg_rf, test_list, tld_reseller_list_ALL)
         rm(model_agg_rf)
         gc() 
 
@@ -758,7 +853,7 @@ pred_all <- function (tld_reseller_list,
         rm(model_agg_glm)
         gc()
 
-        save(preds_agg_glm_ALL, file=file.path(predDir, 'preds_agg_glm_ALL.Rdata'))
+        save(preds_agg_glm_ALL, file=file.path(predDir, 'preds_agg_glm_ALL.RData'))
     }
     
     if ("model_agg_glm" %in% useModels) {
@@ -780,6 +875,7 @@ pred_all <- function (tld_reseller_list,
         preds_agg_rf = lapply(tld_reseller_list_ALL, 
                function(tld_reseller_str) pred_agg_rf(model_agg_rf, test_list, tld_reseller_str)
                )
+#         preds_agg_rf = pred_agg_rf(model_agg_rf, test_list, tld_reseller_list_ALL)
         rm(model_agg_rf)
         gc()
 
@@ -827,6 +923,15 @@ pred_all <- function (tld_reseller_list,
     }
     
     
+    preds_str <- gsub("model", "preds", returnModels)
+    pred_str <- gsub("model", "pred", returnModels)
+    for (i in seq(length(returnModels))) {
+        model <- returnModels[i]
+        preds <- preds_str[i]
+        if (!model %in% useModels) {
+            load(file.path(predDir, paste0(preds, '.RData')))
+        }
+    }
     
 #     load(file.path(predDir, 'preds_agg_glm_ALL.Rdata'))
 #     load(file.path(predDir, 'preds_agg_glm.RData'))
@@ -842,11 +947,9 @@ pred_all <- function (tld_reseller_list,
     # combine all preds into one list
     preds_list = list()
     i=1
-    preds_str <- gsub("model", "preds", useModels)
-    pred_str <- gsub("model", "pred", useModels)
     for (tld_reseller_str in tld_reseller_list_ALL) {
         tmp <- test_list[[tld_reseller_str]]
-        for (it in seq(length(useModels))) {
+        for (it in seq(length(returnModels))) {
             curr_pred_str = pred_str[it]
             if (is.na(get(preds_str[it])[[i]])) fill_preds <- NA
             else {
@@ -894,54 +997,93 @@ pred_all <- function (tld_reseller_list,
 # V. METALEARNING TRAINING/TESTING 
 #
 ########################################################################################################
-                                             
-l10_dplyr <- function (pred_df,
-                              pred_var = "first_renewal_prediction") {
-  N <- 10  # total number of rows to preallocate--possibly an overestimate
-  lift_df <- data.frame(P =rep(NA, N), 
-                        actu_renwd2=rep(NA, N), 
-                        gain=rep(NA, N), 
-                        lift=rep(NA, N), 
-                        stringsAsFactors=FALSE)          # you don't know levels yet
-  actu_renwd <- sum(pred_df[["renewal_status"]]=='Renewed')
   
-  i = 1
-  for(P in seq(.1,1,length=10)){
-    temp_df <- data.frame(pred_df)[c("renewal_status",pred_var)]
-    ttmp_df <- temp_df[order(temp_df[pred_var],decreasing = TRUE),][1:round(dim(temp_df)[1]*P),]
-    actu_renwd2 <-  sum(ttmp_df[["renewal_status"]] == 'Renewed')
-    gain = actu_renwd2/actu_renwd
-    lift = gain/(P)
-    
-    lift_df[i, ] <- list(P, actu_renwd2, gain, lift)
-    i = i+1
-  }
-  return(lift_df %>% filter(P==0.1) %>% pull(lift))
+                                                   
+
+l10_dplyr <- function (pred_df, pred_var = "first_renewal_prediction", p=0.10) {
+    # Of the top 10% of predictions, what factor more renewals did we get than expected?
+#     prop <- mean(pred_df$renewal_status == "Renewed")
+    prop <- mean(pred_df$renewal_status)
+    n_rows <- max(round(p * nrow(pred_df)), 1)
+    m <- pred_df %>% arrange(desc(get(pred_var))) %>%
+        slice_head(n = n_rows) %>%
+        pull(renewal_status)# == "Renewed"
+    l10_prop <- mean(m)
+    return(ifelse(prop == 0, 0, l10_prop / prop))
 }
 
+                                                   
+mape_dplyr <- function (pred_df, pred_var = "first_renewal_prediction") {
+    # Mean absolute percentage error when summing predictions
+    p <- sum(pred_df[, pred_var])
+    a <- sum(pred_df$renewal_status)# == "Renewed")
+    return(ifelse(a == 0, 100, 100 * abs(p - a) / a))
+}
+    
+# l10_dplyr <- function (pred_df,
+#                               pred_var = "first_renewal_prediction") {
+#   N <- 10  # total number of rows to preallocate--possibly an overestimate
+#   lift_df <- data.frame(P =rep(NA, N), 
+#                         actu_renwd2=rep(NA, N), 
+#                         gain=rep(NA, N), 
+#                         lift=rep(NA, N), 
+#                         stringsAsFactors=FALSE)          # you don't know levels yet
+#   actu_renwd <- sum(pred_df[["renewal_status"]]=='Renewed')
+  
+#   i = 1
+#   for(P in seq(.1,1,length=10)){
+#     temp_df <- data.frame(pred_df)[c("renewal_status",pred_var)]
+#     ttmp_df <- temp_df[order(temp_df[pred_var],decreasing = TRUE),][1:round(dim(temp_df)[1]*P),]
+#     actu_renwd2 <-  sum(ttmp_df[["renewal_status"]] == 'Renewed')
+#     gain = actu_renwd2/actu_renwd
+#     lift = gain/(P)
+    
+#     lift_df[i, ] <- list(P, actu_renwd2, gain, lift)
+#     i = i+1
+#   }
+#   return(lift_df %>% filter(P==0.1) %>% pull(lift))
+# }
+                                                   
 auc_dplyr <- function (pred_df,
                               pred_var = "first_renewal_prediction") {
-  N <- 10  # total number of rows to preallocate--possibly an overestimate
-  lift_df <- data.frame(P =rep(NA, N), 
-                        actu_renwd2=rep(NA, N), 
-                        gain=rep(NA, N), 
-                        lift=rep(NA, N), 
-                        stringsAsFactors=FALSE)          # you don't know levels yet
-  actu_renwd <- sum(pred_df[["renewal_status"]]=='Renewed')
-  
-  i = 1
-  for(P in seq(.1,1,length=10)){
-    temp_df <- data.frame(pred_df)[c("renewal_status",pred_var)]
-    ttmp_df <- temp_df[order(temp_df[pred_var],decreasing = TRUE),][1:round(dim(temp_df)[1]*P),]
-    actu_renwd2 <-  sum(ttmp_df[["renewal_status"]] == 'Renewed')
-    gain = actu_renwd2/actu_renwd
-    lift = gain/(P)
     
-    lift_df[i, ] <- list(P, actu_renwd2, gain, lift)
-    i = i+1
-  }
-  return(calc_auc(lift_df))
+    actu_renwd <- sum(pred_df[["renewal_status"]])#=='Renewed')
+    if (actu_renwd > 0) {
+        auc = pred_df %>% arrange(desc(get(pred_var))) %>%
+            mutate(cs = cumsum(renewal_status), gain = cs / actu_renwd) %>%
+            pull(gain) %>%
+            sum() / nrow(pred_df)
+    } else {
+        auc = 0
+    }
+    auc
 }
+
+    
+    
+# auc_dplyr <- function (pred_df,
+#                               pred_var = "first_renewal_prediction") {
+#   N <- 10  # total number of rows to preallocate--possibly an overestimate
+#   lift_df <- data.frame(P =rep(NA, N), 
+#                         actu_renwd2=rep(NA, N), 
+#                         gain=rep(NA, N), 
+#                         lift=rep(NA, N), 
+#                         stringsAsFactors=FALSE)          # you don't know levels yet
+#   actu_renwd <- sum(pred_df[["renewal_status"]])#=='Renewed')
+  
+#   i = 1
+#   for(P in seq(.1,1,length=10)){
+#     temp_df <- data.frame(pred_df)[c("renewal_status",pred_var)]
+#     ttmp_df <- temp_df[order(temp_df[pred_var],decreasing = TRUE),][1:round(dim(temp_df)[1]*P),]
+#     actu_renwd2 <-  sum(ttmp_df[["renewal_status"]])# == 'Renewed')
+#     gain = actu_renwd2/actu_renwd
+#     lift = gain/(P)
+    
+#     lift_df[i, ] <- list(P, actu_renwd2, gain, lift)
+#     i = i+1
+#   }
+#   return(calc_auc(lift_df))
+# }
 
 
 # takes a df of model assignment & a df of feature data

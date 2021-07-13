@@ -4,6 +4,18 @@
 
 # Helper functions
 
+remove_unknown_factor_levels <- function(dat, model) {
+    fctr <- which(sapply(dat, is.factor))
+    mod_levs <- model$xlevels
+    for (col in names(mod_levs)){
+#         model$xlevels[[col]] <- union(model$xlevels[[col]], levels(dat[[col]]))
+        mask <- (!dat[[col]] %in% mod_levs[[col]])
+        dat[mask, col] <- NA
+    }
+    dat
+}
+
+
 debug_contr_error <- function (dat, subset_vec = NULL) {
   # Credit: https://stackoverflow.com/a/44201384
   if (!is.null(subset_vec)) {
@@ -115,11 +127,13 @@ build_model_first_renewal<-function(train_data,f){
 #       cat(paste0(names(l)[i], ": ", l[i], ", mode = ", var_mode[i], ", nlevels = ", nl, "\n"))
 #   }
   t <- as.data.frame(train_data)           
-  print(debug_contr_error(t))
-                
+#   print(debug_contr_error(t))
+
+  var_mode <- sapply(t, mode)
+  print(f)
   model<-glm(f,
              family=binomial(link='logit'),
-             data=train_data, 
+             data=t, 
              y = FALSE, model = FALSE)
   return(model)
 }
@@ -262,22 +276,25 @@ build_model_first_renewal_agg_plus <-function(train_data){
 
 predict_first_renewal<-function(test_data, model){
   
-
-  if (is.na(model)){
+    
+  if (isTRUE(is.na(model))){
+      print('missing model')
       test_data$probabilities<- rep(NA, dim(test_data)[1])
   } else if (is.null(test_data)) {
+      print('missing test_data')
       test_data$probabilities<- rep(NA, dim(test_data)[1])
   }  else{
-      test_data$sld_type[!(test_data$sld_type %in% model$xlevels$sld_type)]<-NA
-      test_data$probabilities<-predict(model,
-                                   newdata=subset(test_data,
-                                                  select=c(pattern_domain_count, 
-                                                           log_reg_arpt,
-                                                           sld_length, 
-                                                           gibb_score,
-                                                           sld_type, 
-                                                           day_domains,
-                                                           reg_period)),type='response');
+#       test_data <- remove_unknown_factor_levels(test_data, model)
+      test_data$probabilities<-predict(model,newdata=test_data,type='response')
+#       test_data$probabilities<-predict(model,
+#                                    newdata=subset(test_data,
+#                                                   select=c(pattern_domain_count, 
+#                                                            log_reg_arpt,
+#                                                            sld_length, 
+#                                                            gibb_score,
+#                                                            sld_type, 
+#                                                            day_domains,
+#                                                            reg_period)),type='response');
   }
   
   #test.data$probabilities <- predict(model,newdata=subset(test.data,select=c(Coeff.Variation, LogArpt, SLD.Length, SLD.Type, Day.Domains, Gibb.Score)),type='response');
@@ -295,7 +312,7 @@ predict_first_renewal<-function(test_data, model){
 # LVG added for registrar level predictions (with tld as a predictor)
 predict_first_renewal_reg<-function(test_data, model){
   
-  if (is.na(model)){
+  if (isTRUE(is.na(model))){
       test_data$probabilities<- rep(NA, dim(test_data)[1])
   }else if (is.null(test_data)){
       test_data$probabilities<- rep(NA, dim(test_data)[1])
