@@ -1,4 +1,5 @@
 # Rscript training_elder.R > /home/jupyter/Domains_202003/data/output/training_elder.log 2>&1
+# Rscript training_elder.R /home/jupyter/Domains_202003/data/output/dp_datapull_20220822/expiry_20170101_20220822_test.RDS /home/jupyter/Domains_202003/data/output/dp_models_20210907 365 90 2021-08-31 > /home/jupyter/Domains_202003/data/output/training_elder.log 2>&1
 
 # This is the script that does it all: training, predicting, metalearning, ensembling, retraining, repredicting, etc.
 # All components are contained within if statements to allow components to be run individually for testing.
@@ -19,137 +20,215 @@ suppressMessages(library(stringr))
 suppressMessages(library(bigrquery))
 
 # load & prep input data
-source('/home/jupyter/Domains_202003/scripts/orig/functions_models.R')
+# source('/home/jupyter/Domains_202003/scripts/orig/functions_models.R')
 source('/home/jupyter/Domains_202003/scripts/phaseII_06_fallbacksupp/functions_metalearning.R')
 
-# Set date of most recent pull
-today <- as.Date("2021-02-23")
-maxdate <- today - 50
-mindate <- maxdate - 456
-dp <- TRUE
-pred_2021 <- T  # To run test predictions using 2021
-recent_pred_date <- as.Date("2021-06-30")
+args = commandArgs(trailingOnly=TRUE)
 
-# Hardcoding these for now..
-date_split1 <- as.Date("2020-04-13")
-date_split2 <- as.Date("2020-10-24")
+# test if there is at least one argument: if not, return an error
+if (length(args)<5) {
+  stop("Five arguments must be supplied for this script: Input filepath, output directory, max training days, lookup eval days, and end of train", call.=FALSE)
+}
+
+inputFilepath <- args[1]
+outputDir <- args[2]
+train_days <- as.integer(args[3])
+lookup_days <- as.integer(args[4])
+end_train <- as.Date(args[5])
+
+# Get relevant dates
+min_train1_date <- end_train - train_days - lookup_days
+train12_split_date <- end_train - lookup_days
+min_retrain_date <- end_train - train_days
+
+# Create output folder and subfolders
+predDir <- file.path(outputDir, 'preds')
+dir.create(predDir, recursive = TRUE)
+
+
+# # Set date of most recent pull
+# today <- as.Date("2021-02-23")
+# maxdate <- today - 50
+# mindate <- maxdate - 456
+# pred_2021 <- T  # To run test predictions using 2021
+# recent_pred_date <- as.Date("2021-06-30")
+
+# # Hardcoding these for now..
+# date_split1 <- as.Date("2020-04-13")
+# date_split2 <- as.Date("2020-10-24")
 
 # Which components of script should be run
-run_train1 <- F
-pred_train2 <- F
-create_lookup <- F
+run_train1 <- T
+pred_train2 <- T
+create_lookup <- T
 train_meta_model <- F
 train_ensemble <- F
-retrain_all <- F
+retrain_all <- T
 pred_test <- T
 pred_meta_model <- F
-pred_meta <- T
+pred_lookup <- T
 pred_ensemble <- T
 save_bq <- F
 
 use_meta_model <- F
 use_retrained <- T
+use_ensemble <- T
+use_lookup <- T
+dp <- T
 
 # Which metrics and models
 mets <- c('l10', 'auc', 'mape')
 skipModels <- c("model_agg_glm", "model_agg_rf")
 
-# Local directory
-directory <- '/home/jupyter/Domains_202003/data/output/dp_datapull_20210223/'
-directory_2021 <- paste0('/home/jupyter/Domains_202003/data/output/dp_datapull_', strftime(recent_pred_date, format="%Y%m%d"), '/')
-# define output folder
-cat("creating folder\n")
-fullDir='/home/jupyter/Domains_202003/data/output/dp_models_20201104_all'
-dir.create(file.path(fullDir,'preds'), recursive = TRUE)
+# Read in data
+cat("reading in all data\n")
+df <- readRDS(inputFilepath)
+df[, "old_renewal_status"] <- df[, "renewal_status"]
+df$renewal_status <- as.integer(df$renewal_status %in% c("Renewed", "Transfered"))
+exclude_tlds <- c('pw', 'in.net', 'uno')
+df <- df[!df$tld %in% exclude_tlds, ]
+df$expiry_date <- as.Date(df$expiry_date)
+
+# Split train and test datasets
+cat("Splitting data into train and test\n")
+expiry_train_df <- df[(df$expiry_date > min_retrain_date) & (df$expiry_date <= end_train), ]
+expiry_train1_df <- df[(df$expiry_date > min_train1_date) & (df$expiry_date <= train12_split_date), ]
+expiry_train2_df <- df[(df$expiry_date > train12_split_date) & (df$expiry_date <= end_train), ]
+expiry_test_df <- df[df$expiry_date > end_train, ]
+rm(df)
+gc()
+
+# Define tld-re's for training
+cat("defining tld-re's\n")
+include_reg <- expiry_train1_df %>% 
+    group_by(reseller) %>% 
+    summarize(n=n()) %>% 
+    filter(n >= 1000) %>% 
+    pull(reseller) %>%
+    tolower() # Only get resellers with at least 1000 domains in train1
+print(include_reg)
+mask <- (expiry_train1_df$reseller %in% include_reg)
+tld_reseller_list <- expiry_train1_df[mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
+tld_reseller_list_all <- expiry_train1_df %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
+tld_registrar_excl_list = c()
+
+# Get lists
+expiry_train_list <- split(expiry_train_df, expiry_train_df$tld_registrar_index)
+expiry_train1_list <- split(expiry_train1_df, expiry_train1_df$tld_registrar_index)
+expiry_train2_list <- split(expiry_train2_df, expiry_train2_df$tld_registrar_index)
+expiry_test_df <- split(expiry_test_df, expiry_test_df$tld_registrar_index)
 
 
-train1_file <- paste0('expiry_20191006_', strftime(date_split1, format="%Y%m%d"), '_train1.RDS')
-train2_file <- paste0('expiry_', strftime(date_split1, format="%Y%m%d"), '_', strftime(date_split2, format="%Y%m%d"), '_train2.RDS')
-test_file <- paste0('expiry_', strftime(date_split2, format="%Y%m%d"), '_20210104_test.RDS')
-test_dir <- paste0(directory, 'expiry_', strftime(date_split2, format="%Y%m%d"), '_20210104_test.RDS')
 
-# Defining paths for saving predictions and models
-# Key is predictions for the retrain version are saved separately
-predDir <- file.path(fullDir, 'preds')
+# # Local directory
+# if (dp) {
+#     pref <- "dp_"
+# } else {
+#     pref <- ""
+# }
+# directory <- '/home/jupyter/Domains_202003/data/output/dp_datapull_20210223/'
+# directory_2021 <- paste0('/home/jupyter/Domains_202003/data/output/dp_datapull_', strftime(recent_pred_date, format="%Y%m%d"), '/')
+# # define output folder
+# cat("creating folder\n")
+# # fullDir='/home/jupyter/Domains_202003/data/output/dp_models_20201104_all'
+# fullDir=paste0('/home/jupyter/Domains_202003/data/output/', pref, 'models_20201104_all')
+# dir.create(file.path(fullDir,'preds'), recursive = TRUE)
 
-if (pred_2021) {
-    retrainDir='/home/jupyter/Domains_202003/data/output/dp_models_retrained_2021'
-    if (use_retrained) {
-        predDir <- file.path(retrainDir, 'preds')
-    }
+
+# train1_file <- paste0('expiry_20191006_', strftime(date_split1, format="%Y%m%d"), '_train1.RDS')
+# train2_file <- paste0('expiry_', strftime(date_split1, format="%Y%m%d"), '_', strftime(date_split2, format="%Y%m%d"), '_train2.RDS')
+# test_file <- paste0('expiry_', strftime(date_split2, format="%Y%m%d"), '_20210104_test.RDS')
+# test_dir <- paste0(directory, 'expiry_', strftime(date_split2, format="%Y%m%d"), '_20210104_test.RDS')
+
+# # Defining paths for saving predictions and models
+# # Key is predictions for the retrain version are saved separately
+# predDir <- file.path(fullDir, 'preds')
+
+# if (pred_2021) {
+# #     retrainDir='/home/jupyter/Domains_202003/data/output/dp_models_retrained_2021'
+#     retrainDir=paste0('/home/jupyter/Domains_202003/data/output/', pref, 'models_retrained_2021')
+#     if (use_retrained) {
+#         predDir <- file.path(retrainDir, 'preds')
+#     }
     
-    test_dir <- paste0(directory_2021, 'expiry_20210104_', strftime(recent_pred_date, format="%Y%m%d"), '_test.RDS')  # Test data
-    test_preds_path <- file.path(predDir,'preds_test_2021')  # Path for saving test predictions from 6 base models
-    test_meta_preds_path <- file.path(predDir,'preds_test_with_meta_2021.csv')  # Path for saving test predictions including meta model predictions
-    ensemble_preds_path <- file.path(predDir,'preds_ensemble_2021.csv')  # Path for saving test predictions including ensemble predictions
-    meta_lookup_path <- file.path(fullDir, 'preds', 'meta_lookup_table_2021.csv')  # Path for meta lookup table
-    bq_table_name <- paste0('myriad-303821.expiry.preds_20210104_',format(recent_pred_date, format="%Y%m%d"))
-} else {
-    retrainDir='/home/jupyter/Domains_202003/data/output/dp_models_retrained'
-    if (use_retrained) {
-        predDir <- file.path(retrainDir, 'preds')
-    }
-    test_dir <- paste0(directory, 'expiry_', strftime(date_split2, format="%Y%m%d"), '_20210104_test.RDS')  # Test input data
-    test_preds_path <- file.path(predDir,'preds_test.csv')  # Path for saving test predictions from 6 base models
-    test_meta_preds_path <- file.path(predDir,'preds_test_with_meta.csv')  # Path for saving test predictions including meta model predictions
-    ensemble_preds_path <- file.path(predDir,'preds_ensemble.csv')  # Path for saving test predictions including ensemble predictions
-    meta_lookup_path <- file.path(fullDir, 'preds', 'meta_lookup_table.csv')  # Path for meta lookup table
-    bq_table_name <- paste0('myriad-303821.expiry.preds_',format(date_split2, format="%Y%m%d"),'_',format(maxdate, format="%Y%m%d"))
-}
+#     test_dir <- paste0(directory_2021, 'expiry_20210104_', strftime(recent_pred_date, format="%Y%m%d"), '_test.RDS')  # Test data
+#     test_preds_path <- file.path(predDir,'preds_test_2021')  # Path for saving test predictions from 6 base models
+#     test_meta_preds_path <- file.path(predDir,'preds_test_with_meta_2021.csv')  # Path for saving test predictions including meta model predictions
+#     ensemble_preds_path <- file.path(predDir,'preds_ensemble_2021.csv')  # Path for saving test predictions including ensemble predictions
+#     meta_lookup_path <- file.path(fullDir, 'preds', 'meta_lookup_table_2021.csv')  # Path for meta lookup table
+#     bq_table_name <- paste0('myriad-303821.expiry.', pref, 'preds_20210104_',format(recent_pred_date, format="%Y%m%d"))
+# } else {
+# #     retrainDir='/home/jupyter/Domains_202003/data/output/dp_models_retrained'
+#     retrainDir=paste0('/home/jupyter/Domains_202003/data/output/', pref, 'models_retrained')
+#     if (use_retrained) {
+#         predDir <- file.path(retrainDir, 'preds')
+#     }
+#     test_dir <- paste0(directory, 'expiry_', strftime(date_split2, format="%Y%m%d"), '_20210104_test.RDS')  # Test input data
+#     test_preds_path <- file.path(predDir,'preds_test.csv')  # Path for saving test predictions from 6 base models
+#     test_meta_preds_path <- file.path(predDir,'preds_test_with_meta.csv')  # Path for saving test predictions including meta model predictions
+#     ensemble_preds_path <- file.path(predDir,'preds_ensemble.csv')  # Path for saving test predictions including ensemble predictions
+#     meta_lookup_path <- file.path(fullDir, 'preds', 'meta_lookup_table.csv')  # Path for meta lookup table
+#     bq_table_name <- paste0('myriad-303821.expiry.', pref, 'preds_',format(date_split2, format="%Y%m%d"),'_',format(maxdate, format="%Y%m%d"))
+# }
 
-dir.create(file.path(predDir,'preds'), recursive = TRUE)
+# dir.create(file.path(predDir,'preds'), recursive = TRUE)
 
-if (use_meta_model) {
-    # Change naming of files to reflect using meta_model vs lookup table
-    test_meta_preds_path <- gsub("meta", "meta_model_missRanger", test_meta_preds_path)
-    meta_lookup_path <- gsub("meta", "meta_model_missRanger", meta_lookup_path)
-    bq_table_name <- gsub("preds", "meta_model_preds", bq_table_name)
-}
+# if (use_meta_model) {
+#     # Change naming of files to reflect using meta_model vs lookup table
+#     test_meta_preds_path <- gsub("meta", "meta_model_missRanger", test_meta_preds_path)
+#     meta_lookup_path <- gsub("meta", "meta_model_missRanger", meta_lookup_path)
+#     bq_table_name <- gsub("preds", "meta_model_preds", bq_table_name)
+# }
 
-# Read in train datasets
-if (run_train1 | pred_train2 | pred_test | retrain_all) {
-    cat("reading in first training data\n")
-    train1_str <- paste0('expiry_',format(mindate, format="%Y%m%d"),'_',format(date_split1, format="%Y%m%d") ,'_train1.RDS')
-    expiry_train1_df <- readRDS(paste0(directory, train1_str))
-    expiry_train1_df$old_renewal_status <- expiry_train1_df$renewal_status
-    expiry_train1_df$renewal_status <- as.integer(expiry_train1_df$renewal_status == "Renewed")
-    expiry_train1_list <- split(expiry_train1_df, expiry_train1_df$tld_registrar_index)
+# # Read in train datasets
+# if (run_train1 | pred_train2 | pred_test | retrain_all) {
+#     cat("reading in first training data\n")
+#     train1_str <- paste0('expiry_',format(mindate, format="%Y%m%d"),'_',format(date_split1, format="%Y%m%d") ,'_train1.RDS')
+#     expiry_train1_df <- readRDS(paste0(directory, train1_str))
+#     expiry_train1_df[, "tld_registrar_index"] <- paste0(expiry_train1_df$tld, expiry_train1_df$reseller)
+#     expiry_train1_df$old_renewal_status <- expiry_train1_df$renewal_status
+# #     expiry_train1_df$renewal_status <- as.integer(expiry_train1_df$renewal_status == "Renewed")
+#     expiry_train1_df$renewal_status <- as.integer(expiry_train1_df$renewal_status %in% c("Renewed", "Transfered"))
+#     expiry_train1_list <- split(expiry_train1_df, expiry_train1_df$tld_registrar_index)
     
-    # Define tld-re's for training
-    cat("defining tld-re's\n")
-    exclude_tlds <- c('pw', 'in.net', 'uno')
-    include_reg <- expiry_train1_df %>% 
-        group_by(reseller) %>% 
-        summarize(n=n()) %>% 
-        filter(n >= 1000) %>% 
-        pull(reseller)  # Only get resellers with at least 1000 domains in train1
-    print(include_reg)
-    lim_mask <- (!expiry_train1_df$tld %in% exclude_tlds) & (expiry_train1_df$reseller %in% include_reg)
-    unlim_mask <- (!expiry_train1_df$tld %in% exclude_tlds)
-    print(mean(lim_mask))
-    print(mean(unlim_mask))
-    tld_reseller_list <- expiry_train1_df[lim_mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
-    tld_reseller_list_all <- expiry_train1_df[unlim_mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
-    tld_registrar_excl_list = c()
-}
+#     # Define tld-re's for training
+#     cat("defining tld-re's\n")
+#     exclude_tlds <- c('pw', 'in.net', 'uno')
+#     include_reg <- expiry_train1_df %>% 
+#         group_by(reseller) %>% 
+#         summarize(n=n()) %>% 
+#         filter(n >= 1000) %>% 
+#         pull(reseller)  # Only get resellers with at least 1000 domains in train1
+#     print(include_reg)
+#     lim_mask <- (!expiry_train1_df$tld %in% exclude_tlds) & (expiry_train1_df$reseller %in% include_reg)
+#     unlim_mask <- (!expiry_train1_df$tld %in% exclude_tlds)
+#     print(mean(lim_mask))
+#     print(mean(unlim_mask))
+#     tld_reseller_list <- expiry_train1_df[lim_mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
+#     tld_reseller_list_all <- expiry_train1_df[unlim_mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
+#     tld_registrar_excl_list = c()
+# }
 
-if (pred_train2 | retrain_all) {
-    cat("reading in second training data\n")
-    train2_str <- paste0('expiry_',format(date_split1, format="%Y%m%d"),'_',format(date_split2, format="%Y%m%d") ,'_train2.RDS')
-    expiry_train2_df <- readRDS(paste0(directory, train2_str))
-    expiry_train2_df$renewal_status <- as.integer(expiry_train2_df$renewal_status == "Renewed")
-    expiry_train2_df$old_renewal_status <- expiry_train2_df$renewal_status
-    expiry_train2_list <- split(expiry_train2_df, expiry_train2_df$tld_registrar_index)    
-}
+# if (pred_train2 | retrain_all) {
+#     cat("reading in second training data\n")
+#     train2_str <- paste0('expiry_',format(date_split1, format="%Y%m%d"),'_',format(date_split2, format="%Y%m%d") ,'_train2.RDS')
+#     expiry_train2_df <- readRDS(paste0(directory, train2_str))
+#     expiry_train2_df[, "tld_registrar_index"] <- paste0(expiry_train2_df$tld, expiry_train2_df$reseller)
+#     expiry_train2_df$old_renewal_status <- expiry_train2_df$renewal_status
+# #     expiry_train2_df$renewal_status <- as.integer(expiry_train2_df$renewal_status == "Renewed")
+#     expiry_train2_df$renewal_status <- as.integer(expiry_train2_df$renewal_status %in% c("Renewed", "Transfered"))
+#     expiry_train2_list <- split(expiry_train2_df, expiry_train2_df$tld_registrar_index)    
+# }
 
-if (pred_test) {
-    # Read in test dataset
-    cat("reading in testing data\n")
-    expiry_test_df <- readRDS(test_dir)
-    expiry_test_df$old_renewal_status <- expiry_test_df$renewal_status
-    expiry_test_df$renewal_status <- as.integer(expiry_test_df$renewal_status == "Renewed")
-    expiry_test_list <- split(expiry_test_df, expiry_test_df$tld_registrar_index)    
-}
+# if (pred_test) {
+#     # Read in test dataset
+#     cat("reading in testing data\n")
+#     expiry_test_df <- readRDS(test_dir)
+#     expiry_test_df[, "tld_registrar_index"] <- paste0(expiry_test_df$tld, expiry_test_df$reseller)
+#     expiry_test_df$old_renewal_status <- expiry_test_df$renewal_status
+#     expiry_test_df$renewal_status <- as.integer(expiry_test_df$renewal_status %in% c("Renewed", "Transfered"))
+#     expiry_test_list <- split(expiry_test_df, expiry_test_df$tld_registrar_index)    
+# }
 
 # train & save models
 if (run_train1) {
@@ -163,7 +242,7 @@ if (run_train1) {
                                     train_list = expiry_train1_list,
                                     test_list = expiry_train2_list,
                                     skipModels=c(skipModels, "model_agg_glm_ALL", "model_agg_rf_ALL"),
-                                    fullDir=fullDir,
+                                    fullDir=outputDir,
                                     dp=dp)
 
     cat("Training aggregated\n")
@@ -174,31 +253,30 @@ if (run_train1) {
                                     test_list = expiry_train2_list,
                                     skipModels=c(skipModels, "model_seg2_glm_ALL", "model_seg_glm_ALL",
                                                 "model_seg_rf_ALL", "model_seg2_rf_ALL"),
-                                    fullDir=fullDir,
+                                    fullDir=outputDir,
                                     dp=dp)    
 }
 
 if (pred_train2) {
     # define tld-re's for testing on train2
-    big_mask <- (!expiry_train2_df$tld %in% exclude_tlds) & (expiry_train2_df$reseller %in% include_reg)
-    small_mask <- (!expiry_train2_df$tld %in% exclude_tlds) & (!expiry_train2_df$reseller %in% include_reg)
+    big_mask <- tolower(expiry_train2_df$reseller) %in% include_reg
     pred_tld_reseller_list <- expiry_train2_df[big_mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
-    pred_tld_reseller_list_small <- expiry_train2_df[small_mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
+    pred_tld_reseller_list_small <- expiry_train2_df[!big_mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
 
     # predict train2 based on saved models
     cat("Predicting train2 for large resellers\n")
     train2_preds_big <- pred_all(pred_tld_reseller_list, tld_registrar_excl_list,
                          test_list = expiry_train2_list,
-                         modelDir=fullDir,
-                         fullDir=fullDir,
+                         modelDir=outputDir,
+                         fullDir=outputDir,
                          skipPred=c(skipModels),
                          skipReturn=skipModels)
 
     cat("Predicting train2 for small resellers\n")
     train2_preds_small <- pred_all(pred_tld_reseller_list_small, tld_registrar_excl_list,
                          test_list = expiry_train2_list,
-                         modelDir=fullDir,
-                         fullDir=fullDir,
+                         modelDir=outputDir,
+                         fullDir=outputDir,
                          skipPred=c(skipModels, "model_seg_rf_ALL", "model_seg_glm_ALL",
                                    "model_seg2_rf_ALL", "model_seg2_glm_ALL"),
                          skipReturn=c(skipModels, "model_seg_rf_ALL", "model_seg_glm_ALL",
@@ -211,13 +289,13 @@ if (pred_train2) {
     train2_preds[, pred_cols][is.na(train2_preds[, pred_cols])] <- 0
 
     
-    write.csv(train2_preds, file=file.path(fullDir,'preds','preds_train2.csv'),row.names = FALSE)
-    write.csv(train2_preds_big, file=file.path(fullDir,'preds','preds_train2_big.csv'),row.names = FALSE)
-    write.csv(train2_preds_small, file=file.path(fullDir,'preds','preds_train2_small.csv'),row.names = FALSE)
+    write.csv(train2_preds, file=file.path(predDir,'preds_train2.csv'),row.names = FALSE)
+    write.csv(train2_preds_big, file=file.path(predDir,'preds_train2_big.csv'),row.names = FALSE)
+    write.csv(train2_preds_small, file=file.path(predDir,'preds_train2_small.csv'),row.names = FALSE)
 } else if (create_lookup | train_meta_model | train_ensemble) {
-    train2_preds <- read.csv(file.path(fullDir,'preds','preds_train2.csv'))
-    train2_preds_big <- read.csv(file.path(fullDir,'preds','preds_train2_big.csv'))
-    train2_preds_small <- read.csv(file.path(fullDir,'preds','preds_train2_small.csv'))
+    train2_preds <- read.csv(file.path(predDir,'preds_train2.csv'))
+    train2_preds_big <- read.csv(file.path(predDir,'preds_train2_big.csv'))
+    train2_preds_small <- read.csv(file.path(predDir,'preds_train2_small.csv'))
 }
 
 if (create_lookup) {
@@ -248,7 +326,8 @@ if (create_lookup) {
         )
 
     df <- apply(metrics_df,2,as.character)
-    write.csv(df, file=file.path(fullDir,'preds','metrics_df.csv'),row.names = FALSE)
+    write.csv(df, file=file.path(predDir,'metrics_df.csv'),row.names = FALSE)
+    
     # Create table with tld_registrar_index, metric, and best performing model
     print('Creating lookup table')
     df_list <- list()
@@ -269,78 +348,27 @@ if (create_lookup) {
         df_list[[met]] <- new_df
     }
     lookup_table <- bind_rows(df_list)
-#     write.csv(lookup_table, file=file.path(fullDir,'preds','lookup_table_train2.csv'),row.names = FALSE)
-    write.csv(lookup_table, file=meta_lookup_path, row.names = FALSE)
+    write.csv(lookup_table, file=file.path(predDir,'lookup_table.csv'), row.names = FALSE)
 
-} else if (pred_meta & (!pred_meta_model)) {
-    lookup_table = read.csv(meta_lookup_path)
+} else if (pred_lookup) {
+    lookup_table = read.csv(file.path(predDir,'lookup_table.csv'))
 }
                                  
-if (train_meta_model) {
-    meta_df <- gen_meta_df(train2_preds)
-    metametrics_df <- merge(meta_df, lookup_table, by='tld_registrar_index', all=TRUE)
-    saveRDS(metametrics_df, file.path(fullDir, "meta_data.RDS"))
-    
-    # Train Model
-    for (met in unique(lookup_table$metric)) {
-        mask <- metametrics_df$metric == met
-        drop_cols <- c('tld_registrar_index', 'metric')
-        curr_data <- metametrics_df[mask, (!names(metametrics_df) %in% drop_cols)]
-        
-        
-        model <- ranger(best_model ~ .,
-                        data=curr_data,
-                        importance='impurity',
-                        num.trees=500,
-                        probability = TRUE,
-                        replace = FALSE,
-                        sample.fraction = .8,
-                        seed            = 123,
-                        respect.unordered.factors=TRUE)
-        save(model, file=file.path(fullDir, paste0('model_meta_', met,'.Rdata')))
-    }
-}
-
-if (train_ensemble) {
-    pred_cols_big <- colnames(train2_preds_big)[grepl("^pred_", colnames(train2_preds_big))]
-    pred_cols_small <- c('pred_agg_glm_ALL', 'pred_agg_rf_ALL')
-
-    right_side_big <- paste(c("1", pred_cols_big), collapse="+")
-    f_big <- as.formula(paste0("renewal_status ~ ", right_side_big))
-    print(f_big)
-
-    right_side_small <- paste(c("1", pred_cols_small), collapse="+")
-    f_small <- as.formula(paste0("renewal_status ~ ", right_side_small))
-    print(f_small)
-    
-    model_big<-glm(f_big,
-               family=binomial(link='logit'),
-               data=train2_preds_big, 
-               y = FALSE, model = FALSE)
-    save(model_big, 
-             file=file.path(fullDir, 'model_glm_ensemble_big.Rdata'))
-
-    model_small<-glm(f_small,
-               family=binomial(link='logit'),
-               data=train2_preds_small, 
-               y = FALSE, model = FALSE)
-    save(model_small, 
-             file=file.path(fullDir, 'model_glm_ensemble_small.Rdata'))
-}
-                                 
+                            
 if (retrain_all) {
-    cat("Contatenating training sets")
-    if (pred_2021) {
-        old_test_dir <- paste0(directory, 'expiry_', strftime(date_split2, format="%Y%m%d"), '_20210104_test.RDS')
-        expiry_tmp_df <- readRDS(old_test_dir)
-        expiry_tmp_df$old_renewal_status <- expiry_tmp_df$renewal_status
-        expiry_tmp_df$renewal_status <- as.integer(expiry_tmp_df$renewal_status == "Renewed")
-        expiry_train_df <- rbind(expiry_train1_df, expiry_train2_df, expiry_tmp_df)
-        expiry_train_list <- split(expiry_train_df, expiry_train_df$tld_registrar_index)
-    } else {
-        expiry_train_df <- rbind(expiry_train1_df, expiry_train2_df)
-        expiry_train_list <- split(expiry_train_df, expiry_train_df$tld_registrar_index)
-    }
+#     cat("Contatenating training sets")
+#     if (pred_2021) {
+#         old_test_dir <- paste0(directory, 'expiry_', strftime(date_split2, format="%Y%m%d"), '_20210104_test.RDS')
+#         expiry_tmp_df <- readRDS(old_test_dir)
+#         expiry_tmp_df$old_renewal_status <- expiry_tmp_df$renewal_status
+#         expiry_tmp_df$renewal_status <- as.integer(expiry_tmp_df$renewal_status == "Renewed")
+#         expiry_train_df <- rbind(expiry_train1_df, expiry_train2_df, expiry_tmp_df)
+#         expiry_train_list <- split(expiry_train_df, expiry_train_df$tld_registrar_index)
+#     } else {
+#         expiry_train_df <- rbind(expiry_train1_df, expiry_train2_df)
+#         expiry_train_list <- split(expiry_train_df, expiry_train_df$tld_registrar_index)
+#     }
+    retrainDir <- file.path(outputDir, "retrained_models")
 
     allModels <-c("model_agg_rf_ALL", "model_agg_glm_ALL", "model_seg2_glm_ALL", "model_agg_glm",
                   "model_agg_rf", "model_seg_glm_ALL", "model_seg_rf_ALL", "model_seg2_rf_ALL")
@@ -361,7 +389,7 @@ if (retrain_all) {
                     train_list = expiry_train_list,
                     test_list = expiry_test_list,
                     skipModels=c(skipModels, "model_seg2_glm_ALL", "model_seg_glm_ALL",
-                                 "model_seg_rf_ALL", "model_seg2_rf_ALL", "model_agg_rf_ALL", "model_agg_glm_ALL"),
+                                 "model_seg_rf_ALL", "model_seg2_rf_ALL"),
                     fullDir=retrainDir,
                     dp=dp)    
 }
@@ -370,18 +398,17 @@ if (retrain_all) {
 if (pred_test) {
 
     if (use_retrained) {
-        modelDir = retrainDir
+        modelDir = file.path(outputDir, "retrained_models")
     } else {
-        modelDir = fullDir
+        modelDir = outputDir
     }
     # define tld-re's for testing
-    big_mask <- (!expiry_test_df$tld %in% exclude_tlds) & (expiry_test_df$reseller %in% include_reg)
-    small_mask <- (!expiry_test_df$tld %in% exclude_tlds) & (!expiry_test_df$reseller %in% include_reg)
+    big_mask <- tolower(expiry_test_df$reseller) %in% include_reg
     pred_tld_reseller_list <- expiry_test_df[big_mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
-    pred_tld_reseller_list_small <- expiry_test_df[small_mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
+    pred_tld_reseller_list_small <- expiry_test_df[!big_mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
 
     # predict test based on saved models
-    cat("Predicting test for large resellers\n")
+    cat("Predicting test using all models for large resellers\n")
     test_preds_big <- pred_all(pred_tld_reseller_list, tld_registrar_excl_list,
                          test_list = expiry_test_list,
                          modelDir=modelDir,
@@ -389,7 +416,7 @@ if (pred_test) {
                          skipPred=c(skipModels),
                          skipReturn=skipModels)
 
-    cat("Predicting test for small resellers\n")
+    cat("Predicting test using aggregated models for small resellers\n")
     test_preds_small <- pred_all(pred_tld_reseller_list_small, tld_registrar_excl_list,
                          test_list = expiry_test_list,
                          modelDir=modelDir,
@@ -409,56 +436,20 @@ if (pred_test) {
     test_preds[, pred_cols][is.na(test_preds[, pred_cols])] <- 0
 
     
-    write.csv(test_preds, file=paste0(test_preds_path, '.csv'),row.names = FALSE)
-    write.csv(test_preds_big, file=paste0(test_preds_path, '_big.csv'),row.names = FALSE)
-    write.csv(test_preds_small, file=paste0(test_preds_path, '_small.csv'),row.names = FALSE)
-} else if (pred_meta | pred_meta_model | pred_ensemble) {
-    test_preds <- read.csv(paste0(test_preds_path, '.csv'))
-    test_preds_big <- read.csv(paste0(test_preds_path, '_big.csv'))
-    test_preds_small <- read.csv(paste0(test_preds_path, '_small.csv'))
+    write.csv(test_preds, file=file.path(predDir, 'preds_test.csv'),row.names = FALSE)
+    write.csv(test_preds_big, file=file.path(predDir, 'preds_test_big.csv'),row.names = FALSE)
+    write.csv(test_preds_small, file=file.path(predDir, 'preds_test_small.csv'),row.names = FALSE)
+} else if (pred_lookup | pred_ensemble) {
+    test_preds <- read.csv(file.path(predDir, 'preds_test.csv'))
+#     test_preds_big <- read.csv(file.path(predDir, 'preds_test_big.csv'))
+#     test_preds_small <- read.csv(file.path(predDir, 'preds_test_small.csv'))
 }
 
-                               
-if (pred_meta_model) {
-    meta_df <- gen_meta_df(test_preds)
-    
-    # Generate predictions
-    df_list <- list()
-    for (met in mets) {
-        curr_meta_df <- data.frame(meta_df)
-        model_name <- paste0('model_meta_', met)
-        load(file.path(fullDir, paste0(model_name,'.Rdata')))
-        
-        # Restrict to same columns as training dataset
-        train_cols <- names(model$variable.importance)
-        missing_cols <- train_cols[(!train_cols %in% colnames(meta_df))]
-        curr_meta_df[, missing_cols] <- -1
-        curr_meta_df <- curr_meta_df[, colnames(curr_meta_df) %in% train_cols]
-        
-        # Make and save predictions
-        pred <- data.frame(predict(model, data=curr_meta_df)$predictions)
-        if (met == "mape") {
-            pred = -1 * pred
-        }
-        print(head(pred))
-        tmp <- data.frame(
-            tld_registrar_index=meta_df$tld_registrar_index,
-            metric=rep(met, nrow(meta_df)),
-            best_model=names(pred)[max.col(pred)]
-        )
-        df_list[[met]] <- tmp
-    }
-    lookup_table <- bind_rows(df_list)
-    write.csv(lookup_table, file=meta_lookup_path, row.names = FALSE)
-} else if (pred_meta & use_meta_model) {
-    lookup_table = read.csv(meta_lookup_path)
-}
-
-if (pred_meta) {
+if (pred_lookup) {
     # Use lookup table to decide which model to use and assign meta preds
     for (met in mets) {
         model_col <- paste0(met, '_best_model')
-        pred_col <- paste0('pred_meta_', met)
+        pred_col <- paste0('pred_lookup_', met)
         tmp <- lookup_table %>% filter(metric == met) %>%
             select(tld_registrar_index, best_model)
         colnames(tmp)[colnames(tmp) == 'best_model'] <- model_col
@@ -475,26 +466,36 @@ if (pred_meta) {
     }
 
     # Save results
-    write.csv(test_preds, file=test_meta_preds_path, row.names = FALSE)
-} else if (save_bq) {
-    print('Reading in test preds')
-    test_preds <- read.csv(test_meta_preds_path)
+    write.csv(test_preds, file=file.path(predDir, "test_preds_lookup.csv"), row.names = FALSE)
+} else if (save_bq & use_lookup) {
+    print('Reading in lookup test preds')
+    test_preds <- read.csv(file.path(predDir, "test_preds_lookup.csv"))
 }
                                  
 if (pred_ensemble) {
-    load(file.path(fullDir, 'model_glm_ensemble_big.Rdata'))
-    load(file.path(fullDir, 'model_glm_ensemble_small.Rdata'))
+#     load(file.path(fullDir, 'model_glm_ensemble_big.Rdata'))
+#     load(file.path(fullDir, 'model_glm_ensemble_small.Rdata'))
     pred_cols_big <- colnames(test_preds)[grepl("^pred_[as]", colnames(test_preds))]
     pred_cols_small <- c('pred_agg_glm_ALL', 'pred_agg_rf_ALL')
 
-    test_preds_big[, "pred_ensemble"] <- predict(model_big, newdata=test_preds_big[, pred_cols_big], type="response")
-    test_preds_small[, "pred_ensemble"] <- predict(model_small, newdata=test_preds_small[, pred_cols_small], type="response")
-
+#     test_preds_big[, "pred_ensemble"] <- predict(model_big, newdata=test_preds_big[, pred_cols_big], type="response")
+#     test_preds_small[, "pred_ensemble"] <- predict(model_small, newdata=test_preds_small[, pred_cols_small], type="response")
+   
+    # New Ensemble approach--just average!
+    test_preds_big[, "pred_ensemble"] <- rowMeans(test_preds_big[, pred_cols_big])
+    test_preds_small[, "pred_ensemble"] <- rowMeans(test_preds_small[, pred_cols_small])
+    
     test_preds <- bind_rows(test_preds_big, test_preds_small)
-    write.csv(test_preds, file=ensemble_preds_path, row.names = FALSE)
-} else if (save_bq) {
-    print('Reading in test preds')
-    test_preds <- read.csv(ensemble_preds_path)
+    write.csv(test_preds, file=file.path(predDir, "test_preds_ensemble.csv"), row.names = FALSE)
+} else if (save_bq & use_ensemble) {
+    print('Reading in ensemble test preds')
+    ensemble_test_preds <- read.csv(file.path(predDir, "test_preds_ensemble.csv"))
+    if (use_lookup) {
+        meta_pred_cols <- colnames(test_preds)[grepl("^pred_lookup", colnames(test_preds))]
+        test_preds <- merge(ensemble_test_preds, test_preds[, c("domain", meta_pred_cols)], by="domain")
+    } else {
+        test_preds <- ensemble_test_preds
+    }
 }
                                  
 if (save_bq) {
@@ -506,7 +507,7 @@ if (save_bq) {
     # Save to bq table in chunks
     cat(paste0("Saving meta_preds with ", nrow(preds_df_melt), " rows\n"))
     nrows <- nrow(preds_df_melt)
-    max_rows <- 1000000
+    max_rows <- 500000
     curr_start <- 1
     curr_end <- 0
     while (curr_end < nrows) {
