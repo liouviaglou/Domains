@@ -3,10 +3,10 @@ suppressMessages(library(data.table))
 suppressMessages(library(ranger))
 suppressMessages(library(pbapply))
 suppressMessages(library(zoo))
-suppressMessages(library(missRanger))
+# suppressMessages(library(missRanger))
 
 # load & prep input data
-source('../orig/functions_models.R')
+# source('../orig/functions_models.R')
 
 #########################################################################################  
 #
@@ -80,7 +80,7 @@ debug_contr_error <- function (dat, subset_vec = NULL) {
   nl <- lengths(lev)
   ## return
   list(nlevels = nl, levels = lev)
-  }
+}
 
 build_model_first_renewal<-function(train_data,f){
 
@@ -114,7 +114,9 @@ predict_first_renewal<-function(test_data, model){
     }
   test_data$first_renewal_prediction<-round(test_data$probabilities,3)
   return(test_data)
+  }
 }
+
 impute_zero <- function(vec) {
     # For use in feature_creation--imputes zeros
     vec[is.na(vec)] <- 0
@@ -148,6 +150,7 @@ feature_creation <- function(dat, drop_rare=TRUE, xlevels=NULL, rel_vars=NULL) {
 #         min_num = 10
         for (i in fctr) {
             name <- names(dat)[i]
+            if (name == "renewal_status") next
 #             print(name)
             mask <- dat %>% 
                        group_by(get(name)) %>% 
@@ -445,12 +448,15 @@ train_seg2_glm <- function(train_list, tld_reseller_str, dp) {
     
     # subset data for seg2 models
     train_list_tld_reseller = train_list[tld_reseller_str]
-    train_df_tld_reseller =  rbindlist(train_list_tld_reseller,use.names=TRUE)   
+    train_df_tld_reseller =  rbindlist(train_list_tld_reseller,use.names=TRUE)
+    print(colnames(train_df_tld_reseller))
     
     train_df_tld_reseller <- feature_creation(train_df_tld_reseller, drop_rare=TRUE)
+    print(colnames(train_df_tld_reseller))
 
     f <- get_formula(train_df_tld_reseller, dp, "seg2",FALSE)
-    
+    print(colnames(train_df_tld_reseller))
+
     model = build_model_first_renewal(train_df_tld_reseller, f)
     return(model)
     
@@ -573,6 +579,7 @@ pred_seg_glm <- function(test_list, tld_reseller_str) {
         distinct(reseller) %>% pull(reseller)
 
         model_name <- paste0('model_seg_glm_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
+        cat(paste0(model_name, "\n"))
         
         if ((!exists(model_name))) {
             pred_df_seg_glm = NA
@@ -609,6 +616,7 @@ pred_seg_rf <- function(test_list, tld_reseller_str) {
         distinct(reseller) %>% pull(reseller)
 
         model_name <- paste0('model_seg_rf_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
+        cat(paste0(model_name, "\n"))
         
         if ((!exists(model_name))){
             pred_df_seg_rf =  data.frame("actual" = rep(NA, nrow(test_df_tld_reseller)),
@@ -799,7 +807,9 @@ train_all <- function (tld_reseller_list,
         save(model_agg_glm_ALL, 
              file=file.path(fullDir, 'model_agg_glm_ALL.Rdata'))
         
-        }    
+        rm(model_agg_glm_ALL)
+        gc()
+    }    
     
     if("model_agg_glm" %in%  useModels) {
         
@@ -807,8 +817,9 @@ train_all <- function (tld_reseller_list,
         model_agg_glm = train_agg_glm(train_list,tld_reseller_list,dp)
         save(model_agg_glm, 
              file=file.path(fullDir, 'model_agg_glm.Rdata'))
-        
-        }    
+        rm(model_agg_glm)
+        gc()
+    }    
     
     if("model_agg_rf_ALL" %in% useModels) {
         cat("\n\nTraining model_agg_rf_ALL\n")
@@ -816,6 +827,8 @@ train_all <- function (tld_reseller_list,
         save(model_agg_rf_ALL, 
              file=file.path(fullDir, 'model_agg_rf_ALL.Rdata')
             )
+        rm(model_agg_rf_ALL)
+        gc()
         
     } 
     
@@ -825,6 +838,8 @@ train_all <- function (tld_reseller_list,
         save(model_agg_rf, 
              file=file.path(fullDir, 'model_agg_rf.Rdata')
             )
+        rm(model_agg_rf)
+        gc()
         
     } 
     
@@ -835,20 +850,26 @@ train_all <- function (tld_reseller_list,
         if ("model_seg_glm_ALL" %in% useModels) {
             model_name <- paste0('model_seg_glm_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
             print(model_name)
+            print(reseller_str)
             assign(model_name,train_seg_glm(train_list, reseller_str,dp) )
             save(list=model_name, 
                  file=file.path(fullDir, paste0(model_name,'.Rdata'))
-                )            
+                )
+            rm(list=model_name)
+            gc()
         }
 
         if ("model_seg_rf_ALL" %in% useModels) {        
             model_name <- paste0('model_seg_rf_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
             print(model_name)
+            print(reseller_str)
 
             assign(model_name,train_seg_rf(train_list, reseller_str,dp)  )
             save(list=model_name, 
                  file=file.path(fullDir, paste0(model_name,'.Rdata'))
                 )
+            rm(list=model_name)
+            gc()
         }
     } 
     
@@ -864,6 +885,8 @@ train_all <- function (tld_reseller_list,
             save(list=model_name, 
                  file=file.path(fullDir, paste0(model_name,'.Rdata'))
                 )
+            rm(list=model_name)
+            gc()
         }
 
         if ("model_seg2_rf_ALL" %in% useModels) {
@@ -874,6 +897,8 @@ train_all <- function (tld_reseller_list,
             save(list=model_name, 
                  file=file.path(fullDir, paste0(model_name,'.Rdata'))
                 )
+            rm(list=model_name)
+            gc()
         }
     }
     
@@ -914,6 +939,7 @@ pred_all <- function (tld_reseller_list,
                    tld_reseller_str)
                )
         rm(list=ls(pattern='^model_seg2_glm_'))
+        gc()
 
         save(preds_seg2_glm_ALL, file=file.path(predDir, 'preds_seg2_glm_ALL.RData'))
     }
@@ -976,6 +1002,7 @@ pred_all <- function (tld_reseller_list,
                    tld_reseller_str)
                )
         rm(list=ls(pattern='^model_seg_glm_'))
+        gc()
 
         save(preds_seg_glm_ALL, file=file.path(predDir, 'preds_seg_glm_ALL.RData'))
     }
@@ -989,6 +1016,7 @@ pred_all <- function (tld_reseller_list,
                    tld_reseller_str)
                )
         rm(list=ls(pattern='^model_seg_rf_'))
+        gc()
 
         save(preds_seg_rf_ALL, file=file.path(predDir, 'preds_seg_rf_ALL.RData'))    
     }
@@ -1003,8 +1031,9 @@ pred_all <- function (tld_reseller_list,
                    tld_reseller_str)
                )
         rm(list=ls(pattern='^model_seg2_rf_'))
+        gc()
 
-        save(preds_seg2_rf_ALL, file=file.path(predDir, 'preds_seg2_rf_ALL.RData'))    
+        save(preds_seg2_rf_ALL, file=file.path(predDir, 'preds_seg2_rf_ALL.RData'))
     }
     
     # Load all prediction data into the environment
@@ -1024,14 +1053,21 @@ pred_all <- function (tld_reseller_list,
     i=1
     for (tld_reseller_str in tld_reseller_list_ALL) {
         tmp <- test_list[[tld_reseller_str]]
+        cat(paste(tld_reseller_str, "Table Dimensions", dim(tmp), "\n"))
         for (it in seq(length(returnModels))) {
             curr_pred_str = pred_str[it]
+            print(i)
+            print(it)
+            cat(paste("curr_pred_str:", curr_pred_str, "\n"))
+            cat(paste("pred length:", length(get(preds_str[it])), "\n"))
+
             if (is.na(get(preds_str[it])[[i]])) fill_preds <- NA
             else {
                 fill_preds = get(preds_str[it])[[i]]$predicted
             }
             tmp[, curr_pred_str] = fill_preds
         }
+        
         tmp <- tmp %>% select(-contains(".actual"))
         names(tmp) <- c(names(test_list[[tld_reseller_str]]), pred_str)
         preds_list[[tld_reseller_str]] <- tmp
@@ -1041,9 +1077,13 @@ pred_all <- function (tld_reseller_list,
     na.omit.list <- function(y) { return(y[!sapply(y, function(x) all(is.na(x)))]) }
     preds_list <- na.omit.list(preds_list)
     preds_df <- rbindlist(preds_list,use.names=TRUE,fill=TRUE)                           
-                                                   
-    return(preds_df)
 
+    # Delete files and free up memory
+    rm(list=preds_str)
+    rm(preds_list)
+    gc()                                           
+    
+    return(preds_df)
 }
 
 ########################################################################################################
