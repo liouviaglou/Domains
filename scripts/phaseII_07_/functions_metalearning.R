@@ -73,7 +73,7 @@ debug_contr_error <- function (dat, subset_vec = NULL) {
     
   l <- sapply(dat, function(x) length(unique(x)))
   for (i in seq(length(l))) {
-      cat(paste0(names(l)[i], ": ", l[i], "\n"))
+      flog.debug(paste0(names(l)[i], ": ", l[i], "\n"))
   }
   ## step 4
   lev <- lapply(dat[fctr], base::levels.default)
@@ -87,7 +87,7 @@ build_model_first_renewal<-function(train_data,f){
   t <- as.data.frame(train_data)           
 
   var_mode <- sapply(t, mode)
-  print(f)
+  flog.debug(f)
   model<-glm(f,
              family=binomial(link='logit'),
              data=t, 
@@ -99,10 +99,10 @@ predict_first_renewal<-function(test_data, model){
   
     
   if (isTRUE(is.na(model))){
-      print('missing model')
+      flog.info('missing model')
       test_data$probabilities<- rep(NA, dim(test_data)[1])
   } else if (is.null(test_data)) {
-      print('missing test_data')
+      flog.info('missing test_data')
       test_data$probabilities<- rep(NA, dim(test_data)[1])
   }  else{
       test_data$probabilities<-predict(model,newdata=test_data,type='response')
@@ -147,23 +147,20 @@ feature_creation <- function(dat, drop_rare=TRUE, xlevels=NULL, rel_vars=NULL) {
     # Remove infrequent factor levels
     if (drop_rare) {
         min_rate = 0.01
-#         min_num = 10
         for (i in fctr) {
             name <- names(dat)[i]
             if (name == "renewal_status") next
-#             print(name)
             mask <- dat %>% 
                        group_by(get(name)) %>% 
                        mutate(n=n()) %>% 
                        pull(n) < min_rate * nrow(dat)
-#                        pull(n) < min_num
             drop_levels <- unique(dat[mask,i])
             dat[,i] <- droplevels(dat[,i], exclude=drop_levels)
             
             # Replace least frequent factor with NA if no NA
             if (sum(is.na(dat[,i])) == 0) {
-                print(name)
-                print(sum(is.na(dat[,i])))
+                flog.debug(name)
+                flog.debug(sum(is.na(dat[,i])))
                 rarest_val <- dat %>% 
                                 group_by(get(name)) %>%
                                 mutate(n=n()) %>% 
@@ -171,7 +168,7 @@ feature_creation <- function(dat, drop_rare=TRUE, xlevels=NULL, rel_vars=NULL) {
                                 slice(which.min(n)) %>%
                                 pull(get(name))
                 dat[dat[[name]] == rarest_val, name] = NA
-                print(sum(is.na(dat[,i])))
+                flog.debug(sum(is.na(dat[,i])))
             }
         }        
     } 
@@ -223,7 +220,7 @@ get_formula <- function(df,dp,scope,rf) {
     if (scope == "agg") { vars <- c(vars, c("tld", "reseller")) }
     else if (scope == "seg") { vars <- c(vars, "tld") }
     else if (scope == "seg2") { }
-    else { print(paste("Unrecognized scope", scope)) }
+    else { flog.info(paste("Unrecognized scope", scope)) }
     
     # Character to factor
     df <- as.data.frame(df)
@@ -237,9 +234,9 @@ get_formula <- function(df,dp,scope,rf) {
     df[fctr] <- lapply(df[fctr], base::droplevels.factor)
     
     drop_vars <- which(sapply(df, function(x) length(unique(x)) < 2))
-    cat(paste0("Drop vars: ", paste(names(drop_vars), collapse=","), "\n"))
+    flog.debug(paste0("Drop vars: ", paste(names(drop_vars), collapse=","), "\n"))
     vars <- vars[!vars %in% names(drop_vars)]                          
-    cat(paste0("Remaining vars: ", paste(vars, collapse=","), "\n"))
+    flog.debug(paste0("Remaining vars: ", paste(vars, collapse=","), "\n"))
                               
     if (rf & (length(vars) == 0)) vars <- c('response')
     
@@ -285,7 +282,7 @@ gen_meta_df <- function(df, vars=NULL) {
     keep_vars <- which(sapply(new_df, function(x) length(unique(x)) >= 2))
     keep_vars <- names(keep_vars)[keep_vars & (names(keep_vars) %in% vars)]
                               
-    print(keep_vars)
+    flog.debug(keep_vars)
     new_df <- new_df[, keep_vars]         
     options(na.action='na.pass')
     newdata <- data.frame(model.matrix(~. + 0, new_df[, keep_vars]))
@@ -307,7 +304,7 @@ gen_meta_df <- function(df, vars=NULL) {
     abt <- merge(num_abt, binary_abt, by="tld_registrar_index")
                               
     # Imputing with missRanger
-    print("Imputing with missRanger")
+    flog.info("Imputing with missRanger")
     abt <- missRanger(abt, num.trees=100)
 #     abt[is.na(abt)] <- -1
     abt
@@ -369,7 +366,7 @@ train_agg_rf <- function(train_list,tld_reseller_list,dp) {
         formula         = f, 
         data            = train_df, 
         importance      = 'impurity', 
-        num.trees       = 1000,
+        num.trees       = 100,
         probability     = TRUE,
         replace         = FALSE,
         sample.fraction = sample_fraction,
@@ -430,7 +427,7 @@ train_seg_rf <- function(train_list, reseller_str, dp) {
         formula         = f, 
         data            = train_df_reseller, 
         importance      = 'impurity', 
-        num.trees       = 1000,
+        num.trees       = 100,
         probability     = TRUE,
         replace         = FALSE,
         sample.fraction = sample_fraction,
@@ -449,13 +446,10 @@ train_seg2_glm <- function(train_list, tld_reseller_str, dp) {
     # subset data for seg2 models
     train_list_tld_reseller = train_list[tld_reseller_str]
     train_df_tld_reseller =  rbindlist(train_list_tld_reseller,use.names=TRUE)
-    print(colnames(train_df_tld_reseller))
     
     train_df_tld_reseller <- feature_creation(train_df_tld_reseller, drop_rare=TRUE)
-    print(colnames(train_df_tld_reseller))
 
     f <- get_formula(train_df_tld_reseller, dp, "seg2",FALSE)
-    print(colnames(train_df_tld_reseller))
 
     model = build_model_first_renewal(train_df_tld_reseller, f)
     return(model)
@@ -485,7 +479,7 @@ train_seg2_rf <- function(train_list, tld_reseller_str, dp) {
         formula         = f, 
                         data            = train_df_tld_reseller, 
                         importance = 'impurity', 
-                        num.trees       = 1000,
+                        num.trees       = 100,
                         probability = TRUE,
                         replace = FALSE,
                         sample.fraction = sample_fraction,
@@ -501,69 +495,11 @@ train_seg2_rf <- function(train_list, tld_reseller_str, dp) {
 #
 #########################################################################################   
 
-# I. A) AGGREGATE MODELS ################################################################   
-
-pred_agg_glm <- function(model, test_list, tld_reseller_str) {
-    
-    print(tld_reseller_str)
-    # agg glm (aggregarted glm (including tld and reseller as predictors))
-    
-    test_list_tld_reseller = test_list[tld_reseller_str]
-    test_df_tld_reseller =  rbindlist(test_list_tld_reseller,use.names=TRUE)
-    test_df_tld_reseller = feature_creation(test_df_tld_reseller, drop_rare=FALSE, xlevels=model$xlevels)
-
-    # if test data contains no observations, skip!
-    if ( (dim(test_df_tld_reseller)[1]==0)|(!exists("model")) ){
-        pred_df_agg_glm =  data.frame("actual" = rep(NA, nrow(test_df_tld_reseller)),
-                              "predicted" = rep(NA, nrow(test_df_tld_reseller)))
-    } else {
-        pred = predict_first_renewal(test_df_tld_reseller, model)
-    
-        pred_df_agg_glm = data.frame("actual" = pred$renewal_status,
-                                      "predicted" = pred$first_renewal_prediction)
-    } 
- 
-    return(pred_df_agg_glm)
-}
-
-pred_agg_rf <- function(model, test_list, tld_reseller_str) {
-    
-    print(tld_reseller_str)
-    # agg rf (aggregarted rf (including tld and reseller as predictors))
-    
-    test_list_tld_reseller = test_list[tld_reseller_str]
-    test_df_tld_reseller =  rbindlist(test_list_tld_reseller,use.names=TRUE)
-    
-    test_df_tld_reseller = feature_creation(test_df_tld_reseller, drop_rare=FALSE)
-
-    # if test data contains no observations, skip!
-     if ((dim(test_df_tld_reseller)[1]==0) |(!exists("model")) ){
-        pred_df_agg_rf =  data.frame("actual" = rep(NA, nrow(test_df_tld_reseller)),
-                              "predicted" = rep(NA, nrow(test_df_tld_reseller)))
-    }  else {
-        pred <- predict(model, 
-                        data = test_df_tld_reseller,
-                        type="response")$predictions
-
-        # if all Renewed col doesn't exist in predictions, create it with value 0
-        if(is.null(as.data.frame(pred)$Renewed)){
-            pred <- as.data.frame(pred)
-            pred$Renewed <- 0
-        }
-
-        pred_df_agg_rf = data.frame("actual" = test_df_tld_reseller$renewal_status,
-                          "predicted" = as.data.frame(pred)$Renewed)
-    }
-    
-    return(pred_df_agg_rf)
-}
-   
-
 # I. B) RESELLER MODELS #################################################################
 
 pred_seg_glm <- function(test_list, tld_reseller_str) {
     
-    print(tld_reseller_str)
+    flog.debug(tld_reseller_str)
     # seg glm (reseller-segmented glm (including tld as predictor))
     
     test_list_tld_reseller = test_list[tld_reseller_str]
@@ -579,7 +515,7 @@ pred_seg_glm <- function(test_list, tld_reseller_str) {
         distinct(reseller) %>% pull(reseller)
 
         model_name <- paste0('model_seg_glm_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
-        cat(paste0(model_name, "\n"))
+        flog.debug(paste0(model_name, "\n"))
         
         if ((!exists(model_name))) {
             pred_df_seg_glm = NA
@@ -600,7 +536,7 @@ pred_seg_glm <- function(test_list, tld_reseller_str) {
 
 pred_seg_rf <- function(test_list, tld_reseller_str) {
     
-    print(tld_reseller_str)
+    flog.debug(tld_reseller_str)
     # seg rf (reseller-segmented rf)
     
     test_list_tld_reseller = test_list[tld_reseller_str]
@@ -616,7 +552,7 @@ pred_seg_rf <- function(test_list, tld_reseller_str) {
         distinct(reseller) %>% pull(reseller)
 
         model_name <- paste0('model_seg_rf_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
-        cat(paste0(model_name, "\n"))
+        flog.debug(paste0(model_name, "\n"))
         
         if ((!exists(model_name))){
             pred_df_seg_rf =  data.frame("actual" = rep(NA, nrow(test_df_tld_reseller)),
@@ -651,7 +587,7 @@ pred_seg_rf <- function(test_list, tld_reseller_str) {
 
 pred_seg2_glm <- function(test_list, tld_reseller_str) {
     
-    print(tld_reseller_str)
+    flog.debug(tld_reseller_str)
     # seg2 glm (tld-reseller-segmented glm)
 
     test_list_tld_reseller = test_list[tld_reseller_str]
@@ -685,7 +621,7 @@ pred_seg2_glm <- function(test_list, tld_reseller_str) {
 
 pred_seg2_rf <- function(test_list, tld_reseller_str) {
     
-    print(tld_reseller_str)
+    flog.debug(tld_reseller_str)
     # seg2 rf (tld-reseller-segmented rf)
     
     test_list_tld_reseller = test_list[tld_reseller_str]
@@ -765,10 +701,10 @@ geo_lookup <- function(geoLookupDF,
     # manual fix for reseller geo 
     preds_df[['reseller_geo']][preds_df[['reseller_country']]=='Southafrica']<-'South Africa'
 
-    # Print remaining NA reseller_geos
+    # print remaining NA reseller_geos
     rem_res <- preds_df %>% filter(is.na(reseller_geo)) %>% 
           distinct(reseller,reseller_country, reseller_geo) %>% pull(reseller)
-    cat("Resellers with unmatched reseller_geo's: ",paste0(rem_res, sep=", "))
+    flog.debug("Resellers with unmatched reseller_geo's: ",paste0(rem_res, sep=", "))
     
     return(preds_df)
 }
@@ -789,7 +725,6 @@ train_all <- function (tld_reseller_list,
                        dp = FALSE){
     
     # keep list of all tld-re's
-    cat("keep list\n")
     tld_reseller_list_ALL = tld_reseller_list
     reseller_list_ALL = rbindlist(test_list, ,use.names=TRUE) %>% 
       filter(tld_registrar_index %in% tld_reseller_list_ALL) %>% 
@@ -802,18 +737,18 @@ train_all <- function (tld_reseller_list,
     
     if ("model_agg_glm_ALL" %in%  useModels) {
         
-        cat("\n\nTraining model_agg_glm_ALL\n")
+        flog.info("\n\nTraining model_agg_glm_ALL\n")
         model_agg_glm_ALL = train_agg_glm(train_list,tld_reseller_list_ALL,dp)
         save(model_agg_glm_ALL, 
              file=file.path(fullDir, 'model_agg_glm_ALL.Rdata'))
         
         rm(model_agg_glm_ALL)
         gc()
-    }    
+    }
     
     if("model_agg_glm" %in%  useModels) {
         
-        cat("\n\nTraining model_agg_glm\n")
+        flog.info("\n\nTraining model_agg_glm\n")
         model_agg_glm = train_agg_glm(train_list,tld_reseller_list,dp)
         save(model_agg_glm, 
              file=file.path(fullDir, 'model_agg_glm.Rdata'))
@@ -822,18 +757,19 @@ train_all <- function (tld_reseller_list,
     }    
     
     if("model_agg_rf_ALL" %in% useModels) {
-        cat("\n\nTraining model_agg_rf_ALL\n")
+        flog.info("\n\nTraining model_agg_rf_ALL\n")
         model_agg_rf_ALL = train_agg_rf(train_list,tld_reseller_list_ALL,dp)   
         save(model_agg_rf_ALL, 
              file=file.path(fullDir, 'model_agg_rf_ALL.Rdata')
             )
+        flog.info("Finished Training")
         rm(model_agg_rf_ALL)
         gc()
         
     } 
     
     if("model_agg_rf" %in% useModels) {
-        cat("\n\nTraining model_agg_rf\n")
+        flog.info("\n\nTraining model_agg_rf\n")
         model_agg_rf = train_agg_rf(train_list,tld_reseller_list,dp)   
         save(model_agg_rf, 
              file=file.path(fullDir, 'model_agg_rf.Rdata')
@@ -844,13 +780,12 @@ train_all <- function (tld_reseller_list,
     } 
     
     
-    cat("\n\nTraining model_seg_glm & model_seg_rf\n")
+    flog.info("\n\nTraining model_seg_glm & model_seg_rf\n")
     for (reseller_str in reseller_list_ALL) {
-               
+        
         if ("model_seg_glm_ALL" %in% useModels) {
             model_name <- paste0('model_seg_glm_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
-            print(model_name)
-            print(reseller_str)
+            flog.info(model_name)
             assign(model_name,train_seg_glm(train_list, reseller_str,dp) )
             save(list=model_name, 
                  file=file.path(fullDir, paste0(model_name,'.Rdata'))
@@ -861,8 +796,7 @@ train_all <- function (tld_reseller_list,
 
         if ("model_seg_rf_ALL" %in% useModels) {        
             model_name <- paste0('model_seg_rf_',str_replace_all(reseller_str, "[^[:alnum:]]", ""))
-            print(model_name)
-            print(reseller_str)
+            flog.info(model_name)
 
             assign(model_name,train_seg_rf(train_list, reseller_str,dp)  )
             save(list=model_name, 
@@ -874,12 +808,12 @@ train_all <- function (tld_reseller_list,
     } 
     
     
-    cat("\n\nTraining model_seg2_glm & model_seg2_rf\n")
+    flog.info("\n\nTraining model_seg2_glm & model_seg2_rf\n")
     for (tld_reseller_str in tld_reseller_list_ALL) {
 
         if ("model_seg2_glm_ALL" %in% useModels) {
             model_name <- paste0('model_seg2_glm_',str_replace_all(tld_reseller_str, "[^[:alnum:]]", ""))
-            print(model_name)
+            flog.info(model_name)
 
             assign(model_name,train_seg2_glm(train_list, tld_reseller_str,dp) )
             save(list=model_name, 
@@ -891,7 +825,7 @@ train_all <- function (tld_reseller_list,
 
         if ("model_seg2_rf_ALL" %in% useModels) {
             model_name <- paste0('model_seg2_rf_',str_replace_all(tld_reseller_str, "[^[:alnum:]]", ""))
-            print(model_name)
+            flog.info(model_name)
 
             assign(model_name,train_seg2_rf(train_list, tld_reseller_str,dp)  )
             save(list=model_name, 
@@ -931,31 +865,30 @@ pred_all <- function (tld_reseller_list,
     tld_reseller_list = tld_reseller_list[!(tld_reseller_list %in% tld_registrar_excl_list)]
 
     if ("model_seg2_glm_ALL" %in% useModels) {
-        cat("\n\nPredicting model_seg2_glm_ALL\n")
+        flog.info("\n\nPredicting model_seg2_glm_ALL\n")
         lapply(Sys.glob(file.path(modelDir,'model_seg2_glm_*')),load,.GlobalEnv)
         preds_seg2_glm_ALL = lapply(tld_reseller_list_ALL, 
                function(tld_reseller_str) pred_seg2_glm(
                    test_list, 
                    tld_reseller_str)
                )
-        rm(list=ls(pattern='^model_seg2_glm_'))
-        gc()
-
         save(preds_seg2_glm_ALL, file=file.path(predDir, 'preds_seg2_glm_ALL.RData'))
+        
+        flog.info("Predictions saved, clearing memory")
+        rm(list=ls(pattern='^model_seg2_glm_'))
+        rm(preds_seg2_glm_ALL)
+        gc()    
     }
 
     if ("model_agg_rf_ALL" %in% useModels) {
-        cat("\n\nPredicting model_agg_rf_ALL\n")
+        flog.info("\n\nPredicting model_agg_rf_ALL\n")
         load(file.path(modelDir, 'model_agg_rf_ALL.Rdata'))
         test_df <- bind_rows(test_list)
-        print(colnames(test_df))
         test_df = feature_creation(test_df, drop_rare=FALSE)
-        print(colnames(test_df))
 
         pred <- predict(model_agg_rf_ALL, 
                         data = test_df,
                         type="response")$predictions
-        print(as.data.frame(pred)[1:10,])
         preds_agg_rf_df = data.frame("actual" = test_df$renewal_status,
                           "predicted" = as.data.frame(pred)[, 2])
         preds_agg_rf_ALL = list()
@@ -964,14 +897,17 @@ pred_all <- function (tld_reseller_list,
             preds_agg_rf_ALL[[i]] = preds_agg_rf_df[test_df$tld_registrar_index == tld_reseller_str, ]
             i = i + 1
         }
-        rm(model_agg_rf)
-        gc() 
+
 
         save(preds_agg_rf_ALL, file=file.path(predDir, 'preds_agg_rf_ALL.RData'))
+
+        flog.info("Predictions saved, clearing memory")
+        rm(preds_agg_rf_ALL, preds_agg_rf_df, model_agg_rf_ALL, test_df)
+        gc() 
     }
     
     if ("model_agg_glm_ALL" %in% useModels) {
-        cat("\n\nPredicting model_agg_glm_ALL\n")
+        flog.info("\n\nPredicting model_agg_glm_ALL\n")
         load(file.path(modelDir, 'model_agg_glm_ALL.Rdata'))
 
         test_df <- bind_rows(test_list)
@@ -987,43 +923,51 @@ pred_all <- function (tld_reseller_list,
             preds_agg_glm_ALL[[i]] = preds_agg_glm_df[tld_res == tld_reseller_str, ]
             i = i + 1
         }
-        rm(model_agg_glm_ALL)
-        gc()
 
         save(preds_agg_glm_ALL, file=file.path(predDir, 'preds_agg_glm_ALL.RData'))
+        
+        flog.info("Predictions saved, clearing memory")
+        rm(preds_agg_glm_ALL, preds_agg_glm_df, model_agg_glm_ALL, test_df)
+        gc() 
     }
     
     if ("model_seg_glm_ALL" %in% useModels) {
-        cat("\n\nPredicting model_seg_glm_ALL\n")   
+        flog.info("\n\nPredicting model_seg_glm_ALL\n")   
         lapply(Sys.glob(file.path(modelDir,'model_seg_glm_*')),load,.GlobalEnv)
         preds_seg_glm_ALL = lapply(tld_reseller_list_ALL, 
                function(tld_reseller_str) pred_seg_glm(
                    test_list, 
                    tld_reseller_str)
                )
-        rm(list=ls(pattern='^model_seg_glm_'))
-        gc()
 
         save(preds_seg_glm_ALL, file=file.path(predDir, 'preds_seg_glm_ALL.RData'))
+        
+        flog.info("Predictions saved, clearing memory")
+        rm(list=ls(pattern='^model_seg_glm_'))
+        rm(preds_seg_glm_ALL)
+        gc() 
     }
     
     if ("model_seg_rf_ALL" %in% useModels) {
-        cat("\n\nPredicting model_seg_rf_ALL\n")  
+        flog.info("\n\nPredicting model_seg_rf_ALL\n")  
         lapply(Sys.glob(file.path(modelDir,'model_seg_rf_*')),load,.GlobalEnv)
         preds_seg_rf_ALL = lapply(tld_reseller_list_ALL, 
                function(tld_reseller_str) pred_seg_rf(
                    test_list, 
                    tld_reseller_str)
                )
-        rm(list=ls(pattern='^model_seg_rf_'))
-        gc()
 
         save(preds_seg_rf_ALL, file=file.path(predDir, 'preds_seg_rf_ALL.RData'))    
+        
+        flog.info("Predictions saved, clearing memory")
+        rm(list=ls(pattern='^model_seg_rf_'))
+        rm(preds_seg_rf_ALL)
+        gc() 
     }
 
 
     if ("model_seg2_rf_ALL" %in% useModels) {
-        cat("\n\nPredicting model_seg2_rf_ALL\n")     
+        flog.info("\n\nPredicting model_seg2_rf_ALL\n")     
         lapply(Sys.glob(file.path(modelDir,'model_seg2_rf_*')),load,.GlobalEnv)
         preds_seg2_rf_ALL = lapply(tld_reseller_list_ALL, 
                function(tld_reseller_str) pred_seg2_rf(
@@ -1034,6 +978,11 @@ pred_all <- function (tld_reseller_list,
         gc()
 
         save(preds_seg2_rf_ALL, file=file.path(predDir, 'preds_seg2_rf_ALL.RData'))
+        
+        flog.info("Predictions saved, clearing memory")
+        rm(list=ls(pattern='^model_seg2_rf_'))
+        rm(preds_seg2_rf_ALL)
+        gc() 
     }
     
     # Load all prediction data into the environment
@@ -1042,9 +991,7 @@ pred_all <- function (tld_reseller_list,
     for (i in seq(length(returnModels))) {
         model <- returnModels[i]
         preds <- preds_str[i]
-        if (!model %in% useModels) {
-            load(file.path(predDir, paste0(preds, '.RData')))
-        }
+        load(file.path(predDir, paste0(preds, '.RData')))
     }
 
     
@@ -1053,13 +1000,13 @@ pred_all <- function (tld_reseller_list,
     i=1
     for (tld_reseller_str in tld_reseller_list_ALL) {
         tmp <- test_list[[tld_reseller_str]]
-        cat(paste(tld_reseller_str, "Table Dimensions", dim(tmp), "\n"))
+        flog.debug(paste(tld_reseller_str, "Table Dimensions", dim(tmp), "\n"))
         for (it in seq(length(returnModels))) {
             curr_pred_str = pred_str[it]
-            print(i)
-            print(it)
-            cat(paste("curr_pred_str:", curr_pred_str, "\n"))
-            cat(paste("pred length:", length(get(preds_str[it])), "\n"))
+            flog.debug(i)
+            flog.debug(it)
+            flog.debug(paste("curr_pred_str:", curr_pred_str, "\n"))
+            flog.debug(paste("pred length:", length(get(preds_str[it])), "\n"))
 
             if (is.na(get(preds_str[it])[[i]])) fill_preds <- NA
             else {
