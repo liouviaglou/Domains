@@ -56,7 +56,7 @@ retrain_all <- T
 pred_test <- T
 pred_lookup <- T
 pred_ensemble <- T
-save_bq <- T
+save_bq <- F
 
 use_retrained <- T
 use_ensemble <- T
@@ -123,6 +123,16 @@ tld_reseller_list_train1_all <- expiry_train1_df %>% distinct(tld_registrar_inde
 tld_reseller_list_train_all <- expiry_train_df %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
 tld_registrar_excl_list = c()
 
+if (!run_train1) { rm(expiry_train1_df) }
+
+if (!pred_train2) { rm(expiry_train2_df) }
+
+if (!retrain_all) { rm(expiry_train_df) }
+
+if (!pred_test) { rm(expiry_test_df) }
+
+gc()
+
 # train & save models
 if (run_train1) {
     
@@ -130,6 +140,10 @@ if (run_train1) {
     
     expiry_train1_list <- split(expiry_train1_df, expiry_train1_df$tld_registrar_index)
     expiry_train2_list <- split(expiry_train2_df, expiry_train2_df$tld_registrar_index)
+    
+    rm(expiry_train1_df)
+    gc()
+    
     flog.info("Training segmented\n")
     # Use common tld-resellers to train segmented models
     n = train_all(  tld_reseller_list,
@@ -151,11 +165,10 @@ if (run_train1) {
                                     fullDir=outputDir,
                                     dp=dp)    
 
+    flog.info("Removing train1 files")
     rm(expiry_train1_list, expiry_train2_list)
 }
-flog.info("Removing train1 files")
-rm(expiry_train1_df)
-gc()
+
 
 if (pred_train2) {
     # define tld-re's for testing on train2
@@ -163,6 +176,8 @@ if (pred_train2) {
     big_mask <- expiry_train2_df$tld_registrar_index %in% tld_reseller_list
     pred_tld_reseller_list <- expiry_train2_df[big_mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
     pred_tld_reseller_list_small <- expiry_train2_df[!big_mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
+    rm(expiry_train2_df)
+    gc()
 
     # predict train2 based on saved models
     flog.info("Predicting train2 for large resellers\n")
@@ -194,14 +209,12 @@ if (pred_train2) {
     write.csv(train2_preds_big, file=file.path(predDir,'preds_train2_big.csv'),row.names = FALSE)
     write.csv(train2_preds_small, file=file.path(predDir,'preds_train2_small.csv'),row.names = FALSE)
 
+    flog.info("Removing train2 files")
     rm(expiry_train2_list)
 
-} else if (create_lookup | train_ensemble) {
+} else if (create_lookup) {
     train2_preds <- read.csv(file.path(predDir,'preds_train2.csv'))
 }
-flog.info("Removing train2 files")
-rm(expiry_train2_df)
-gc()
 
 
 if (create_lookup) {
@@ -256,6 +269,9 @@ if (create_lookup) {
     lookup_table <- bind_rows(df_list)
     write.csv(lookup_table, file=file.path(predDir,'lookup_table.csv'), row.names = FALSE)
 
+    # Remove variables
+    rm(df_list, new_df, df, metrics_df)
+    gc()
 } else if (pred_lookup) {
     lookup_table = read.csv(file.path(predDir,'lookup_table.csv'))
 }
@@ -266,6 +282,9 @@ if (retrain_all) {
 
     expiry_train_list <- split(expiry_train_df, expiry_train_df$tld_registrar_index)
     expiry_test_list <- split(expiry_test_df, expiry_test_df$tld_registrar_index)
+    rm(expiry_train_df)
+    gc()
+    
     allModels <-c("model_agg_rf_ALL", "model_agg_glm_ALL", "model_seg2_glm_ALL", "model_agg_glm",
                   "model_agg_rf", "model_seg_glm_ALL", "model_seg_rf_ALL", "model_seg2_rf_ALL")
     flog.info("Retraining segmented\n")
@@ -289,11 +308,9 @@ if (retrain_all) {
                     fullDir=retrainDir,
                     dp=dp)  
 
+    flog.info("Removing train files")
     rm(expiry_train_list, expiry_test_list)  
 }
-flog.info("Removing train files")
-rm(expiry_train_df)
-gc()
                                  
                    
 if (pred_test) {
@@ -310,6 +327,8 @@ if (pred_test) {
     big_mask <- expiry_test_df$tld_registrar_index %in% tld_reseller_list
     pred_tld_reseller_list <- expiry_test_df[big_mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
     pred_tld_reseller_list_small <- expiry_test_df[!big_mask, ] %>% distinct(tld_registrar_index) %>% pull(tld_registrar_index)
+    rm(expiry_test_df)
+    gc()
 
     # predict test based on saved models
     flog.info("Predicting test using all models for large resellers\n")
@@ -317,8 +336,7 @@ if (pred_test) {
                          test_list = expiry_test_list,
                          modelDir=modelDir,
                          fullDir=modelDir,
-                         skipPred=c(skipModels, "model_seg_rf_ALL", "model_seg_glm_ALL",
-                                   "model_seg2_rf_ALL", "model_seg2_glm_ALL"),
+                         skipPred=c(skipModels),
                          skipReturn=skipModels)
 
     flog.info("Predicting test using aggregated models for small resellers\n")
@@ -340,6 +358,7 @@ if (pred_test) {
     pred_cols <- colnames(test_preds)[grepl("^pred_", colnames(test_preds))]
     test_preds[, pred_cols][is.na(test_preds[, pred_cols])] <- 0
 
+    flog.info("Removing test files")
     rm(expiry_test_list)
     
     # Save files
@@ -349,9 +368,6 @@ if (pred_test) {
 } else if (pred_lookup | pred_ensemble) {
     test_preds <- read.csv(file.path(predDir, 'preds_test.csv'))
 }
-flog.info("Removing test files")
-rm(expiry_test_df)
-gc()
                                  
 if (pred_lookup) {
     # Use lookup table to decide which model to use and assign meta preds
@@ -361,14 +377,14 @@ if (pred_lookup) {
         tmp <- lookup_table %>% filter(metric == met) %>%
             select(tld_registrar_index, best_model)
         colnames(tmp)[colnames(tmp) == 'best_model'] <- model_col
-        flog.info(head(tmp))
+        flog.debug(head(tmp))
         test_preds <- test_preds %>% 
             left_join(tmp, by='tld_registrar_index')
         test_preds[,pred_col] <- rep(NA, nrow(test_preds))
         for (model in unique(test_preds[, model_col])) {
             mask <- test_preds[, model_col] == model
             mask[is.na(mask)] = FALSE
-            flog.info(mean(mask))
+            flog.debug(mean(mask))
             test_preds[mask, pred_col] <- test_preds[mask, model]
         }
     }
@@ -403,9 +419,7 @@ if (pred_ensemble) {
 }
                                  
 if (save_bq) {
-    min_date <- min(expiry_test_df$expiry_date)
-    max_date <- max(expiry_test_df$expiry_date)
-    bq_table_name <- paste0("myriad-303821.expiry.dp_expiry_preds_", min_date, "_", max_date)
+    bq_table_name <- paste0("myriad-303821.expiry.dp_expiry_preds_", end_train + 1, "_", end_test)
     flog.info(paste("BQ Table Name:", bq_table_name, "\n"))
     
     # Convert wide to long

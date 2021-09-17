@@ -371,7 +371,9 @@ train_agg_rf <- function(train_list,tld_reseller_list,dp) {
         replace         = FALSE,
         sample.fraction = sample_fraction,
         seed            = 123,
-        respect.unordered.factors=TRUE)  )
+        respect.unordered.factors=TRUE,
+        write.forest    = TRUE,
+        save.memory     = TRUE)  )
     
     return(model)
 }
@@ -432,7 +434,9 @@ train_seg_rf <- function(train_list, reseller_str, dp) {
         replace         = FALSE,
         sample.fraction = sample_fraction,
         seed            = 123,
-        respect.unordered.factors=TRUE)  )
+        respect.unordered.factors=TRUE,
+        write.forest    = TRUE,
+        save.memory     = TRUE)  )
     
     return(model)
 }
@@ -484,7 +488,9 @@ train_seg2_rf <- function(train_list, tld_reseller_str, dp) {
                         replace = FALSE,
                         sample.fraction = sample_fraction,
                         seed            = 123,
-                        respect.unordered.factors=TRUE))
+                        respect.unordered.factors=TRUE,
+                        write.forest    = TRUE,
+                        save.memory     = TRUE))
     return(model)
     
 }
